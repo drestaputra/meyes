@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Protocol
 
 from meyes.camera.models import FramePacket
-from meyes.domain.observations import FaceObservation
+from meyes.domain.observations import FaceObservation, HandObservation
 
 
 class FaceObservationBackend(Protocol):
@@ -18,3 +18,14 @@ class FaceObservationBackend(Protocol):
 
 
 FaceBackendFactory = Callable[[], FaceObservationBackend]
+
+
+class HandObservationBackend(Protocol):
+    """Convert a camera frame into one normalized hand observation."""
+
+    def process(self, packet: FramePacket) -> HandObservation: ...
+
+    def close(self) -> None: ...
+
+
+HandBackendFactory = Callable[[], HandObservationBackend]

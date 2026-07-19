@@ -71,8 +71,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Backlog — Phase 3
 
-- [ ] Integrate MediaPipe Hand Landmarker behind an adapter.
-- [ ] Canonicalize handedness and mirror conversion in one place.
+- [x] Integrate MediaPipe Hand Landmarker behind an adapter.
+- [x] Canonicalize handedness and mirror conversion in one place.
 - [ ] Calculate face-width-normalized temple distance.
 - [ ] Implement temple proximity hysteresis.
 - [ ] Implement tap, hold-start, and hold-end states.

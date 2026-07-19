@@ -33,3 +33,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Live Safe Mode diagnostics with face status, eye openness, inference health, latency, and recent wink events.
 - Placeholder navigation pages that preserve the complete Hallmark-inspired application information architecture.
 - End-to-end physical webcam-to-MediaPipe smoke verification with deterministic worker shutdown.
+- Official local MediaPipe Hand Landmarker asset with checksum verification and native initialization smoke test.
+- Framework-independent hand observations for up to two hands with anatomical handedness and 21 landmarks.
+- Centralized conversion from MediaPipe selfie labels and mirrored coordinates into canonical processing space.
