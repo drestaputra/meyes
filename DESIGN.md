@@ -1,5 +1,11 @@
 # MEYES Native UI Design System
 
+> **Implementation boundary:** This is the target design system for the planned MVP. The
+> current Build Week build implements the native shell, camera dashboard, and Safe Mode
+> diagnostics; several other views remain placeholders and operating-system input is
+> disconnected. See [`README.md`](./README.md) and [`JUDGES.md`](./JUDGES.md) for the exact
+> runnable scope.
+
 Status: initial design baseline  
 Applies to: PySide6 desktop application  
 Reference methodology: [nutlope/hallmark](https://github.com/nutlope/hallmark)  

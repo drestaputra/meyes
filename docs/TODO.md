@@ -12,7 +12,39 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - Run tests and static checks before marking an implementation task complete.
 - Record limitations and follow-up work instead of hiding partial behavior.
 
-## Current milestone — Phase 0 + Phase 1
+## OpenAI Build Week submission gate — due 2026-07-21 17:00 PT
+
+- [x] Confirm an authenticated Devpost registration and pre-draft project record exist.
+- [x] Align README and package metadata with the actual Safe Mode scope.
+- [x] Record explicit GPT-5.6 evidence beginning at commit `57e08f2`.
+- [x] Add source setup, judge quickstart, privacy disclosure, MIT license, Apache-2.0 text,
+  model provenance, and primary third-party notices.
+- [x] Preserve dated, unsquashed build-period commit history.
+- [ ] Human entrant confirms age, residence/domicile, sanctions, conflicts, originality,
+  ownership, third-party rights, and team-representative eligibility under the Official Rules.
+- [ ] Human entrant confirms **Apps for Your Life** as the final category.
+- [ ] Complete the required submitter-type and country fields with actual entrant information.
+- [ ] Human owner confirms `drestaputra` is the correct MIT copyright holder.
+- [ ] Rename and complete Devpost project `1342722` in the entrant's own voice.
+- [ ] Add a human-approved tagline, description, Built With list, repository URL, and video
+  URL to the Devpost project; add the judge quickstart to the optional testing field.
+- [ ] Record the `/feedback` Session ID from the task where most core functionality was built.
+- [ ] Verify the judge quickstart on a clean Windows 10/11 x64 environment.
+- [ ] Make the repository public with its license, or invite `testing@devpost.com` and
+  `build-week-event@openai.com` and verify both can access it.
+- [ ] Add every teammate to Devpost and have them accept before the deadline, if applicable.
+- [ ] Record and publish a clear YouTube demo shorter than 3:00 with audio covering what was
+  built and how Codex and GPT-5.6 were used.
+- [ ] Review the demo for consent, private information, trademarks, and copyrighted media.
+- [ ] Human-edit the Devpost description in English and map demonstrated evidence to all four
+  judging criteria without claiming roadmap features.
+- [ ] Recheck the Official Rules, Updates, required fields, video visibility, and repository
+  access immediately before submission.
+- [ ] Keep the repository, video, and testing path free and accessible through the official
+  judging end (currently 2026-08-05 17:00 PT under the Rules; recheck before submitting).
+- [ ] Confirm the final Devpost state is **Submitted**, not Draft, before the deadline.
+
+## Completed — Phase 0 + Phase 1
 
 ### Repository foundation
 

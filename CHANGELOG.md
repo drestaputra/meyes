@@ -46,3 +46,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Qt-safe composition of face and lower-cadence hand workers with coalesced, generation-gated result and health delivery.
 - Watchdog-driven temple-feature expiry using the configured tracking timeout, including late face/hand re-pairing.
 - Live Safe Mode diagnostics for hand health, detected-hand count, feature availability, and left/right temple-distance ratios.
+- OpenAI Build Week submission record, judge quickstart, build-period evidence, source and model licensing notices, and precise runtime privacy disclosures.
