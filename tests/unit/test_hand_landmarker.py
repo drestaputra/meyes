@@ -57,6 +57,8 @@ def test_no_hands_produces_explicit_empty_observation() -> None:
 
     assert observation.hand_detected is False
     assert observation.hands == ()
+    assert observation.frame_width == 2
+    assert observation.frame_height == 2
     assert observation.processing_latency_ms == pytest.approx(25.0)
 
 

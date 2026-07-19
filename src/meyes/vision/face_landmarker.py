@@ -100,12 +100,15 @@ def observation_from_result(
     processed_timestamp: float,
 ) -> FaceObservation:
     """Convert a MediaPipe-like result into a framework-independent observation."""
+    frame_height, frame_width = packet.frame.shape[:2]
     if not result.face_landmarks:
         return FaceObservation(
             source_sequence=packet.sequence,
             capture_timestamp=packet.capture_timestamp,
             processed_timestamp=processed_timestamp,
             face_detected=False,
+            frame_width=frame_width,
+            frame_height=frame_height,
         )
 
     source_landmarks = result.face_landmarks[0]
@@ -129,6 +132,8 @@ def observation_from_result(
         left_iris_center=_mean_point(landmarks, LEFT_IRIS_INDICES),
         right_iris_center=_mean_point(landmarks, RIGHT_IRIS_INDICES),
         landmarks=landmarks,
+        frame_width=frame_width,
+        frame_height=frame_height,
     )
 
 

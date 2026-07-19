@@ -39,3 +39,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Lower-cadence hand inference worker with wall-clock scheduling and latest-frame processing.
 - Lifecycle result gates that discard in-flight face or hand inference after suspend and stop.
 - Retry-safe vision controller shutdown that retains a worker reference after a timeout.
+- Actual camera-frame dimensions on normalized face and hand observations.
+- Bounded capture-time pairing of lower-cadence hands with fresh face history.
+- Aspect-correct, face-width-normalized index-fingertip distance to anatomical temple anchors.
+- Explicit unavailable, stale, skewed, invalid, out-of-order, and expired temple-feature states.

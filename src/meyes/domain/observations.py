@@ -46,6 +46,8 @@ class HandObservation:
     capture_timestamp: float
     processed_timestamp: float
     hands: tuple[DetectedHand, ...] = ()
+    frame_width: int = 0
+    frame_height: int = 0
 
     @property
     def hand_detected(self) -> bool:
@@ -79,8 +81,60 @@ class FaceObservation:
     left_iris_center: NormalizedPoint | None = None
     right_iris_center: NormalizedPoint | None = None
     landmarks: tuple[NormalizedPoint, ...] = ()
+    frame_width: int = 0
+    frame_height: int = 0
 
     @property
     def processing_latency_ms(self) -> float:
         """Return capture-to-observation latency in milliseconds."""
         return max(0.0, (self.processed_timestamp - self.capture_timestamp) * 1000.0)
+
+
+class TempleFeatureStatus(StrEnum):
+    """Availability state for one paired temple-feature observation."""
+
+    READY = "ready"
+    NO_ELIGIBLE_HANDS = "no_eligible_hands"
+    FACE_NOT_DETECTED = "face_not_detected"
+    FACE_UNAVAILABLE = "face_unavailable"
+    HAND_STALE = "hand_stale"
+    PAIR_SKEW = "pair_skew"
+    INVALID_GEOMETRY = "invalid_geometry"
+    INVALID_TIME = "invalid_time"
+    OUT_OF_ORDER = "out_of_order"
+    EXPIRED = "expired"
+
+
+@dataclass(frozen=True, slots=True)
+class TempleProximity:
+    """One same-side fingertip distance normalized by face width."""
+
+    side: HandSide
+    distance_ratio: float
+    hand_confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class TempleFeatureObservation:
+    """Result of freshness pairing and anatomical temple feature extraction."""
+
+    source_sequence: int
+    capture_timestamp: float
+    processed_timestamp: float
+    status: TempleFeatureStatus
+    face_source_sequence: int | None = None
+    face_capture_timestamp: float | None = None
+    pair_skew_ms: float | None = None
+    proximities: tuple[TempleProximity, ...] = ()
+
+    @property
+    def valid_pair(self) -> bool:
+        """Return whether face/hand timing and face geometry were valid."""
+        return self.status in {
+            TempleFeatureStatus.READY,
+            TempleFeatureStatus.NO_ELIGIBLE_HANDS,
+        }
+
+    def proximity(self, side: HandSide) -> TempleProximity | None:
+        """Return the feature for one anatomical side when available."""
+        return next((item for item in self.proximities if item.side is side), None)

@@ -104,6 +104,7 @@ def observation_from_result(
     source_mirrored: bool,
 ) -> HandObservation:
     """Convert a MediaPipe-like result into canonical hand observations."""
+    frame_height, frame_width = packet.frame.shape[:2]
     hands: list[DetectedHand] = []
     for index, source_landmarks in enumerate(result.hand_landmarks):
         categories = result.handedness[index] if index < len(result.handedness) else ()
@@ -122,6 +123,8 @@ def observation_from_result(
         capture_timestamp=packet.capture_timestamp,
         processed_timestamp=processed_timestamp,
         hands=tuple(hands),
+        frame_width=frame_width,
+        frame_height=frame_height,
     )
 
 

@@ -56,6 +56,8 @@ def test_no_face_produces_explicit_empty_observation() -> None:
     assert observation.left_eye_openness is None
     assert observation.right_eye_openness is None
     assert observation.landmarks == ()
+    assert observation.frame_width == 2
+    assert observation.frame_height == 2
     assert observation.processing_latency_ms == pytest.approx(20.0)
 
 
