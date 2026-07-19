@@ -6,8 +6,11 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig, CameraSettings
+from meyes.config.models import AppConfig, CameraSettings, GestureSettings
 from meyes.util.paths import AppPaths
 
 
@@ -58,3 +61,8 @@ def test_unknown_config_key_is_recovered(tmp_path: Path) -> None:
 
     assert result.warning is not None
     assert result.config == AppConfig()
+
+
+def test_invalid_gesture_threshold_order_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="closed threshold"):
+        GestureSettings(wink_closed_threshold=0.8, wink_open_threshold=0.4)

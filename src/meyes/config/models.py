@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictConfigModel(BaseModel):
@@ -39,6 +39,26 @@ class TrackingSettings(StrictConfigModel):
     emergency_shortcut: str = "CTRL+ALT+F12"
 
 
+class GestureSettings(StrictConfigModel):
+    """Gesture thresholds and timing in milliseconds."""
+
+    wink_closed_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
+    wink_open_threshold: float = Field(default=0.65, ge=0.0, le=1.0)
+    wink_min_duration_ms: int = Field(default=140, ge=50, le=2000)
+    wink_max_duration_ms: int = Field(default=900, ge=100, le=5000)
+    wink_cooldown_ms: int = Field(default=350, ge=0, le=5000)
+    both_eye_sync_window_ms: int = Field(default=90, ge=0, le=1000)
+    tracking_timeout_ms: int = Field(default=250, ge=50, le=5000)
+
+    @model_validator(mode="after")
+    def validate_threshold_order(self) -> Self:
+        if self.wink_closed_threshold >= self.wink_open_threshold:
+            raise ValueError("wink closed threshold must be lower than open threshold")
+        if self.wink_min_duration_ms >= self.wink_max_duration_ms:
+            raise ValueError("wink minimum duration must be lower than maximum duration")
+        return self
+
+
 class UiSettings(StrictConfigModel):
     """Persistent user-interface preferences."""
 
@@ -69,5 +89,6 @@ class AppConfig(StrictConfigModel):
     app: AppSettings = Field(default_factory=AppSettings)
     camera: CameraSettings = Field(default_factory=CameraSettings)
     tracking: TrackingSettings = Field(default_factory=TrackingSettings)
+    gestures: GestureSettings = Field(default_factory=GestureSettings)
     ui: UiSettings = Field(default_factory=UiSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)

@@ -63,10 +63,10 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Integrate MediaPipe Face Landmarker behind an adapter.
 - [x] Emit normalized face and eye observations.
 - [x] Implement independent eye-openness measurements.
-- [ ] Implement left/right wink state machines.
-- [ ] Suppress natural both-eye blink events.
-- [ ] Add cooldown and stale-observation handling.
-- [ ] Add recorded observation fixtures and regression tests.
+- [x] Implement left/right wink state machines.
+- [x] Suppress natural both-eye blink events.
+- [x] Add cooldown and stale-observation handling.
+- [x] Add recorded observation fixtures and regression tests.
 - [ ] Show wink events in diagnostics with OS input disabled.
 
 ## Backlog — Phase 3

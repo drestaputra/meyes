@@ -25,3 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Official local MediaPipe Face Landmarker asset with recorded SHA-256 integrity.
 - Framework-independent face observations with independent eye openness and iris centers.
 - Latest-frame face inference worker with health, FPS, latency, and shutdown reporting.
+- Semantic gesture event domain and central gesture engine.
+- Hysteretic left/right wink state machine with both-eye blink suppression.
+- Configurable minimum/maximum duration, cooldown, synchronization window, and tracking timeout.
+- Recorded normalized observation fixtures for deterministic gesture regression tests.
