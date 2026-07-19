@@ -109,10 +109,10 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Calculate face-width-normalized temple distance.
 - [x] Compose face and hand workers into Qt-safe live diagnostics.
 - [x] Expire live temple features after the configured tracking timeout.
-- [ ] Implement temple proximity hysteresis.
+- [x] Implement temple proximity hysteresis.
 - [ ] Implement tap, hold-start, and hold-end states.
 - [ ] End continuous states after tracking timeout.
-- [ ] Test wrong-hand, unstable-candidate, release, and tracking-loss sequences.
+- [x] Test wrong-hand, unstable-candidate, release, and tracking-loss sequences.
 
 ## Backlog — Phase 4
 

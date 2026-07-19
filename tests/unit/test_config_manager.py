@@ -66,3 +66,8 @@ def test_unknown_config_key_is_recovered(tmp_path: Path) -> None:
 def test_invalid_gesture_threshold_order_is_rejected() -> None:
     with pytest.raises(ValidationError, match="closed threshold"):
         GestureSettings(wink_closed_threshold=0.8, wink_open_threshold=0.4)
+
+
+def test_invalid_temple_threshold_order_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="temple enter ratio"):
+        GestureSettings(temple_enter_ratio=0.1, temple_exit_ratio=0.1)

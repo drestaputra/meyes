@@ -49,6 +49,8 @@ so no model download is needed. Windows may ask for camera permission on first u
    quality.
 7. Bring an index fingertip toward the same-side temple while keeping the face visible.
    Confirm hand health/count and the left/right normalized temple-distance diagnostics update.
+   After a stable approach, the matching state can become **Near**; a stable release becomes
+   **Far**, and tracking loss eventually becomes **Unknown**.
 8. Pause or stop the camera and confirm live observations clear. Close the window and confirm
    the application exits without a hanging worker.
 
@@ -74,6 +76,7 @@ Working in the submitted source build:
 - independent local face and lower-cadence hand inference;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
+- independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
 - watchdog-driven expiry and native Safe Mode diagnostics;
 - deterministic shutdown and race/lifecycle regression coverage.
 
@@ -81,7 +84,7 @@ Intentionally not implemented or not enabled:
 
 - mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- temple tap/hold action classification in the `57e08f2` baseline;
+- temple tap, hold-start, and hold-end event classification;
 - user bindings, profiles, global shortcuts, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any

@@ -1,6 +1,6 @@
 # MEYES
 
-MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, and exposes those signals in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
+MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, and stabilizes independent Near/Far/Unknown temple states in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
 
 The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Those mappings are roadmap items, not claims about the current runnable build.
 
@@ -8,7 +8,7 @@ The planned product controls are gaze-driven pointer movement, wink clicks, and 
 
 ## Development status
 
-Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is in progress with local face and lower-cadence hand inference composed into Qt-safe diagnostics, live aspect-correct temple-distance features, and watchdog-driven freshness expiry. Operating-system input remains intentionally disabled while temple gesture semantics are developed.
+Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is in progress with local face and lower-cadence hand inference composed into Qt-safe diagnostics, live aspect-correct temple-distance features, per-side hysteretic proximity states, and watchdog-driven freshness expiry. Operating-system input remains intentionally disabled while tap and hold semantics are developed.
 
 See:
 
@@ -43,7 +43,7 @@ The human author chose the local-first architecture, Safe Mode boundary, gesture
 
 ```powershell
 uv python install 3.11
-uv sync --group dev
+uv sync --frozen --group dev
 ```
 
 The two MediaPipe model bundles used by the source build are already present under `resources/models/`. Their official component model cards identify Apache License 2.0, and their source URLs, sizes, and SHA-256 checksums are recorded.

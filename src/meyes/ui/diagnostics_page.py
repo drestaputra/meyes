@@ -25,6 +25,7 @@ from meyes.vision.controller import (
     hand_observation,
     hand_vision_health,
     temple_feature_observation,
+    temple_proximity_snapshot,
     vision_health,
 )
 
@@ -70,6 +71,7 @@ class DiagnosticsPage(QWidget):
         self._clear_observation()
         self._clear_hand_observation()
         self._clear_temple_feature()
+        self._clear_temple_proximity()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -148,6 +150,10 @@ class DiagnosticsPage(QWidget):
         self._hand_fps_value = QLabel("—")
         self._hand_latency_value = QLabel("—")
         self._temple_status_value = QLabel("Unavailable")
+        self._left_temple_state_value = QLabel("Unknown")
+        self._left_temple_state_value.setObjectName("leftTempleStateValue")
+        self._right_temple_state_value = QLabel("Unknown")
+        self._right_temple_state_value.setObjectName("rightTempleStateValue")
         self._left_temple_value = QLabel("—")
         self._left_temple_value.setObjectName("leftTempleValue")
         self._right_temple_value = QLabel("—")
@@ -157,6 +163,8 @@ class DiagnosticsPage(QWidget):
         form.addRow("Inference FPS", self._hand_fps_value)
         form.addRow("Latency", self._hand_latency_value)
         form.addRow("Feature state", self._temple_status_value)
+        form.addRow("Left state", self._left_temple_state_value)
+        form.addRow("Right state", self._right_temple_state_value)
         form.addRow("Left ratio", self._left_temple_value)
         form.addRow("Right ratio", self._right_temple_value)
         note = QLabel("Ratio = fingertip distance ÷ measured face width")
@@ -208,6 +216,8 @@ class DiagnosticsPage(QWidget):
         self._controller.hand_health_changed.connect(self._on_hand_health)
         self._controller.temple_feature_changed.connect(self._on_temple_feature)
         self._controller.temple_feature_cleared.connect(self._clear_temple_feature)
+        self._controller.temple_proximity_changed.connect(self._on_temple_proximity)
+        self._controller.temple_proximity_cleared.connect(self._clear_temple_proximity)
         self._controller.event_detected.connect(self._on_event)
 
     @Slot(object)
@@ -259,6 +269,12 @@ class DiagnosticsPage(QWidget):
         )
 
     @Slot(object)
+    def _on_temple_proximity(self, payload: object) -> None:
+        snapshot = temple_proximity_snapshot(payload)
+        self._left_temple_state_value.setText(snapshot.left.value.capitalize())
+        self._right_temple_state_value.setText(snapshot.right.value.capitalize())
+
+    @Slot(object)
     def _on_event(self, payload: object) -> None:
         event = gesture_event(payload)
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -285,6 +301,11 @@ class DiagnosticsPage(QWidget):
         self._temple_status_value.setText("Unavailable")
         self._left_temple_value.setText("—")
         self._right_temple_value.setText("—")
+
+    @Slot()
+    def _clear_temple_proximity(self) -> None:
+        self._left_temple_state_value.setText("Unknown")
+        self._right_temple_state_value.setText("Unknown")
 
     @Slot()
     def _clear_events(self) -> None:

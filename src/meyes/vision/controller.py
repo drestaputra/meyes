@@ -21,6 +21,7 @@ from meyes.domain.observations import (
     TempleFeatureStatus,
 )
 from meyes.gestures.engine import GestureEngine
+from meyes.gestures.temple_proximity import TempleProximitySnapshot
 from meyes.util.logging import get_logger
 from meyes.vision.hand_worker import HandVisionHealth, HandVisionWorker
 from meyes.vision.interface import FaceBackendFactory, HandBackendFactory
@@ -39,6 +40,8 @@ class VisionController(QObject):
     hand_health_changed = Signal(object)
     temple_feature_changed = Signal(object)
     temple_feature_cleared = Signal()
+    temple_proximity_changed = Signal(object)
+    temple_proximity_cleared = Signal()
     event_detected = Signal(object)
 
     _face_result_queued = Signal(object)
@@ -159,6 +162,7 @@ class VisionController(QObject):
         self.observation_cleared.emit()
         self.hand_observation_cleared.emit()
         self.temple_feature_cleared.emit()
+        self.temple_proximity_cleared.emit()
 
     @Slot()
     def stop(self) -> None:
@@ -172,9 +176,14 @@ class VisionController(QObject):
         """Publish one expiry transition when paired features become stale."""
         if not self._delivery_is_enabled():
             return
+        timestamp = self._clock()
         expired = self._temple_tracker.expire()
         if expired is not None:
-            self.temple_feature_changed.emit(expired)
+            self._publish_temple_feature(expired)
+        with self._gesture_lock:
+            proximity = self._gesture_engine.poll_temple(timestamp)
+        if proximity is not None:
+            self.temple_proximity_changed.emit(proximity)
 
     def _start_face_worker(self) -> None:
         worker = self._face_worker
@@ -339,7 +348,7 @@ class VisionController(QObject):
             return
         if not self._capture_is_fresh(accepted.capture_timestamp):
             with self._gesture_lock:
-                self._gesture_engine.reset()
+                self._gesture_engine.reset_face()
             self.observation_cleared.emit()
             self.poll_timeouts()
             return
@@ -348,7 +357,7 @@ class VisionController(QObject):
         if face_added:
             refreshed = self._temple_tracker.recompute_latest_hand()
             if refreshed is not None:
-                self.temple_feature_changed.emit(refreshed)
+                self._publish_temple_feature(refreshed)
         with self._gesture_lock:
             events = self._gesture_engine.update_face(accepted)
         self._publish_events(events)
@@ -371,8 +380,7 @@ class VisionController(QObject):
             return
         feature = self._temple_tracker.update_hand(accepted)
         self.hand_observation_changed.emit(accepted)
-        if feature.status is not TempleFeatureStatus.OUT_OF_ORDER:
-            self.temple_feature_changed.emit(feature)
+        self._publish_temple_feature(feature)
 
     @Slot(object)
     def _publish_face_health(self, _marker: object) -> None:
@@ -411,6 +419,16 @@ class VisionController(QObject):
                 },
             )
             self.event_detected.emit(event)
+
+    def _publish_temple_feature(self, feature: TempleFeatureObservation) -> None:
+        """Publish raw diagnostics and derived state from one serialized path."""
+        if feature.status is TempleFeatureStatus.OUT_OF_ORDER:
+            return
+        self.temple_feature_changed.emit(feature)
+        with self._gesture_lock:
+            proximity = self._gesture_engine.update_temple(feature)
+        if proximity is not None:
+            self.temple_proximity_changed.emit(proximity)
 
     def _enable_delivery(self) -> None:
         with self._delivery_lock:
@@ -526,6 +544,13 @@ def temple_feature_observation(value: object) -> TempleFeatureObservation:
     """Validate a Qt object signal payload at the UI boundary."""
     if not isinstance(value, TempleFeatureObservation):
         raise TypeError("Expected TempleFeatureObservation")
+    return value
+
+
+def temple_proximity_snapshot(value: object) -> TempleProximitySnapshot:
+    """Validate a Qt object signal payload at the UI boundary."""
+    if not isinstance(value, TempleProximitySnapshot):
+        raise TypeError("Expected TempleProximitySnapshot")
     return value
 
 

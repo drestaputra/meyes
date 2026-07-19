@@ -48,6 +48,9 @@ class GestureSettings(StrictConfigModel):
     wink_max_duration_ms: int = Field(default=900, ge=100, le=5000)
     wink_cooldown_ms: int = Field(default=350, ge=0, le=5000)
     both_eye_sync_window_ms: int = Field(default=90, ge=0, le=1000)
+    temple_enter_ratio: float = Field(default=0.075, ge=0.0, le=1.0)
+    temple_exit_ratio: float = Field(default=0.095, ge=0.0, le=1.0)
+    temple_stabilization_ms: int = Field(default=180, ge=0, le=5000)
     tracking_timeout_ms: int = Field(default=250, ge=50, le=5000)
 
     @model_validator(mode="after")
@@ -56,6 +59,8 @@ class GestureSettings(StrictConfigModel):
             raise ValueError("wink closed threshold must be lower than open threshold")
         if self.wink_min_duration_ms >= self.wink_max_duration_ms:
             raise ValueError("wink minimum duration must be lower than maximum duration")
+        if self.temple_enter_ratio >= self.temple_exit_ratio:
+            raise ValueError("temple enter ratio must be lower than exit ratio")
         return self
 
 

@@ -22,6 +22,7 @@ from meyes.domain.observations import (
     TempleFeatureObservation,
     TempleFeatureStatus,
 )
+from meyes.gestures.temple_proximity import ProximityState, TempleProximitySnapshot
 from meyes.vision.controller import VisionController
 from meyes.vision.hand_worker import HandVisionHealth
 from meyes.vision.worker import VisionHealth, VisionShutdownError, VisionStatus
@@ -144,13 +145,27 @@ def feature_face_observation(sequence: int, captured: float) -> FaceObservation:
     )
 
 
-def feature_hand_observation(sequence: int, captured: float) -> HandObservation:
-    return FeatureHandBackend().process(
-        FramePacket(
-            sequence=sequence,
-            capture_timestamp=captured,
-            frame=np.zeros((480, 640, 3), dtype=np.uint8),
-        )
+def feature_hand_observation(
+    sequence: int,
+    captured: float,
+    *,
+    fingertip_x: float = 0.2,
+) -> HandObservation:
+    landmarks = [NormalizedPoint(0.5, 0.5) for _ in range(21)]
+    landmarks[8] = NormalizedPoint(fingertip_x, 0.4)
+    return HandObservation(
+        source_sequence=sequence,
+        capture_timestamp=captured,
+        processed_timestamp=captured + 0.02,
+        hands=(
+            DetectedHand(
+                side=HandSide.RIGHT,
+                confidence=0.9,
+                landmarks=tuple(landmarks),
+            ),
+        ),
+        frame_width=640,
+        frame_height=480,
     )
 
 
@@ -272,6 +287,243 @@ def test_controller_composes_hand_features_and_watchdog_without_actions(qtbot: Q
     assert len(features) == feature_count
     assert face_backend.closed.is_set()
     assert hand_backend.closed.is_set()
+
+
+def test_raw_temple_features_drive_stabilized_proximity_without_events(qtbot: QtBot) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        hand_backend_factory=FeatureHandBackend,
+        clock=clock,
+    )
+    snapshots: list[TempleProximitySnapshot] = []
+    events: list[GestureEvent] = []
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(events.append)
+    controller.start()
+    controller._watchdog.stop()
+
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 10.0),
+        )
+    with qtbot.waitSignal(controller.temple_feature_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(1, 10.0),
+        )
+
+    clock.now = 10.19
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(2, 10.19),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(2, 10.19),
+        )
+    controller.stop()
+
+    assert snapshots[-1].left is ProximityState.FAR
+    near_snapshot = snapshots[-1]
+    assert near_snapshot.right is ProximityState.NEAR
+    assert events == []
+
+
+def test_face_later_recompute_drives_proximity_without_new_hand_result(qtbot: QtBot) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        hand_backend_factory=FeatureHandBackend,
+        clock=clock,
+    )
+    features: list[TempleFeatureObservation] = []
+    snapshots: list[TempleProximitySnapshot] = []
+    events: list[GestureEvent] = []
+    controller.temple_feature_changed.connect(features.append)
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(events.append)
+    controller.start()
+    controller._watchdog.stop()
+
+    with qtbot.waitSignal(controller.temple_feature_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(1, 9.95, fingertip_x=0.5),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 9.95),
+        )
+    controller.stop()
+
+    assert [feature.status for feature in features] == [
+        TempleFeatureStatus.FACE_UNAVAILABLE,
+        TempleFeatureStatus.READY,
+    ]
+    assert snapshots[-1].left is ProximityState.FAR
+    assert snapshots[-1].right is ProximityState.FAR
+    assert events == []
+
+
+def test_invalid_latest_feature_does_not_block_proximity_watchdog(qtbot: QtBot) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        hand_backend_factory=FeatureHandBackend,
+        clock=clock,
+    )
+    features: list[TempleFeatureObservation] = []
+    snapshots: list[TempleProximitySnapshot] = []
+    events: list[GestureEvent] = []
+    controller.temple_feature_changed.connect(features.append)
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(events.append)
+    controller.start()
+    controller._watchdog.stop()
+
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 10.0),
+        )
+    with qtbot.waitSignal(controller.temple_feature_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(1, 10.0),
+        )
+    clock.now = 10.19
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(2, 10.19),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(2, 10.19),
+        )
+    near_snapshot = snapshots[-1]
+    assert near_snapshot.right is ProximityState.NEAR
+
+    clock.now = 10.20
+    missing_face = FaceObservation(
+        source_sequence=3,
+        capture_timestamp=10.20,
+        processed_timestamp=10.21,
+        face_detected=False,
+    )
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(controller._face_worker_serial, missing_face)
+    with qtbot.waitSignal(controller.temple_feature_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(3, 10.20),
+        )
+    assert features[-1].status is TempleFeatureStatus.FACE_NOT_DETECTED
+
+    clock.now = 10.45
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller.poll_timeouts()
+    controller.stop()
+
+    assert features[-1].status is TempleFeatureStatus.FACE_NOT_DETECTED
+    expired_snapshot = snapshots[-1]
+    assert expired_snapshot.left is ProximityState.UNKNOWN
+    assert expired_snapshot.right is ProximityState.UNKNOWN
+    assert events == []
+
+
+def test_stale_face_resets_wink_state_without_silently_resetting_temple(
+    qtbot: QtBot,
+) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        hand_backend_factory=FeatureHandBackend,
+        clock=clock,
+    )
+    snapshots: list[TempleProximitySnapshot] = []
+    events: list[GestureEvent] = []
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(events.append)
+    controller.start()
+    controller._watchdog.stop()
+
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 10.0),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(1, 10.0, fingertip_x=0.5),
+        )
+    assert snapshots[-1].right is ProximityState.FAR
+
+    clock.now = 10.10
+    with qtbot.waitSignal(controller.observation_cleared, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(2, 9.80),
+        )
+
+    assert controller._gesture_engine.temple_proximity_detector.snapshot.right is (
+        ProximityState.FAR
+    )
+    assert len(snapshots) == 1
+    assert events == []
+    controller.stop()
+
+
+def test_suspend_clears_derived_temple_proximity(qtbot: QtBot) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        hand_backend_factory=FeatureHandBackend,
+        clock=clock,
+    )
+    snapshots: list[TempleProximitySnapshot] = []
+    events: list[GestureEvent] = []
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(events.append)
+    controller.start()
+    controller._watchdog.stop()
+
+    with qtbot.waitSignal(controller.observation_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 10.0),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_changed, timeout=1000):
+        controller._queue_hand_result(
+            controller._hand_worker_serial,
+            feature_hand_observation(1, 10.0, fingertip_x=0.5),
+        )
+    with qtbot.waitSignal(controller.temple_proximity_cleared, timeout=1000):
+        controller.suspend()
+
+    assert snapshots[-1].right is ProximityState.FAR
+    assert controller._gesture_engine.temple_proximity_detector.snapshot.right is (
+        ProximityState.UNKNOWN
+    )
+    assert events == []
+    controller.stop()
 
 
 def test_old_generation_marker_drops_stale_result_without_losing_current(
