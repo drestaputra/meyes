@@ -58,7 +58,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Update the root changelog and add a dated entry under `docs/changelog/`.
 - [x] Document commands, results, changed files, and known limitations.
 
-## Backlog — Phase 2
+## Completed — Phase 2
 
 - [x] Integrate MediaPipe Face Landmarker behind an adapter.
 - [x] Emit normalized face and eye observations.
@@ -67,7 +67,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Suppress natural both-eye blink events.
 - [x] Add cooldown and stale-observation handling.
 - [x] Add recorded observation fixtures and regression tests.
-- [ ] Show wink events in diagnostics with OS input disabled.
+- [x] Show wink events in diagnostics with OS input disabled.
 
 ## Backlog — Phase 3
 

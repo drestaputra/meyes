@@ -38,7 +38,7 @@ class FakeFaceBackend:
 def test_vision_worker_publishes_and_closes_backend() -> None:
     frames = LatestFrameBuffer()
     backend = FakeFaceBackend()
-    worker = FaceVisionWorker(frames, backend, poll_timeout=0.01)
+    worker = FaceVisionWorker(frames, lambda: backend, poll_timeout=0.01)
 
     worker.start()
     frames.publish(np.zeros((1, 1, 3), dtype=np.uint8), 1.0)
@@ -54,7 +54,7 @@ def test_vision_worker_publishes_and_closes_backend() -> None:
 def test_vision_worker_skips_stale_queued_frames() -> None:
     frames = LatestFrameBuffer()
     backend = FakeFaceBackend(delay=0.05)
-    worker = FaceVisionWorker(frames, backend, poll_timeout=0.01)
+    worker = FaceVisionWorker(frames, lambda: backend, poll_timeout=0.01)
 
     worker.start()
     frames.publish(np.zeros((1, 1, 3), dtype=np.uint8), 1.0)

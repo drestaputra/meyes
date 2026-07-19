@@ -114,25 +114,55 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QCheckBox {{
             spacing: 8px;
         }}
-        QListWidget {{
+        QListWidget#mainNavigation {{
             background: {color.surface};
             border: 0;
             border-right: 1px solid {color.border};
             outline: 0;
             padding: 12px 8px;
         }}
-        QListWidget::item {{
+        QListWidget#mainNavigation::item {{
             border-radius: 4px;
             min-height: 36px;
             padding: 0 12px;
         }}
-        QListWidget::item:selected {{
+        QListWidget#mainNavigation::item:selected {{
             background: {color.surface_subtle};
             color: {color.ink};
             font-weight: 600;
         }}
-        QListWidget::item:focus {{
+        QListWidget#mainNavigation::item:focus {{
             border: 2px solid {color.focus};
+        }}
+        QListWidget#eventLog {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 4px;
+        }}
+        QListWidget#eventLog::item {{
+            min-height: 32px;
+            border-bottom: 1px solid {color.border};
+            padding: 0 8px;
+        }}
+        QLabel#safeBanner {{
+            background: {color.surface};
+            color: {color.success};
+            border: 1px solid {color.success};
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-weight: 650;
+        }}
+        QProgressBar {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            min-height: 26px;
+            text-align: center;
+        }}
+        QProgressBar::chunk {{
+            background: {color.accent};
+            border-radius: 3px;
         }}
         QPushButton {{
             background: {color.surface};

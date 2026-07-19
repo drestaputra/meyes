@@ -13,7 +13,7 @@ from meyes.camera.metrics import FrameRateMeter
 from meyes.domain.observations import FaceObservation
 from meyes.util.logging import get_logger
 from meyes.vision.buffer import LatestFaceObservationBuffer
-from meyes.vision.interface import FaceObservationBackend
+from meyes.vision.interface import FaceBackendFactory, FaceObservationBackend
 
 
 class VisionStatus(StrEnum):
@@ -52,7 +52,7 @@ class FaceVisionWorker:
     def __init__(
         self,
         frames: LatestFrameBuffer,
-        backend: FaceObservationBackend,
+        backend_factory: FaceBackendFactory,
         *,
         observations: LatestFaceObservationBuffer | None = None,
         observation_callback: VisionCallback | None = None,
@@ -60,7 +60,8 @@ class FaceVisionWorker:
         poll_timeout: float = 0.1,
     ) -> None:
         self._frames = frames
-        self._backend = backend
+        self._backend_factory = backend_factory
+        self._backend: FaceObservationBackend | None = None
         self._observations = observations or LatestFaceObservationBuffer()
         self._observation_callback = observation_callback
         self._health_callback = health_callback
@@ -111,10 +112,15 @@ class FaceVisionWorker:
             raise VisionShutdownError("Face pipeline did not stop before timeout")
         self._thread = None
 
+    def invalidate_observations(self) -> None:
+        """Clear stale face state when camera capture is unavailable."""
+        self._observations.clear()
+
     def _run(self) -> None:
         last_sequence = 0
         crashed = False
         try:
+            self._backend = self._backend_factory()
             self._set_health(VisionStatus.RUNNING, "Waiting for camera frames")
             while not self._stop_requested.is_set():
                 packet = self._frames.wait_for_new(
@@ -124,7 +130,10 @@ class FaceVisionWorker:
                 if packet is None:
                     continue
                 last_sequence = packet.sequence
-                observation = self._backend.process(packet)
+                backend = self._backend
+                if backend is None:
+                    raise RuntimeError("Face backend was not initialized")
+                observation = backend.process(packet)
                 inference_fps = self._fps.tick(time.monotonic())
                 self._observations.publish(observation)
                 self._set_health(
@@ -142,9 +151,11 @@ class FaceVisionWorker:
             self._set_health(VisionStatus.ERROR, "Face pipeline failed", last_error=str(error))
         finally:
             try:
-                self._backend.close()
+                if self._backend is not None:
+                    self._backend.close()
             except Exception:
                 self._logger.exception("face_backend_close_failed")
+            self._backend = None
             self._observations.clear()
             if not crashed:
                 self._set_health(VisionStatus.STOPPED, "Face pipeline is stopped")

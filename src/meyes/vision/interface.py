@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Protocol
 
 from meyes.camera.models import FramePacket
@@ -14,3 +15,6 @@ class FaceObservationBackend(Protocol):
     def process(self, packet: FramePacket) -> FaceObservation: ...
 
     def close(self) -> None: ...
+
+
+FaceBackendFactory = Callable[[], FaceObservationBackend]

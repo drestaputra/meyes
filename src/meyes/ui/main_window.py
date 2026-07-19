@@ -10,17 +10,23 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMainWindow,
     QPushButton,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
+from meyes.camera.models import CameraHealth, CameraStatus
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CameraSettings
 from meyes.ui.camera_dashboard import CameraDashboard
+from meyes.ui.diagnostics_page import DiagnosticsPage
+from meyes.ui.placeholder_page import PlaceholderPage
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
+from meyes.vision.controller import VisionController
+from meyes.vision.interface import FaceBackendFactory
 
 NAVIGATION_ITEMS = (
     "Dashboard",
@@ -41,6 +47,7 @@ class MainWindow(QMainWindow):
         self,
         config: AppConfig,
         camera_backend: CameraBackend,
+        face_backend_factory: FaceBackendFactory,
         config_manager: ConfigManager | None = None,
     ) -> None:
         super().__init__()
@@ -48,7 +55,15 @@ class MainWindow(QMainWindow):
         self._config_manager = config_manager
         self._logger = get_logger("APP")
         self._camera_controller = CameraController(camera_backend, config.camera, parent=self)
+        self._vision_controller = VisionController(
+            self._camera_controller.frame_buffer,
+            face_backend_factory,
+            config.gestures,
+            parent=self,
+        )
+        self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)
+        self._camera_controller.health_changed.connect(self._sync_vision_lifecycle)
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
@@ -100,15 +115,30 @@ class MainWindow(QMainWindow):
         layout.setSpacing(0)
 
         navigation = QListWidget()
+        navigation.setObjectName("mainNavigation")
         navigation.setFixedWidth(210)
         navigation.addItems(NAVIGATION_ITEMS)
         selected_row = max(0, NAVIGATION_ITEMS.index(self._config.ui.selected_page))
         navigation.setCurrentRow(selected_row)
         navigation.setAccessibleName("Main navigation")
 
-        content = CameraDashboard(self._camera_controller)
+        pages = QStackedWidget()
+        pages.setObjectName("mainPages")
+        page_widgets: dict[str, QWidget] = {
+            "Dashboard": CameraDashboard(self._camera_controller),
+            "Diagnostics": DiagnosticsPage(self._vision_controller),
+        }
+        for item in NAVIGATION_ITEMS:
+            page = page_widgets.get(item) or PlaceholderPage(
+                item,
+                f"{item} is planned for a later implementation phase. "
+                "The navigation entry is visible now so the product structure remains stable.",
+            )
+            pages.addWidget(page)
+        pages.setCurrentIndex(selected_row)
+        navigation.currentRowChanged.connect(pages.setCurrentIndex)
         layout.addWidget(navigation)
-        layout.addWidget(content, stretch=1)
+        layout.addWidget(pages, stretch=1)
         return workspace
 
     def _build_safety_bar(self) -> QFrame:
@@ -132,7 +162,23 @@ class MainWindow(QMainWindow):
         if self._config_manager is not None:
             self._config_manager.save(self._config)
 
+    def _sync_vision_lifecycle(self, payload: object) -> None:
+        if not isinstance(payload, CameraHealth):
+            self._logger.error("invalid_camera_health_signal")
+            return
+        status = payload.status
+        if status is self._last_camera_status:
+            return
+        self._last_camera_status = status
+        if status is CameraStatus.RUNNING:
+            self._vision_controller.start()
+        elif status in {CameraStatus.STOPPING, CameraStatus.STOPPED}:
+            self._vision_controller.stop()
+        else:
+            self._vision_controller.suspend()
+
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""
+        self._vision_controller.stop()
         self._camera_controller.shutdown()
         event.accept()

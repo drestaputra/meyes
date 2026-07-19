@@ -29,3 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Hysteretic left/right wink state machine with both-eye blink suppression.
 - Configurable minimum/maximum duration, cooldown, synchronization window, and tracking timeout.
 - Recorded normalized observation fixtures for deterministic gesture regression tests.
+- Qt vision controller that coordinates camera frames, face inference, and semantic gesture events.
+- Live Safe Mode diagnostics with face status, eye openness, inference health, latency, and recent wink events.
+- Placeholder navigation pages that preserve the complete Hallmark-inspired application information architecture.
+- End-to-end physical webcam-to-MediaPipe smoke verification with deterministic worker shutdown.

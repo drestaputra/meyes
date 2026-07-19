@@ -16,7 +16,7 @@ Every gesture can be rebound to supported mouse or keyboard actions. Camera proc
 
 ## Development status
 
-Phase 0 and Phase 1 are complete. Phase 2 is in progress with the official MediaPipe Face Landmarker model, normalized face/eye observations, latest-frame inference, and deterministic left/right wink events with both-eye blink suppression. Live diagnostics is the next iteration; OS input remains disabled.
+Phase 0, Phase 1, and Phase 2 are complete. The application now connects local camera capture to MediaPipe face observations, deterministic wink events, and a live Safe Mode diagnostics page. Operating-system input remains intentionally disabled while hand gestures are developed in Phase 3.
 
 See:
 

@@ -12,6 +12,7 @@ from meyes.config.manager import ConfigManager
 from meyes.ui.main_window import MainWindow
 from meyes.util.logging import get_logger, setup_logging
 from meyes.util.paths import AppPaths
+from meyes.vision.face_landmarker import MediaPipeFaceLandmarker
 
 
 def run(argv: Sequence[str] | None = None) -> int:
@@ -40,6 +41,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     window = MainWindow(
         config_result.config,
         camera_backend=OpenCVCameraBackend(),
+        face_backend_factory=MediaPipeFaceLandmarker,
         config_manager=config_manager,
     )
     window.show()

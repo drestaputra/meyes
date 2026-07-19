@@ -7,9 +7,10 @@ from typing import NoReturn
 
 from pytestqt.qtbot import QtBot
 
-from meyes.camera.models import CameraDevice, CameraOptions
+from meyes.camera.models import CameraDevice, CameraOptions, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig
+from meyes.domain.observations import FaceObservation
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
 
@@ -27,8 +28,20 @@ class SelectedBackend(EmptyBackend):
         return [CameraDevice(index=2, name="External camera")]
 
 
+class EmptyFaceBackend:
+    def process(self, packet: FramePacket) -> FaceObservation:
+        raise RuntimeError("Face backend is not used in this test")
+
+    def close(self) -> None:
+        return None
+
+
 def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
-    window = MainWindow(AppConfig(), camera_backend=EmptyBackend())
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+    )
     qtbot.addWidget(window)
 
     assert window.windowTitle() == "Meyes"
@@ -41,6 +54,7 @@ def test_discovered_camera_selection_is_persisted(qtbot: QtBot, tmp_path: Path) 
     window = MainWindow(
         AppConfig(),
         camera_backend=SelectedBackend(),
+        face_backend_factory=EmptyFaceBackend,
         config_manager=manager,
     )
     qtbot.addWidget(window)
