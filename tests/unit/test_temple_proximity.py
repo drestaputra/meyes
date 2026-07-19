@@ -231,6 +231,63 @@ def test_expired_status_resets_both_sides_immediately() -> None:
     )
 
 
+def test_release_candidate_onset_survives_until_stable_far_transition() -> None:
+    detector = TempleProximityDetector()
+    detector.update(feature(1, 0.000, right=0.20))
+    detector.update(feature(2, 0.100, right=0.05))
+    detector.update(feature(3, 0.281, right=0.05))
+    detector.update(feature(4, 0.500, right=0.05))
+    detector.update(feature(5, 0.700, right=0.05))
+
+    pending = detector.update(feature(6, 0.800, right=0.20))
+    completed = detector.update(feature(7, 0.981, right=0.20))
+
+    assert pending.right is ProximityState.NEAR
+    assert pending.right_release_started_at == 0.800
+    assert completed.right is ProximityState.FAR
+    assert completed.right_release_started_at == 0.800
+
+
+def test_regressing_expiry_processed_time_does_not_reset_active_state() -> None:
+    detector = TempleProximityDetector(TempleProximitySettings(stabilization=0))
+    detector.update(feature(1, 0.10, right=0.05, processed_timestamp=0.20))
+    active = detector.update(feature(2, 0.11, right=0.05, processed_timestamp=0.30))
+
+    regressing = detector.update(
+        feature(
+            2,
+            0.11,
+            right=0.05,
+            processed_timestamp=0.25,
+            status=TempleFeatureStatus.EXPIRED,
+        )
+    )
+    expired = detector.poll(0.56)
+
+    assert active.right is ProximityState.NEAR
+    assert regressing.right is ProximityState.NEAR
+    assert expired.right is ProximityState.UNKNOWN
+
+
+def test_malformed_expired_status_does_not_reset_before_a_valid_watchdog_time() -> None:
+    detector = TempleProximityDetector()
+    detector.update(feature(1, 1.0, left=0.07))
+    detector.update(feature(2, 1.181, left=0.07))
+
+    malformed = detector.update(
+        feature(
+            2,
+            1.2,
+            status=TempleFeatureStatus.EXPIRED,
+            processed_timestamp=math.nan,
+        )
+    )
+    expired = detector.poll(1.5)
+
+    assert malformed.left is ProximityState.NEAR
+    assert expired.left is ProximityState.UNKNOWN
+
+
 def test_poll_timeout_is_strict_and_idempotent() -> None:
     detector = TempleProximityDetector()
     detector.update(feature(1, 10.0, left=0.2))

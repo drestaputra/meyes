@@ -51,6 +51,8 @@ class GestureSettings(StrictConfigModel):
     temple_enter_ratio: float = Field(default=0.075, ge=0.0, le=1.0)
     temple_exit_ratio: float = Field(default=0.095, ge=0.0, le=1.0)
     temple_stabilization_ms: int = Field(default=180, ge=0, le=5000)
+    temple_hold_threshold_ms: int = Field(default=550, ge=50, le=5000)
+    temple_cooldown_ms: int = Field(default=250, ge=0, le=5000)
     tracking_timeout_ms: int = Field(default=250, ge=50, le=5000)
 
     @model_validator(mode="after")

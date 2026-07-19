@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
@@ -277,11 +278,15 @@ class DiagnosticsPage(QWidget):
     @Slot(object)
     def _on_event(self, payload: object) -> None:
         event = gesture_event(payload)
-        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        self._event_log.insertItem(
-            0,
-            f"{timestamp}  {event.type.value}  {event.duration_ms:.0f} ms",
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        label = event.type.value.replace("_TEMPLE_", " ").replace("_", " ")
+        item = QListWidgetItem(
+            f"{timestamp}  {label}  {event.duration_ms:.0f} ms",
         )
+        item.setToolTip(
+            f"{event.type.value} · source {event.source_sequence} · {event.duration_ms:.1f} ms"
+        )
+        self._event_log.insertItem(0, item)
         while self._event_log.count() > 50:
             self._event_log.takeItem(self._event_log.count() - 1)
 

@@ -1,6 +1,6 @@
 # MEYES
 
-MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, and stabilizes independent Near/Far/Unknown temple states in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
+MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
 
 The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Those mappings are roadmap items, not claims about the current runnable build.
 
@@ -8,7 +8,7 @@ The planned product controls are gaze-driven pointer movement, wink clicks, and 
 
 ## Development status
 
-Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is in progress with local face and lower-cadence hand inference composed into Qt-safe diagnostics, live aspect-correct temple-distance features, per-side hysteretic proximity states, and watchdog-driven freshness expiry. Operating-system input remains intentionally disabled while tap and hold semantics are developed.
+Phase 0 through Phase 3 are complete. Local face and lower-cadence hand inference feed Qt-safe diagnostics, live aspect-correct temple-distance features, per-side hysteretic proximity states, and deterministic tap/hold semantics with watchdog and lifecycle termination. Operating-system input remains intentionally disabled before Phase 4 bindings and action execution.
 
 See:
 

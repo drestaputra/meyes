@@ -1,0 +1,6 @@
+[
+  {"t_ms": 0, "left": "far", "right": "far"},
+  {"t_ms": 100, "left": "far", "right": "near"},
+  {"t_ms": 350, "left": "far", "right": "near"},
+  {"t_ms": 400, "left": "far", "right": "far"}
+]

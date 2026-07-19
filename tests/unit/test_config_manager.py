@@ -71,3 +71,14 @@ def test_invalid_gesture_threshold_order_is_rejected() -> None:
 def test_invalid_temple_threshold_order_is_rejected() -> None:
     with pytest.raises(ValidationError, match="temple enter ratio"):
         GestureSettings(temple_enter_ratio=0.1, temple_exit_ratio=0.1)
+
+
+def test_temple_semantic_timing_defaults_and_bounds() -> None:
+    settings = GestureSettings()
+
+    assert settings.temple_hold_threshold_ms == 550
+    assert settings.temple_cooldown_ms == 250
+    with pytest.raises(ValidationError, match="temple_hold_threshold_ms"):
+        GestureSettings(temple_hold_threshold_ms=49)
+    with pytest.raises(ValidationError, match="temple_cooldown_ms"):
+        GestureSettings(temple_cooldown_ms=-1)

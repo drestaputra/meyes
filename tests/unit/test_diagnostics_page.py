@@ -28,7 +28,7 @@ def unused_backend() -> NoReturn:
     raise RuntimeError("Backend is not started in this UI test")
 
 
-def test_diagnostics_renders_face_hand_temple_and_wink_signals(qtbot: QtBot) -> None:
+def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) -> None:
     controller = VisionController(LatestFrameBuffer(), unused_backend, GestureSettings())
     page = DiagnosticsPage(controller)
     qtbot.addWidget(page)
@@ -40,11 +40,17 @@ def test_diagnostics_renders_face_hand_temple_and_wink_signals(qtbot: QtBot) -> 
         left_eye_openness=0.25,
         right_eye_openness=0.85,
     )
-    event = GestureEvent(
+    wink_event = GestureEvent(
         type=GestureEventType.LEFT_WINK,
         timestamp=2.2,
         source_sequence=7,
         duration_ms=160,
+    )
+    temple_event = GestureEvent(
+        type=GestureEventType.RIGHT_TEMPLE_HOLD_START,
+        timestamp=2.8,
+        source_sequence=9,
+        duration_ms=550,
     )
     hands = HandObservation(
         source_sequence=7,
@@ -90,10 +96,13 @@ def test_diagnostics_renders_face_hand_temple_and_wink_signals(qtbot: QtBot) -> 
     assert right_state is not None and right_state.text() == "Far"
     assert event_log is not None and event_log.count() == 0
 
-    controller.event_detected.emit(event)
+    controller.event_detected.emit(wink_event)
+    controller.event_detected.emit(temple_event)
 
-    assert event_log.count() == 1
-    assert "LEFT_WINK" in event_log.item(0).text()
+    assert event_log.count() == 2
+    assert "RIGHT HOLD START" in event_log.item(0).text()
+    assert "RIGHT_TEMPLE_HOLD_START" in event_log.item(0).toolTip()
+    assert "LEFT WINK" in event_log.item(1).text()
 
     controller.temple_proximity_cleared.emit()
 

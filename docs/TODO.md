@@ -101,7 +101,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add recorded observation fixtures and regression tests.
 - [x] Show wink events in diagnostics with OS input disabled.
 
-## Backlog — Phase 3
+## Completed — Phase 3
 
 - [x] Integrate MediaPipe Hand Landmarker behind an adapter.
 - [x] Canonicalize handedness and mirror conversion in one place.
@@ -110,8 +110,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Compose face and hand workers into Qt-safe live diagnostics.
 - [x] Expire live temple features after the configured tracking timeout.
 - [x] Implement temple proximity hysteresis.
-- [ ] Implement tap, hold-start, and hold-end states.
-- [ ] End continuous states after tracking timeout.
+- [x] Implement tap, hold-start, and hold-end states.
+- [x] End continuous states after tracking timeout.
 - [x] Test wrong-hand, unstable-candidate, release, and tracking-loss sequences.
 
 ## Backlog — Phase 4

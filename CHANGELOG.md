@@ -49,4 +49,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - OpenAI Build Week submission record, judge quickstart, build-period evidence, source and model licensing notices, and precise runtime privacy disclosures.
 - Configurable temple enter/exit ratios and stabilization timing.
 - Framework-independent, per-side Near/Far/Unknown temple proximity hysteresis with strict ordering, malformed-input, and tracking-timeout guards.
-- Transition-only proximity signals and live state labels in Safe Mode Diagnostics, with no tap/hold events or operating-system actions.
+- Transition-only proximity signals and live state labels in Safe Mode Diagnostics, with operating-system actions disconnected.
+- Configurable `550 ms` temple hold threshold and `250 ms` post-interaction cooldown.
+- Framework-independent, independently armed left/right temple tap and hold state machines using fresh capture-time evidence.
+- Semantic tap, hold-start, and exactly-once hold-end events in Diagnostics, including timeout, pause, and shutdown termination without bindings or OS input.

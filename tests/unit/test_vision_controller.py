@@ -7,6 +7,7 @@ import time
 from typing import Any, cast
 
 import numpy as np
+import pytest
 from pytestqt.qtbot import QtBot
 
 from meyes.camera.buffer import LatestFrameBuffer
@@ -21,6 +22,7 @@ from meyes.domain.observations import (
     NormalizedPoint,
     TempleFeatureObservation,
     TempleFeatureStatus,
+    TempleProximity,
 )
 from meyes.gestures.temple_proximity import ProximityState, TempleProximitySnapshot
 from meyes.vision.controller import VisionController
@@ -166,6 +168,26 @@ def feature_hand_observation(
         ),
         frame_width=640,
         frame_height=480,
+    )
+
+
+def direct_temple_feature(
+    sequence: int,
+    captured: float,
+    *,
+    right_ratio: float,
+    left_ratio: float | None = None,
+) -> TempleFeatureObservation:
+    proximities = []
+    if left_ratio is not None:
+        proximities.append(TempleProximity(HandSide.LEFT, left_ratio, 0.9))
+    proximities.append(TempleProximity(HandSide.RIGHT, right_ratio, 0.9))
+    return TempleFeatureObservation(
+        source_sequence=sequence,
+        capture_timestamp=captured,
+        processed_timestamp=captured + 0.001,
+        status=TempleFeatureStatus.READY,
+        proximities=tuple(proximities),
     )
 
 
@@ -333,6 +355,230 @@ def test_raw_temple_features_drive_stabilized_proximity_without_events(qtbot: Qt
     near_snapshot = snapshots[-1]
     assert near_snapshot.right is ProximityState.NEAR
     assert events == []
+
+
+def test_temple_tap_flows_through_controller_only_after_stable_release(qtbot: QtBot) -> None:
+    del qtbot
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(temple_stabilization_ms=0),
+        clock=FakeClock(1.0),
+    )
+    events: list[GestureEvent] = []
+    controller.event_detected.connect(events.append)
+
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(2, 1.10, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(3, 1.11, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(4, 1.20, right_ratio=0.20))
+    assert events == []
+
+    controller._publish_temple_feature(direct_temple_feature(5, 1.21, right_ratio=0.20))
+
+    assert [event.type for event in events] == [GestureEventType.RIGHT_TEMPLE_TAP]
+    assert events[0].source_sequence == 5
+    assert events[0].duration_ms == pytest.approx(90.0)
+
+
+def test_temple_hold_start_and_release_end_flow_once_through_controller(
+    qtbot: QtBot,
+) -> None:
+    del qtbot
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(
+            temple_stabilization_ms=0,
+            temple_hold_threshold_ms=100,
+        ),
+        clock=FakeClock(1.0),
+    )
+    events: list[GestureEvent] = []
+    controller.event_detected.connect(events.append)
+
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(2, 1.10, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(3, 1.11, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(4, 1.21, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(5, 1.30, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(6, 1.31, right_ratio=0.20))
+
+    assert [event.type for event in events] == [
+        GestureEventType.RIGHT_TEMPLE_HOLD_START,
+        GestureEventType.RIGHT_TEMPLE_HOLD_END,
+    ]
+
+
+def test_temple_tracking_timeout_ends_hold_once_before_unknown_publication(
+    qtbot: QtBot,
+) -> None:
+    del qtbot
+    clock = FakeClock(1.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(
+            temple_stabilization_ms=0,
+            temple_hold_threshold_ms=100,
+        ),
+        clock=clock,
+    )
+    events: list[GestureEvent] = []
+    snapshots: list[TempleProximitySnapshot] = []
+    trace: list[str] = []
+    controller.event_detected.connect(events.append)
+    controller.temple_proximity_changed.connect(snapshots.append)
+    controller.event_detected.connect(lambda event: trace.append(event.type.value))
+    controller.temple_proximity_changed.connect(
+        lambda snapshot: trace.append(f"proximity:{snapshot.right.value}")
+    )
+    controller._enable_delivery()
+
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(2, 1.10, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(3, 1.11, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(4, 1.21, right_ratio=0.05))
+    clock.now = 1.461
+    trace.clear()
+
+    controller.poll_timeouts()
+    controller.poll_timeouts()
+
+    assert [event.type for event in events] == [
+        GestureEventType.RIGHT_TEMPLE_HOLD_START,
+        GestureEventType.RIGHT_TEMPLE_HOLD_END,
+    ]
+    assert snapshots[-1].right is ProximityState.UNKNOWN
+    assert trace == [
+        GestureEventType.RIGHT_TEMPLE_HOLD_END.value,
+        "proximity:unknown",
+    ]
+    controller.suspend()
+
+
+def test_suspend_flushes_active_temple_hold_once(qtbot: QtBot) -> None:
+    del qtbot
+    clock = FakeClock(1.30)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(
+            temple_stabilization_ms=0,
+            temple_hold_threshold_ms=100,
+        ),
+        clock=clock,
+    )
+    events: list[GestureEvent] = []
+    controller.event_detected.connect(events.append)
+
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(2, 1.10, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(3, 1.11, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(4, 1.21, right_ratio=0.05))
+
+    controller.suspend()
+    controller.suspend()
+
+    assert [event.type for event in events] == [
+        GestureEventType.RIGHT_TEMPLE_HOLD_START,
+        GestureEventType.RIGHT_TEMPLE_HOLD_END,
+    ]
+
+
+def test_reentrant_suspend_during_hold_start_defers_exactly_one_end(qtbot: QtBot) -> None:
+    del qtbot
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(
+            temple_stabilization_ms=0,
+            temple_hold_threshold_ms=100,
+        ),
+        clock=FakeClock(1.30),
+    )
+    events: list[GestureEvent] = []
+
+    def suspend_on_start(event: GestureEvent) -> None:
+        events.append(event)
+        if event.type is GestureEventType.RIGHT_TEMPLE_HOLD_START:
+            controller.suspend()
+
+    controller.event_detected.connect(suspend_on_start)
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+    controller._publish_temple_feature(direct_temple_feature(2, 1.10, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(3, 1.11, right_ratio=0.05))
+    controller._publish_temple_feature(direct_temple_feature(4, 1.21, right_ratio=0.05))
+
+    assert [event.type for event in events] == [
+        GestureEventType.RIGHT_TEMPLE_HOLD_START,
+        GestureEventType.RIGHT_TEMPLE_HOLD_END,
+    ]
+    assert controller._gesture_engine.temple_proximity_detector.snapshot.right is (
+        ProximityState.UNKNOWN
+    )
+
+
+def test_reentrant_suspend_skips_unpublished_second_side_hold(qtbot: QtBot) -> None:
+    del qtbot
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(
+            temple_stabilization_ms=0,
+            temple_hold_threshold_ms=100,
+        ),
+        clock=FakeClock(1.30),
+    )
+    events: list[GestureEvent] = []
+
+    def suspend_on_left_start(event: GestureEvent) -> None:
+        events.append(event)
+        if event.type is GestureEventType.LEFT_TEMPLE_HOLD_START:
+            controller.suspend()
+
+    controller.event_detected.connect(suspend_on_left_start)
+    controller._publish_temple_feature(
+        direct_temple_feature(1, 1.00, left_ratio=0.20, right_ratio=0.20)
+    )
+    controller._publish_temple_feature(
+        direct_temple_feature(2, 1.10, left_ratio=0.05, right_ratio=0.05)
+    )
+    controller._publish_temple_feature(
+        direct_temple_feature(3, 1.11, left_ratio=0.05, right_ratio=0.05)
+    )
+    controller._publish_temple_feature(
+        direct_temple_feature(4, 1.21, left_ratio=0.05, right_ratio=0.05)
+    )
+
+    assert [event.type for event in events] == [
+        GestureEventType.LEFT_TEMPLE_HOLD_START,
+        GestureEventType.LEFT_TEMPLE_HOLD_END,
+    ]
+
+
+def test_reentrant_suspend_from_raw_feature_cannot_repopulate_after_clear(
+    qtbot: QtBot,
+) -> None:
+    del qtbot
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(temple_stabilization_ms=0),
+        clock=FakeClock(1.0),
+    )
+    trace: list[str] = []
+    controller.temple_proximity_changed.connect(lambda _snapshot: trace.append("proximity"))
+    controller.temple_feature_changed.connect(lambda _feature: trace.append("raw"))
+    controller.temple_feature_changed.connect(lambda _feature: controller.suspend())
+    controller.temple_proximity_cleared.connect(lambda: trace.append("clear"))
+
+    controller._publish_temple_feature(direct_temple_feature(1, 1.00, right_ratio=0.20))
+
+    assert trace == ["proximity", "raw", "clear"]
+    assert controller._gesture_engine.temple_proximity_detector.snapshot.right is (
+        ProximityState.UNKNOWN
+    )
 
 
 def test_face_later_recompute_drives_proximity_without_new_hand_result(qtbot: QtBot) -> None:

@@ -60,6 +60,8 @@ class TempleProximitySnapshot:
     timestamp: float | None
     left: ProximityState
     right: ProximityState
+    left_release_started_at: float | None = None
+    right_release_started_at: float | None = None
 
     def state(self, side: HandSide) -> ProximityState:
         """Return one anatomical side, failing closed for an unknown side."""
@@ -68,6 +70,20 @@ class TempleProximitySnapshot:
         if side is HandSide.RIGHT:
             return self.right
         return ProximityState.UNKNOWN
+
+    def release_started_at(self, side: HandSide) -> float | None:
+        """Return raw Far-candidate onset while stable release is pending or completes."""
+        if side is HandSide.LEFT:
+            return self.left_release_started_at
+        if side is HandSide.RIGHT:
+            return self.right_release_started_at
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class _CompletedTransition:
+    target: ProximityState
+    started_at: float
 
 
 @dataclass(slots=True)
@@ -81,22 +97,30 @@ class _SideTracker:
         distance_ratio: float | None,
         timestamp: float,
         settings: TempleProximitySettings,
-    ) -> None:
+    ) -> _CompletedTransition | None:
         if self.state is ProximityState.NEAR:
             should_release = distance_ratio is None or distance_ratio >= settings.exit_ratio
             if should_release:
-                self._stabilize(ProximityState.FAR, timestamp, settings.stabilization)
+                return self._stabilize(
+                    ProximityState.FAR,
+                    timestamp,
+                    settings.stabilization,
+                )
             else:
                 self.cancel_candidate()
-            return
+            return None
 
         should_enter = distance_ratio is not None and distance_ratio <= settings.enter_ratio
         if should_enter:
-            self._stabilize(ProximityState.NEAR, timestamp, settings.stabilization)
-            return
+            return self._stabilize(
+                ProximityState.NEAR,
+                timestamp,
+                settings.stabilization,
+            )
 
         self.state = ProximityState.FAR
         self.cancel_candidate()
+        return None
 
     def cancel_candidate(self) -> None:
         self.candidate = None
@@ -111,17 +135,20 @@ class _SideTracker:
         target: ProximityState,
         timestamp: float,
         duration: float,
-    ) -> None:
+    ) -> _CompletedTransition | None:
         if self.candidate is not target or self.candidate_started_at is None:
             self.candidate = target
             self.candidate_started_at = timestamp
-            return
+            return None
         if (
             timestamp > self.candidate_started_at
             and timestamp - self.candidate_started_at >= duration
         ):
+            started_at = self.candidate_started_at
             self.state = target
             self.cancel_candidate()
+            return _CompletedTransition(target, started_at)
+        return None
 
 
 class TempleProximityDetector:
@@ -133,6 +160,7 @@ class TempleProximityDetector:
         self._right = _SideTracker()
         self._last_valid_sequence: int | None = None
         self._last_valid_capture_timestamp: float | None = None
+        self._last_valid_processed_timestamp: float | None = None
         self._last_valid_evidence_timestamp: float | None = None
         self._snapshot = TempleProximitySnapshot(
             source_sequence=None,
@@ -149,7 +177,8 @@ class TempleProximityDetector:
     def update(self, observation: TempleFeatureObservation) -> TempleProximitySnapshot:
         """Consume one feature observation without emitting semantic actions."""
         if observation.status is TempleFeatureStatus.EXPIRED:
-            self._expire(observation.source_sequence, observation.processed_timestamp)
+            if self._valid_expiry(observation):
+                self._expire(observation.source_sequence, observation.processed_timestamp)
             return self._snapshot
 
         ratios = self._valid_ratios(observation)
@@ -170,16 +199,33 @@ class TempleProximityDetector:
 
         self._last_valid_sequence = observation.source_sequence
         self._last_valid_capture_timestamp = observation.capture_timestamp
+        self._last_valid_processed_timestamp = observation.processed_timestamp
         self._last_valid_evidence_timestamp = evidence_timestamp
 
-        self._left.observe(ratios.get(HandSide.LEFT), evidence_timestamp, self.settings)
-        self._right.observe(ratios.get(HandSide.RIGHT), evidence_timestamp, self.settings)
-        self._publish(observation.source_sequence, evidence_timestamp)
+        left_transition = self._left.observe(
+            ratios.get(HandSide.LEFT),
+            evidence_timestamp,
+            self.settings,
+        )
+        right_transition = self._right.observe(
+            ratios.get(HandSide.RIGHT),
+            evidence_timestamp,
+            self.settings,
+        )
+        self._publish(
+            observation.source_sequence,
+            evidence_timestamp,
+            left_release_started_at=_release_started_at(self._left, left_transition),
+            right_release_started_at=_release_started_at(self._right, right_transition),
+        )
         return self._snapshot
 
     def poll(self, timestamp: float) -> TempleProximitySnapshot:
         """Expire stale state when no new feature observation is available."""
-        if not math.isfinite(timestamp):
+        if not math.isfinite(timestamp) or (
+            self._last_valid_processed_timestamp is not None
+            and timestamp < self._last_valid_processed_timestamp
+        ):
             return self._snapshot
         if self._expire_if_timed_out(timestamp):
             self._publish(self._snapshot.source_sequence, timestamp)
@@ -191,6 +237,7 @@ class TempleProximityDetector:
         self._right.reset()
         self._last_valid_sequence = None
         self._last_valid_capture_timestamp = None
+        self._last_valid_processed_timestamp = None
         self._last_valid_evidence_timestamp = None
         self._snapshot = TempleProximitySnapshot(
             source_sequence=None,
@@ -231,11 +278,40 @@ class TempleProximityDetector:
 
     def _is_duplicate_or_regressing(self, observation: TempleFeatureObservation) -> bool:
         return (
-            self._last_valid_sequence is not None
-            and observation.source_sequence <= self._last_valid_sequence
-        ) or (
-            self._last_valid_capture_timestamp is not None
-            and observation.capture_timestamp <= self._last_valid_capture_timestamp
+            (
+                self._last_valid_sequence is not None
+                and observation.source_sequence <= self._last_valid_sequence
+            )
+            or (
+                self._last_valid_capture_timestamp is not None
+                and observation.capture_timestamp <= self._last_valid_capture_timestamp
+            )
+            or (
+                self._last_valid_processed_timestamp is not None
+                and observation.processed_timestamp < self._last_valid_processed_timestamp
+            )
+        )
+
+    def _valid_expiry(self, observation: TempleFeatureObservation) -> bool:
+        timestamp = observation.processed_timestamp
+        source_sequence = observation.source_sequence
+        return (
+            isinstance(timestamp, (int, float))
+            and not isinstance(timestamp, bool)
+            and math.isfinite(timestamp)
+            and timestamp >= 0
+            and isinstance(source_sequence, int)
+            and not isinstance(source_sequence, bool)
+            and source_sequence >= 0
+            and (
+                self._last_valid_evidence_timestamp is None
+                or timestamp >= self._last_valid_evidence_timestamp
+            )
+            and (
+                self._last_valid_processed_timestamp is None
+                or timestamp >= self._last_valid_processed_timestamp
+            )
+            and (self._last_valid_sequence is None or source_sequence >= self._last_valid_sequence)
         )
 
     def _cancel_candidates(self) -> None:
@@ -259,10 +335,30 @@ class TempleProximityDetector:
         self._last_valid_evidence_timestamp = None
         self._publish(source_sequence, timestamp if math.isfinite(timestamp) else None)
 
-    def _publish(self, source_sequence: int | None, timestamp: float | None) -> None:
+    def _publish(
+        self,
+        source_sequence: int | None,
+        timestamp: float | None,
+        *,
+        left_release_started_at: float | None = None,
+        right_release_started_at: float | None = None,
+    ) -> None:
         self._snapshot = TempleProximitySnapshot(
             source_sequence=source_sequence,
             timestamp=timestamp,
             left=self._left.state,
             right=self._right.state,
+            left_release_started_at=left_release_started_at,
+            right_release_started_at=right_release_started_at,
         )
+
+
+def _release_started_at(
+    tracker: _SideTracker,
+    completed: _CompletedTransition | None,
+) -> float | None:
+    if completed is not None and completed.target is ProximityState.FAR:
+        return completed.started_at
+    if tracker.candidate is ProximityState.FAR:
+        return tracker.candidate_started_at
+    return None

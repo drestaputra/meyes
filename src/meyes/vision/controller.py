@@ -13,10 +13,11 @@ from PySide6.QtCore import QObject, Qt, QTimer, Signal, Slot
 
 from meyes.camera.buffer import LatestFrameBuffer
 from meyes.config.models import GestureSettings
-from meyes.domain.events import GestureEvent
+from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import (
     FaceObservation,
     HandObservation,
+    HandSide,
     TempleFeatureObservation,
     TempleFeatureStatus,
 )
@@ -93,6 +94,10 @@ class VisionController(QObject):
         self._hand_worker_serial = 0
         self._face_logger = get_logger("FACE")
         self._hand_logger = get_logger("HAND")
+        self._gesture_logger = get_logger("GESTURE")
+        self._event_publication_depth = 0
+        self._deferred_lifecycle_events: list[GestureEvent] = []
+        self._published_holds: set[HandSide] = set()
 
         self._face_result_queued.connect(
             self._process_face_result,
@@ -158,7 +163,8 @@ class VisionController(QObject):
             self._hand_worker.invalidate_observations()
         self._temple_tracker.reset()
         with self._gesture_lock:
-            self._gesture_engine.reset()
+            events = self._gesture_engine.reset(self._clock())
+        self._publish_or_defer_lifecycle_events(events)
         self.observation_cleared.emit()
         self.hand_observation_cleared.emit()
         self.temple_feature_cleared.emit()
@@ -176,14 +182,20 @@ class VisionController(QObject):
         """Publish one expiry transition when paired features become stale."""
         if not self._delivery_is_enabled():
             return
+        generation, _ = self._delivery_snapshot()
         timestamp = self._clock()
         expired = self._temple_tracker.expire()
         if expired is not None:
             self._publish_temple_feature(expired)
+            if not self._delivery_generation_matches(generation):
+                return
         with self._gesture_lock:
-            proximity = self._gesture_engine.poll_temple(timestamp)
-        if proximity is not None:
-            self.temple_proximity_changed.emit(proximity)
+            result = self._gesture_engine.poll_temple(timestamp)
+        self._publish_events(result.events)
+        if not self._delivery_generation_matches(generation):
+            return
+        if result.proximity is not None:
+            self.temple_proximity_changed.emit(result.proximity)
 
     def _start_face_worker(self) -> None:
         worker = self._face_worker
@@ -409,26 +421,59 @@ class VisionController(QObject):
             self.hand_health_changed.emit(accepted)
 
     def _publish_events(self, events: Sequence[GestureEvent]) -> None:
-        for event in events:
-            self._face_logger.info(
-                "gesture_event",
-                extra={
-                    "event_type": event.type.value,
-                    "source_sequence": event.source_sequence,
-                    "duration_ms": round(event.duration_ms, 1),
-                },
-            )
-            self.event_detected.emit(event)
+        if not events:
+            return
+        generation, _ = self._delivery_snapshot()
+        self._event_publication_depth += 1
+        try:
+            for event in events:
+                hold_end_side = _HOLD_END_SIDES.get(event.type)
+                if not self._delivery_generation_matches(generation) and hold_end_side is None:
+                    break
+                hold_start_side = _HOLD_START_SIDES.get(event.type)
+                if hold_start_side is not None:
+                    self._published_holds.add(hold_start_side)
+                if hold_end_side is not None:
+                    if hold_end_side not in self._published_holds:
+                        continue
+                    self._published_holds.remove(hold_end_side)
+                self._gesture_logger.info(
+                    "gesture_event",
+                    extra={
+                        "event_type": event.type.value,
+                        "source_sequence": event.source_sequence,
+                        "duration_ms": round(event.duration_ms, 1),
+                    },
+                )
+                self.event_detected.emit(event)
+        finally:
+            self._event_publication_depth -= 1
+        if self._event_publication_depth == 0 and self._deferred_lifecycle_events:
+            deferred = tuple(self._deferred_lifecycle_events)
+            self._deferred_lifecycle_events.clear()
+            self._publish_events(deferred)
+
+    def _publish_or_defer_lifecycle_events(self, events: Sequence[GestureEvent]) -> None:
+        if self._event_publication_depth:
+            self._deferred_lifecycle_events.extend(events)
+            return
+        self._publish_events(events)
 
     def _publish_temple_feature(self, feature: TempleFeatureObservation) -> None:
         """Publish raw diagnostics and derived state from one serialized path."""
         if feature.status is TempleFeatureStatus.OUT_OF_ORDER:
             return
-        self.temple_feature_changed.emit(feature)
+        generation, _ = self._delivery_snapshot()
         with self._gesture_lock:
-            proximity = self._gesture_engine.update_temple(feature)
-        if proximity is not None:
-            self.temple_proximity_changed.emit(proximity)
+            result = self._gesture_engine.update_temple(feature)
+        self._publish_events(result.events)
+        if not self._delivery_generation_matches(generation):
+            return
+        if result.proximity is not None:
+            self.temple_proximity_changed.emit(result.proximity)
+            if not self._delivery_generation_matches(generation):
+                return
+        self.temple_feature_changed.emit(feature)
 
     def _enable_delivery(self) -> None:
         with self._delivery_lock:
@@ -448,6 +493,10 @@ class VisionController(QObject):
     def _delivery_snapshot(self) -> tuple[int, bool]:
         with self._delivery_lock:
             return self._delivery_generation, self._delivery_enabled
+
+    def _delivery_generation_matches(self, generation: int) -> bool:
+        with self._delivery_lock:
+            return generation == self._delivery_generation
 
     def _delivery_is_enabled(self) -> bool:
         with self._delivery_lock:
@@ -559,3 +608,14 @@ def gesture_event(value: object) -> GestureEvent:
     if not isinstance(value, GestureEvent):
         raise TypeError("Expected GestureEvent")
     return value
+
+
+_HOLD_START_SIDES = {
+    GestureEventType.LEFT_TEMPLE_HOLD_START: HandSide.LEFT,
+    GestureEventType.RIGHT_TEMPLE_HOLD_START: HandSide.RIGHT,
+}
+
+_HOLD_END_SIDES = {
+    GestureEventType.LEFT_TEMPLE_HOLD_END: HandSide.LEFT,
+    GestureEventType.RIGHT_TEMPLE_HOLD_END: HandSide.RIGHT,
+}
