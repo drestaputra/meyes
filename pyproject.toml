@@ -22,6 +22,8 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "numpy>=1.26,<3",
+  "opencv-python>=4.10,<5",
   "platformdirs>=4.3,<5",
   "pydantic>=2.10,<3",
   "pyside6>=6.8,<7",

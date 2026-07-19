@@ -19,7 +19,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Create `pyproject.toml` for Python 3.11 and the required dependencies.
 - [x] Create the `src/meyes` package and application entry point.
 - [x] Add the PySide6 application shell.
-- [ ] Add typed application and camera state models.
+- [x] Add typed application and camera state models.
 - [x] Add Pydantic configuration models and safe Windows data paths.
 - [x] Add corrupt-configuration backup and recovery.
 - [x] Add rotating structured logs.
@@ -31,27 +31,27 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ### Camera vertical slice
 
-- [ ] Define a camera interface independent of OpenCV.
-- [ ] Enumerate available cameras.
-- [ ] Implement the OpenCV capture worker.
-- [ ] Implement latest-frame-only buffering.
+- [x] Define a camera interface independent of OpenCV.
+- [x] Enumerate available cameras.
+- [x] Implement the OpenCV capture worker.
+- [x] Implement latest-frame-only buffering.
 - [ ] Keep preview mirroring separate from processing coordinates.
 - [ ] Add the camera selector.
 - [ ] Add a responsive camera preview.
 - [ ] Add start, pause, resume, and stop controls.
 - [ ] Display measured capture and preview FPS.
 - [ ] Display explicit camera health states.
-- [ ] Recover from camera open/read failure without crashing.
-- [ ] Stop workers deterministically before releasing camera resources.
+- [x] Recover from camera open/read failure without crashing.
+- [x] Stop workers deterministically before releasing camera resources.
 
 ### Phase 0 + Phase 1 verification
 
 - [x] Add configuration round-trip tests.
 - [x] Add corrupt-configuration recovery tests.
-- [ ] Add camera-state transition tests without requiring a webcam.
+- [x] Add camera-state transition tests without requiring a webcam.
 - [ ] Verify the UI stays responsive during capture.
 - [ ] Verify switching or reconnecting a camera does not leak resources.
-- [ ] Verify pause and shutdown are deterministic.
+- [x] Verify pause and shutdown are deterministic.
 - [x] Run unit tests.
 - [x] Run Ruff lint and format checks.
 - [x] Run the selected type checker.

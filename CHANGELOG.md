@@ -13,3 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.
 - Structured JSON rotating-file logging.
 - Ruff, mypy, pytest, and PowerShell development workflows.
+- OpenCV camera backend and bounded device enumeration.
+- Thread-safe latest-frame-only buffer and rolling FPS measurement.
+- Validated camera lifecycle state machine with pause, recovery, and deterministic shutdown.
+- Webcam-free camera worker tests, including blocked-read shutdown recovery.
