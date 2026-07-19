@@ -1,4 +1,4 @@
-"""Live safe-mode face, eye, and gesture diagnostics."""
+"""Live safe-mode face, hand, temple, and gesture diagnostics."""
 
 from __future__ import annotations
 
@@ -17,10 +17,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from meyes.domain.observations import HandSide
 from meyes.vision.controller import (
     VisionController,
     face_observation,
     gesture_event,
+    hand_observation,
+    hand_vision_health,
+    temple_feature_observation,
     vision_health,
 )
 
@@ -56,7 +60,7 @@ class EyeMeter(QFrame):
 
 
 class DiagnosticsPage(QWidget):
-    """Display semantic observations without executing bound actions."""
+    """Display local semantic observations without executing actions."""
 
     def __init__(self, controller: VisionController, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -64,6 +68,8 @@ class DiagnosticsPage(QWidget):
         self._build_ui()
         self._connect_signals()
         self._clear_observation()
+        self._clear_hand_observation()
+        self._clear_temple_feature()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -73,8 +79,8 @@ class DiagnosticsPage(QWidget):
         title = QLabel("Diagnostics")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Inspect local face and gesture signals. Safe mode is locked on: no mouse or "
-            "keyboard input is sent."
+            "Inspect local face, hand, temple, and gesture signals. Safe mode is locked on: "
+            "no mouse or keyboard input is sent."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
@@ -83,7 +89,8 @@ class DiagnosticsPage(QWidget):
 
         columns = QHBoxLayout()
         columns.setSpacing(16)
-        columns.addWidget(self._build_observation_panel(), stretch=1)
+        columns.addWidget(self._build_face_panel(), stretch=1)
+        columns.addWidget(self._build_hand_panel(), stretch=1)
         columns.addWidget(self._build_event_panel(), stretch=1)
 
         root.addWidget(title)
@@ -91,18 +98,18 @@ class DiagnosticsPage(QWidget):
         root.addWidget(safe_banner)
         root.addLayout(columns, stretch=1)
 
-    def _build_observation_panel(self) -> QFrame:
+    def _build_face_panel(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("statusPanel")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
 
-        heading = QLabel("Live observations")
+        heading = QLabel("Face observations")
         heading.setObjectName("panelTitle")
         form = QFormLayout()
-        form.setHorizontalSpacing(20)
-        form.setVerticalSpacing(12)
+        form.setHorizontalSpacing(16)
+        form.setVerticalSpacing(10)
         self._pipeline_value = QLabel("Stopped")
         self._face_value = QLabel("Not detected")
         self._inference_fps_value = QLabel("—")
@@ -112,7 +119,7 @@ class DiagnosticsPage(QWidget):
         form.addRow("Face", self._face_value)
         form.addRow("Inference FPS", self._inference_fps_value)
         form.addRow("Latency", self._latency_value)
-        form.addRow("Frame sequence", self._sequence_value)
+        form.addRow("Frame", self._sequence_value)
 
         self._left_eye = EyeMeter("Left eye openness")
         self._right_eye = EyeMeter("Right eye openness")
@@ -120,6 +127,45 @@ class DiagnosticsPage(QWidget):
         layout.addLayout(form)
         layout.addWidget(self._left_eye)
         layout.addWidget(self._right_eye)
+        layout.addStretch(1)
+        return panel
+
+    def _build_hand_panel(self) -> QFrame:
+        panel = QFrame()
+        panel.setObjectName("statusPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+
+        heading = QLabel("Hand & temple features")
+        heading.setObjectName("panelTitle")
+        form = QFormLayout()
+        form.setHorizontalSpacing(16)
+        form.setVerticalSpacing(12)
+        self._hand_pipeline_value = QLabel("Stopped")
+        self._hand_count_value = QLabel("0")
+        self._hand_count_value.setObjectName("handCountValue")
+        self._hand_fps_value = QLabel("—")
+        self._hand_latency_value = QLabel("—")
+        self._temple_status_value = QLabel("Unavailable")
+        self._left_temple_value = QLabel("—")
+        self._left_temple_value.setObjectName("leftTempleValue")
+        self._right_temple_value = QLabel("—")
+        self._right_temple_value.setObjectName("rightTempleValue")
+        form.addRow("Pipeline", self._hand_pipeline_value)
+        form.addRow("Hands", self._hand_count_value)
+        form.addRow("Inference FPS", self._hand_fps_value)
+        form.addRow("Latency", self._hand_latency_value)
+        form.addRow("Feature state", self._temple_status_value)
+        form.addRow("Left ratio", self._left_temple_value)
+        form.addRow("Right ratio", self._right_temple_value)
+        note = QLabel("Ratio = fingertip distance ÷ measured face width")
+        note.setObjectName("mutedText")
+        note.setWordWrap(True)
+
+        layout.addWidget(heading)
+        layout.addLayout(form)
+        layout.addWidget(note)
         layout.addStretch(1)
         return panel
 
@@ -131,7 +177,7 @@ class DiagnosticsPage(QWidget):
         layout.setSpacing(12)
 
         heading_row = QHBoxLayout()
-        heading = QLabel("Recent semantic events")
+        heading = QLabel("Semantic events")
         heading.setObjectName("panelTitle")
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self._clear_events)
@@ -142,7 +188,9 @@ class DiagnosticsPage(QWidget):
         self._event_log = QListWidget()
         self._event_log.setObjectName("eventLog")
         self._event_log.setAccessibleName("Recent semantic gesture events")
-        empty = QLabel("Wink events will appear here. They do not trigger clicks in Safe mode.")
+        empty = QLabel(
+            "Events appear here. Detection and temple features do not trigger actions in Safe mode."
+        )
         empty.setObjectName("mutedText")
         empty.setWordWrap(True)
 
@@ -155,6 +203,11 @@ class DiagnosticsPage(QWidget):
         self._controller.observation_changed.connect(self._on_observation)
         self._controller.observation_cleared.connect(self._clear_observation)
         self._controller.health_changed.connect(self._on_health)
+        self._controller.hand_observation_changed.connect(self._on_hand_observation)
+        self._controller.hand_observation_cleared.connect(self._clear_hand_observation)
+        self._controller.hand_health_changed.connect(self._on_hand_health)
+        self._controller.temple_feature_changed.connect(self._on_temple_feature)
+        self._controller.temple_feature_cleared.connect(self._clear_temple_feature)
         self._controller.event_detected.connect(self._on_event)
 
     @Slot(object)
@@ -178,6 +231,34 @@ class DiagnosticsPage(QWidget):
         )
 
     @Slot(object)
+    def _on_hand_observation(self, payload: object) -> None:
+        observation = hand_observation(payload)
+        self._hand_count_value.setText(str(len(observation.hands)))
+
+    @Slot(object)
+    def _on_hand_health(self, payload: object) -> None:
+        health = hand_vision_health(payload)
+        self._hand_pipeline_value.setText(health.status.value.capitalize())
+        self._hand_count_value.setText(str(health.hand_count))
+        self._hand_fps_value.setText(
+            f"{health.inference_fps:.1f}" if health.inference_fps > 0 else "—"
+        )
+        self._hand_latency_value.setText(
+            f"{health.processing_latency_ms:.1f} ms" if health.processing_latency_ms > 0 else "—"
+        )
+
+    @Slot(object)
+    def _on_temple_feature(self, payload: object) -> None:
+        observation = temple_feature_observation(payload)
+        self._temple_status_value.setText(observation.status.value.replace("_", " ").title())
+        left = observation.proximity(HandSide.LEFT)
+        right = observation.proximity(HandSide.RIGHT)
+        self._left_temple_value.setText(f"{left.distance_ratio:.3f}" if left is not None else "—")
+        self._right_temple_value.setText(
+            f"{right.distance_ratio:.3f}" if right is not None else "—"
+        )
+
+    @Slot(object)
     def _on_event(self, payload: object) -> None:
         event = gesture_event(payload)
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -194,6 +275,16 @@ class DiagnosticsPage(QWidget):
         self._sequence_value.setText("—")
         self._left_eye.set_openness(None)
         self._right_eye.set_openness(None)
+
+    @Slot()
+    def _clear_hand_observation(self) -> None:
+        self._hand_count_value.setText("0")
+
+    @Slot()
+    def _clear_temple_feature(self) -> None:
+        self._temple_status_value.setText("Unavailable")
+        self._left_temple_value.setText("—")
+        self._right_temple_value.setText("—")
 
     @Slot()
     def _clear_events(self) -> None:

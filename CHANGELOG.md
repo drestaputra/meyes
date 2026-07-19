@@ -43,3 +43,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Bounded capture-time pairing of lower-cadence hands with fresh face history.
 - Aspect-correct, face-width-normalized index-fingertip distance to anatomical temple anchors.
 - Explicit unavailable, stale, skewed, invalid, out-of-order, and expired temple-feature states.
+- Qt-safe composition of face and lower-cadence hand workers with coalesced, generation-gated result and health delivery.
+- Watchdog-driven temple-feature expiry using the configured tracking timeout, including late face/hand re-pairing.
+- Live Safe Mode diagnostics for hand health, detected-hand count, feature availability, and left/right temple-distance ratios.

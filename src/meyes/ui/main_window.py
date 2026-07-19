@@ -26,7 +26,7 @@ from meyes.ui.placeholder_page import PlaceholderPage
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
 from meyes.vision.controller import VisionController
-from meyes.vision.interface import FaceBackendFactory
+from meyes.vision.interface import FaceBackendFactory, HandBackendFactory
 
 NAVIGATION_ITEMS = (
     "Dashboard",
@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
         config: AppConfig,
         camera_backend: CameraBackend,
         face_backend_factory: FaceBackendFactory,
+        hand_backend_factory: HandBackendFactory,
         config_manager: ConfigManager | None = None,
     ) -> None:
         super().__init__()
@@ -60,6 +61,7 @@ class MainWindow(QMainWindow):
             face_backend_factory,
             config.gestures,
             parent=self,
+            hand_backend_factory=hand_backend_factory,
         )
         self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)

@@ -53,6 +53,7 @@ class TempleFeatureTracker:
         self._last_face_capture_timestamp: float | None = None
         self._last_hand_sequence = 0
         self._last_hand_capture_timestamp: float | None = None
+        self._latest_hand: HandObservation | None = None
         self._latest: TempleFeatureObservation | None = None
         self._lock = threading.Lock()
 
@@ -112,6 +113,7 @@ class TempleFeatureTracker:
             self._last_hand_capture_timestamp = observation.capture_timestamp
             hand_age = now - observation.capture_timestamp
             if hand_age < 0 or hand_age > self._max_age:
+                self._latest_hand = None
                 return self._store(
                     _status_observation(
                         observation,
@@ -119,49 +121,43 @@ class TempleFeatureTracker:
                         processed_timestamp=now,
                     )
                 )
+            self._latest_hand = observation
+            return self._store(self._pair_hand(observation, now))
 
-            faces = [
-                face
-                for face in self._faces
-                if math.isfinite(face.capture_timestamp)
-                and 0 <= now - face.capture_timestamp <= self._max_age
-            ]
-            if not faces:
+    def recompute_latest_hand(self) -> TempleFeatureObservation | None:
+        """Re-pair one cached hand when its matching face arrives later."""
+        with self._lock:
+            hands = self._latest_hand
+            latest = self._latest
+            if (
+                hands is None
+                or latest is None
+                or latest.source_sequence != hands.source_sequence
+                or latest.status
+                not in {
+                    TempleFeatureStatus.FACE_UNAVAILABLE,
+                    TempleFeatureStatus.PAIR_SKEW,
+                    TempleFeatureStatus.FACE_NOT_DETECTED,
+                    TempleFeatureStatus.INVALID_GEOMETRY,
+                }
+            ):
+                return None
+            now = self._clock()
+            if not math.isfinite(now):
+                raise RuntimeError("Monotonic clock returned a non-finite value")
+            if now - hands.capture_timestamp > self._max_age:
+                self._latest_hand = None
                 return self._store(
                     _status_observation(
-                        observation,
-                        TempleFeatureStatus.FACE_UNAVAILABLE,
+                        hands,
+                        TempleFeatureStatus.HAND_STALE,
                         processed_timestamp=now,
                     )
                 )
-            face = _best_face_match(faces, observation)
-            pair_skew = abs(face.capture_timestamp - observation.capture_timestamp)
-            if not math.isfinite(pair_skew):
-                return self._store(
-                    _status_observation(
-                        observation,
-                        TempleFeatureStatus.INVALID_TIME,
-                        processed_timestamp=now,
-                        face=face,
-                    )
-                )
-            if pair_skew > self._max_pair_skew:
-                return self._store(
-                    _status_observation(
-                        observation,
-                        TempleFeatureStatus.PAIR_SKEW,
-                        processed_timestamp=now,
-                        face=face,
-                        pair_skew=pair_skew,
-                    )
-                )
-            return self._store(
-                extract_temple_features(
-                    face,
-                    observation,
-                    processed_timestamp=now,
-                )
-            )
+            refreshed = self._pair_hand(hands, now)
+            if refreshed == latest:
+                return None
+            return self._store(refreshed)
 
     def expire(self) -> TempleFeatureObservation | None:
         """Expire a previously valid pair even when no new observations arrive."""
@@ -199,11 +195,48 @@ class TempleFeatureTracker:
             self._last_face_capture_timestamp = None
             self._last_hand_sequence = 0
             self._last_hand_capture_timestamp = None
+            self._latest_hand = None
             self._latest = None
 
     def _store(self, observation: TempleFeatureObservation) -> TempleFeatureObservation:
         self._latest = observation
         return observation
+
+    def _pair_hand(self, observation: HandObservation, now: float) -> TempleFeatureObservation:
+        faces = [
+            face
+            for face in self._faces
+            if math.isfinite(face.capture_timestamp)
+            and 0 <= now - face.capture_timestamp <= self._max_age
+        ]
+        if not faces:
+            return _status_observation(
+                observation,
+                TempleFeatureStatus.FACE_UNAVAILABLE,
+                processed_timestamp=now,
+            )
+        face = _best_face_match(faces, observation)
+        pair_skew = abs(face.capture_timestamp - observation.capture_timestamp)
+        if not math.isfinite(pair_skew):
+            return _status_observation(
+                observation,
+                TempleFeatureStatus.INVALID_TIME,
+                processed_timestamp=now,
+                face=face,
+            )
+        if pair_skew > self._max_pair_skew:
+            return _status_observation(
+                observation,
+                TempleFeatureStatus.PAIR_SKEW,
+                processed_timestamp=now,
+                face=face,
+                pair_skew=pair_skew,
+            )
+        return extract_temple_features(
+            face,
+            observation,
+            processed_timestamp=now,
+        )
 
 
 def extract_temple_features(

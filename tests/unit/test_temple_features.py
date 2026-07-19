@@ -306,6 +306,27 @@ def test_tracker_chooses_nearest_capture_time_when_no_sequence_matches() -> None
     assert result.face_source_sequence == 2
 
 
+def test_tracker_recomputes_cached_hand_when_same_frame_face_arrives_later() -> None:
+    clock = FakeClock(10.0)
+    tracker = TempleFeatureTracker(clock=clock)
+    unavailable = tracker.update_hand(
+        hand_observation(
+            detected_hand(HandSide.RIGHT, (0.2, 0.4)),
+            sequence=1,
+            captured=9.95,
+        )
+    )
+
+    assert unavailable.status is TempleFeatureStatus.FACE_UNAVAILABLE
+    assert tracker.update_face(face_observation(sequence=1, captured=9.95))
+    refreshed = tracker.recompute_latest_hand()
+
+    assert refreshed is not None
+    assert refreshed.status is TempleFeatureStatus.READY
+    assert refreshed.face_source_sequence == 1
+    assert tracker.recompute_latest_hand() is None
+
+
 def test_tracker_accepts_pair_skew_boundary_and_rejects_beyond_it() -> None:
     clock = FakeClock(10.1)
     boundary = TempleFeatureTracker(max_pair_skew=0.12, clock=clock)

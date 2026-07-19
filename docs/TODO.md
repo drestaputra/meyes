@@ -75,6 +75,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Canonicalize handedness and mirror conversion in one place.
 - [x] Run hand inference at a lower independent cadence.
 - [x] Calculate face-width-normalized temple distance.
+- [x] Compose face and hand workers into Qt-safe live diagnostics.
+- [x] Expire live temple features after the configured tracking timeout.
 - [ ] Implement temple proximity hysteresis.
 - [ ] Implement tap, hold-start, and hold-end states.
 - [ ] End continuous states after tracking timeout.
