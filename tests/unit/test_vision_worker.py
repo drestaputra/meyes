@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 
 import numpy as np
@@ -33,6 +34,19 @@ class FakeFaceBackend:
 
     def close(self) -> None:
         self.closed = True
+
+
+class BlockingFaceBackend(FakeFaceBackend):
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    def process(self, packet: FramePacket) -> FaceObservation:
+        self.started.set()
+        if not self.release.wait(timeout=2.0):
+            raise TimeoutError("Test did not release the face backend")
+        return super().process(packet)
 
 
 def test_vision_worker_publishes_and_closes_backend() -> None:
@@ -69,3 +83,34 @@ def test_vision_worker_skips_stale_queued_frames() -> None:
     assert 2 not in backend.processed_sequences
     assert 3 not in backend.processed_sequences
     assert 4 not in backend.processed_sequences
+
+
+def test_invalidation_discards_in_flight_face_result_until_resumed() -> None:
+    frames = LatestFrameBuffer()
+    backend = BlockingFaceBackend()
+    callbacks: list[FaceObservation] = []
+    worker = FaceVisionWorker(
+        frames,
+        lambda: backend,
+        observation_callback=callbacks.append,
+        poll_timeout=0.01,
+    )
+
+    worker.start()
+    frames.publish(np.zeros((1, 1, 3), dtype=np.uint8), 1.0)
+    assert backend.started.wait(timeout=1.0)
+    worker.invalidate_observations()
+    backend.release.set()
+    time.sleep(0.05)
+
+    assert worker.observation_buffer.latest() is None
+    assert callbacks == []
+
+    worker.resume_observations()
+    frames.publish(np.zeros((1, 1, 3), dtype=np.uint8), 1.1)
+    resumed = worker.observation_buffer.wait_for_new(timeout=1.0)
+    worker.stop()
+
+    assert resumed is not None
+    assert resumed.source_sequence == 2
+    assert backend.closed

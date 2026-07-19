@@ -36,3 +36,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Official local MediaPipe Hand Landmarker asset with checksum verification and native initialization smoke test.
 - Framework-independent hand observations for up to two hands with anatomical handedness and 21 landmarks.
 - Centralized conversion from MediaPipe selfie labels and mirrored coordinates into canonical processing space.
+- Lower-cadence hand inference worker with wall-clock scheduling and latest-frame processing.
+- Lifecycle result gates that discard in-flight face or hand inference after suspend and stop.
+- Retry-safe vision controller shutdown that retains a worker reference after a timeout.

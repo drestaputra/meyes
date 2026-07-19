@@ -73,6 +73,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 - [x] Integrate MediaPipe Hand Landmarker behind an adapter.
 - [x] Canonicalize handedness and mirror conversion in one place.
+- [x] Run hand inference at a lower independent cadence.
 - [ ] Calculate face-width-normalized temple distance.
 - [ ] Implement temple proximity hysteresis.
 - [ ] Implement tap, hold-start, and hold-end states.

@@ -81,6 +81,7 @@ def test_suspend_clears_candidate_and_observation(qtbot: QtBot) -> None:
     publish_and_wait(qtbot, controller, frames, 1.05)
     with qtbot.waitSignal(controller.observation_cleared, timeout=1000):
         controller.suspend()
+    controller.start()
     publish_and_wait(qtbot, controller, frames, 1.20)
     controller.stop()
 

@@ -16,7 +16,7 @@ Every gesture can be rebound to supported mouse or keyboard actions. Camera proc
 
 ## Development status
 
-Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is in progress with a local MediaPipe Hand Landmarker adapter, canonical anatomical handedness, and unmirrored processing coordinates. Operating-system input remains intentionally disabled while temple gesture semantics are developed.
+Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is in progress with a local MediaPipe Hand Landmarker adapter, canonical anatomical handedness, unmirrored processing coordinates, and lower-cadence latest-frame hand inference. Operating-system input remains intentionally disabled while temple gesture semantics are developed.
 
 See:
 

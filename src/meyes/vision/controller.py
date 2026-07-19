@@ -49,12 +49,12 @@ class VisionController(QObject):
     @Slot()
     def start(self) -> None:
         """Start a new face worker when capture becomes available."""
-        if self._worker is not None and self._worker.health.status in {
-            VisionStatus.STARTING,
-            VisionStatus.RUNNING,
-            VisionStatus.STOPPING,
-        }:
-            return
+        if self._worker is not None:
+            if self._worker.health.status in {VisionStatus.STARTING, VisionStatus.RUNNING}:
+                self._worker.resume_observations()
+                return
+            if self._worker.health.status is VisionStatus.STOPPING:
+                return
         self._worker = FaceVisionWorker(
             self._frames,
             self._backend_factory,
@@ -66,17 +66,17 @@ class VisionController(QObject):
     @Slot()
     def suspend(self) -> None:
         """Invalidate gesture and observation state while capture is unavailable."""
-        with self._gesture_lock:
-            self._gesture_engine.reset()
         if self._worker is not None:
             self._worker.invalidate_observations()
+        with self._gesture_lock:
+            self._gesture_engine.reset()
         self.observation_cleared.emit()
 
     @Slot()
     def stop(self) -> None:
         """Stop inference and reset all face-derived gesture state."""
         self.suspend()
-        worker, self._worker = self._worker, None
+        worker = self._worker
         if worker is None:
             return
         try:
@@ -90,6 +90,8 @@ class VisionController(QObject):
                     last_error=str(error),
                 )
             )
+        else:
+            self._worker = None
 
     def _on_observation(self, observation: FaceObservation) -> None:
         self.observation_changed.emit(observation)
