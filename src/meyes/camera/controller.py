@@ -10,6 +10,7 @@ import numpy as np
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from PySide6.QtGui import QImage
 
+from meyes.camera.buffer import LatestFrameBuffer
 from meyes.camera.interface import CameraBackend
 from meyes.camera.metrics import FrameRateMeter
 from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
@@ -40,6 +41,7 @@ class CameraController(QObject):
         super().__init__(parent)
         self._backend = backend
         self._settings = settings
+        self._frame_buffer = LatestFrameBuffer()
         self._preview_interval_ms = preview_interval_ms
         self._worker: CameraWorker | None = None
         self._last_preview_sequence = 0
@@ -56,6 +58,11 @@ class CameraController(QObject):
     def settings(self) -> CameraSettings:
         """Return the current persisted camera preferences."""
         return self._settings
+
+    @property
+    def frame_buffer(self) -> LatestFrameBuffer:
+        """Expose raw, unmirrored frames to the vision pipeline."""
+        return self._frame_buffer
 
     @property
     def status(self) -> CameraStatus:
@@ -110,6 +117,7 @@ class CameraController(QObject):
         self._worker = CameraWorker(
             self._backend,
             options,
+            frame_buffer=self._frame_buffer,
             health_callback=self._on_worker_health,
         )
         self._last_preview_sequence = 0

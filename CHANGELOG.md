@@ -22,3 +22,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Start, pause, resume, and stop controls with textual camera health and FPS.
 - Camera preference persistence and clean window-close shutdown.
 - Native Windows visual QA and physical webcam/controller smoke tests.
+- Official local MediaPipe Face Landmarker asset with recorded SHA-256 integrity.
+- Framework-independent face observations with independent eye openness and iris centers.
+- Latest-frame face inference worker with health, FPS, latency, and shutdown reporting.

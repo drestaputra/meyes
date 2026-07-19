@@ -22,8 +22,8 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "mediapipe>=0.10,<1",
   "numpy>=1.26,<3",
-  "opencv-python>=4.10,<5",
   "platformdirs>=4.3,<5",
   "pydantic>=2.10,<3",
   "pyside6>=6.8,<7",
@@ -76,5 +76,5 @@ plugins = ["pydantic.mypy"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["pytestqt.*"]
+module = ["mediapipe.*", "pytestqt.*"]
 ignore_missing_imports = true

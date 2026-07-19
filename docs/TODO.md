@@ -60,9 +60,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Backlog — Phase 2
 
-- [ ] Integrate MediaPipe Face Landmarker behind an adapter.
-- [ ] Emit normalized face and eye observations.
-- [ ] Implement independent eye-openness measurements.
+- [x] Integrate MediaPipe Face Landmarker behind an adapter.
+- [x] Emit normalized face and eye observations.
+- [x] Implement independent eye-openness measurements.
 - [ ] Implement left/right wink state machines.
 - [ ] Suppress natural both-eye blink events.
 - [ ] Add cooldown and stale-observation handling.
