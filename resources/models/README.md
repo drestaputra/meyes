@@ -3,7 +3,8 @@
 The source submission includes the official task bundles below. Their official component
 model cards identify Apache License 2.0, the repository supplies the Apache-2.0 text, and
 automated tests verify the exact local sizes and SHA-256 digests. See
-[`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) for the complete source-build audit.
+[`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) for the documented source-build
+provenance and license review.
 
 ## `face_landmarker.task`
 
@@ -19,7 +20,7 @@ automated tests verify the exact local sizes and SHA-256 digests. See
   - [Face Blendshape V2](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf)
 - License identified in each component model card: Apache License 2.0.
 
-The source-submission redistribution review was completed on 2026-07-19. A future packaged
+The source-submission redistribution review was recorded on 2026-07-19. A future packaged
 binary must repeat the audit for every bundled runtime and transitive component.
 
 ## `hand_landmarker.task`

@@ -21,7 +21,7 @@ The current product specification supplies enough context to establish the initi
 - **Genre:** modern-minimal adapted to a native accessibility application.
 - **Trust model:** local processing, visible state, reversible actions, and no invented accuracy claims.
 
-This is not a pixel copy of Hallmark examples. Hallmark provides the anti-generic design discipline; MEYES owns its native information architecture and visual identity.
+This is not a pixel copy of Hallmark examples. Hallmark provides the anti-generic design discipline; MEYES defines its own native information architecture and visual identity.
 
 ## 2. Experience principles
 

@@ -56,7 +56,7 @@ Those capabilities must not appear in the video or description as completed func
 | `/feedback` Session ID | Must identify the project thread where most core functionality was built. | Pending human retrieval |
 | Free, unrestricted judging access | Source setup requires no paid service, API key, or proprietary hardware beyond a Windows PC and webcam. Access must remain free and unrestricted through the official judging period. | Repo access, clean setup, and retention pending |
 | English submission materials | Repository submission guides are English. The description, video/audio, and testing instructions must be English or include English translations. | External materials pending |
-| Authorized third-party use | MIT project license, Apache-2.0 text, MediaPipe model-card evidence, checksums, and dependency notices are recorded. | Source audit ready; human rights attestation required |
+| Authorized third-party use | MIT project license, Apache-2.0 text, MediaPipe model-card evidence, checksums, and dependency notices are recorded. | Documentation ready; human rights attestation required |
 | No unauthorized demo content | Video must not contain unlicensed music, third-party marks, private information, or people recorded without consent. | Pending video review |
 | Submission finalized before deadline | Devpost must show submitted, not draft, before 17:00 PT on July 21. Material cannot normally be changed afterward. | Pending |
 
