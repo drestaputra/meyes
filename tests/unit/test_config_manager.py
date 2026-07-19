@@ -1,0 +1,60 @@
+"""Configuration persistence and recovery tests."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime
+from pathlib import Path
+
+from meyes.config.manager import ConfigManager
+from meyes.config.models import AppConfig, CameraSettings
+from meyes.util.paths import AppPaths
+
+
+def test_missing_config_creates_safe_defaults(tmp_path: Path) -> None:
+    manager = ConfigManager(AppPaths.under(tmp_path))
+
+    result = manager.load()
+
+    assert result.config == AppConfig()
+    assert result.warning is None
+    assert manager.config_path.exists()
+
+
+def test_config_round_trip(tmp_path: Path) -> None:
+    manager = ConfigManager(AppPaths.under(tmp_path))
+    expected = AppConfig(camera=CameraSettings(camera_index=2, mirror=False))
+
+    manager.save(expected)
+    result = manager.load()
+
+    assert result.config == expected
+
+
+def test_corrupt_json_is_backed_up_and_replaced(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    paths.config_file.write_text("{not-json", encoding="utf-8")
+    fixed_now = datetime(2026, 7, 19, 12, 30, tzinfo=UTC)
+    manager = ConfigManager(paths, clock=lambda: fixed_now)
+
+    result = manager.load()
+
+    assert result.config == AppConfig()
+    assert result.warning is not None
+    assert result.recovered_from is not None
+    assert result.recovered_from.name.startswith("config.invalid-20260719-123000")
+    assert result.recovered_from.read_text(encoding="utf-8") == "{not-json"
+    assert json.loads(paths.config_file.read_text(encoding="utf-8"))["schema_version"] == 1
+
+
+def test_unknown_config_key_is_recovered(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    paths.config_file.write_text('{"schema_version": 1, "unexpected": true}', encoding="utf-8")
+    manager = ConfigManager(paths)
+
+    result = manager.load()
+
+    assert result.warning is not None
+    assert result.config == AppConfig()

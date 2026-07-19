@@ -16,18 +16,18 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ### Repository foundation
 
-- [ ] Create `pyproject.toml` for Python 3.11 and the required dependencies.
-- [ ] Create the `src/meyes` package and application entry point.
-- [ ] Add the PySide6 application shell.
+- [x] Create `pyproject.toml` for Python 3.11 and the required dependencies.
+- [x] Create the `src/meyes` package and application entry point.
+- [x] Add the PySide6 application shell.
 - [ ] Add typed application and camera state models.
-- [ ] Add Pydantic configuration models and safe Windows data paths.
-- [ ] Add corrupt-configuration backup and recovery.
-- [ ] Add rotating structured logs.
-- [ ] Configure Ruff.
-- [ ] Configure Pyright or mypy.
-- [ ] Configure pytest.
-- [ ] Add PowerShell scripts for run, test, and static checks.
-- [ ] Add `README.md` and root `CHANGELOG.md` release summary.
+- [x] Add Pydantic configuration models and safe Windows data paths.
+- [x] Add corrupt-configuration backup and recovery.
+- [x] Add rotating structured logs.
+- [x] Configure Ruff.
+- [x] Configure Pyright or mypy.
+- [x] Configure pytest.
+- [x] Add PowerShell scripts for run, test, and static checks.
+- [x] Add `README.md` and root `CHANGELOG.md` release summary.
 
 ### Camera vertical slice
 
@@ -46,17 +46,17 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ### Phase 0 + Phase 1 verification
 
-- [ ] Add configuration round-trip tests.
-- [ ] Add corrupt-configuration recovery tests.
+- [x] Add configuration round-trip tests.
+- [x] Add corrupt-configuration recovery tests.
 - [ ] Add camera-state transition tests without requiring a webcam.
 - [ ] Verify the UI stays responsive during capture.
 - [ ] Verify switching or reconnecting a camera does not leak resources.
 - [ ] Verify pause and shutdown are deterministic.
-- [ ] Run unit tests.
-- [ ] Run Ruff lint and format checks.
-- [ ] Run the selected type checker.
-- [ ] Update the root changelog and add a dated entry under `docs/changelog/`.
-- [ ] Document commands, results, changed files, and known limitations.
+- [x] Run unit tests.
+- [x] Run Ruff lint and format checks.
+- [x] Run the selected type checker.
+- [x] Update the root changelog and add a dated entry under `docs/changelog/`.
+- [x] Document commands, results, changed files, and known limitations.
 
 ## Backlog — Phase 2
 
