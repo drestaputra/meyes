@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -10,13 +10,17 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMainWindow,
     QPushButton,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from meyes.config.models import AppConfig
+from meyes.camera.controller import CameraController
+from meyes.camera.interface import CameraBackend
+from meyes.config.manager import ConfigManager
+from meyes.config.models import AppConfig, CameraSettings
+from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.theme import build_stylesheet
+from meyes.util.logging import get_logger
 
 NAVIGATION_ITEMS = (
     "Dashboard",
@@ -33,9 +37,18 @@ NAVIGATION_ITEMS = (
 class MainWindow(QMainWindow):
     """MEYES control-room shell with persistent safety status."""
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        camera_backend: CameraBackend,
+        config_manager: ConfigManager | None = None,
+    ) -> None:
         super().__init__()
         self._config = config
+        self._config_manager = config_manager
+        self._logger = get_logger("APP")
+        self._camera_controller = CameraController(camera_backend, config.camera, parent=self)
+        self._camera_controller.settings_changed.connect(self._save_camera_settings)
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
@@ -44,6 +57,7 @@ class MainWindow(QMainWindow):
 
     def _build_shell(self) -> QWidget:
         root = QWidget(self)
+        root.setObjectName("appRoot")
         layout = QVBoxLayout(root)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -80,6 +94,7 @@ class MainWindow(QMainWindow):
 
     def _build_workspace(self) -> QWidget:
         workspace = QWidget()
+        workspace.setObjectName("workspace")
         layout = QHBoxLayout(workspace)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -91,28 +106,7 @@ class MainWindow(QMainWindow):
         navigation.setCurrentRow(selected_row)
         navigation.setAccessibleName("Main navigation")
 
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(32, 28, 32, 28)
-        content_layout.setSpacing(16)
-
-        title = QLabel("Camera dashboard")
-        title.setObjectName("sectionTitle")
-        description = QLabel(
-            "Camera capture is not running yet. The next iteration adds device selection, "
-            "preview, health, and lifecycle controls."
-        )
-        description.setObjectName("mutedText")
-        description.setWordWrap(True)
-        preview = QLabel("Camera preview will appear here")
-        preview.setObjectName("previewPlaceholder")
-        preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        preview.setMinimumSize(480, 320)
-
-        content_layout.addWidget(title)
-        content_layout.addWidget(description)
-        content_layout.addWidget(preview, stretch=1)
+        content = CameraDashboard(self._camera_controller)
         layout.addWidget(navigation)
         layout.addWidget(content, stretch=1)
         return workspace
@@ -129,3 +123,16 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         layout.addWidget(local)
         return frame
+
+    def _save_camera_settings(self, settings: object) -> None:
+        if not isinstance(settings, CameraSettings):
+            self._logger.error("invalid_camera_settings_signal")
+            return
+        self._config = self._config.model_copy(update={"camera": settings})
+        if self._config_manager is not None:
+            self._config_manager.save(self._config)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Stop camera resources before allowing the window to close."""
+        self._camera_controller.shutdown()
+        event.accept()

@@ -28,11 +28,20 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
     """Generate QSS from named tokens; widgets never improvise colors."""
     color = tokens or ThemeTokens()
     return f"""
-        QMainWindow, QWidget {{
+        QMainWindow {{
             background: {color.canvas};
             color: {color.ink};
-            font-family: "Segoe UI Variable", "Segoe UI";
+            font-family: "Segoe UI";
             font-size: 10pt;
+        }}
+        QWidget {{
+            background: transparent;
+            color: {color.ink};
+            font-family: "Segoe UI";
+            font-size: 10pt;
+        }}
+        QWidget#appRoot, QWidget#workspace {{
+            background: {color.canvas};
         }}
         QFrame#topBar, QFrame#safetyBar {{
             background: {color.surface};
@@ -62,6 +71,48 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.surface};
             border-radius: 8px;
             font-size: 12pt;
+        }}
+        QFrame#statusPanel {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 8px;
+        }}
+        QLabel#panelTitle {{
+            font-size: 12pt;
+            font-weight: 650;
+        }}
+        QLabel#statusValue {{
+            font-weight: 650;
+        }}
+        QLabel#statusValue[cameraStatus="running"] {{
+            color: {color.success};
+        }}
+        QLabel#statusValue[cameraStatus="recovering"],
+        QLabel#statusValue[cameraStatus="paused"] {{
+            color: {color.warning};
+        }}
+        QLabel#statusValue[cameraStatus="error"] {{
+            color: {color.danger};
+        }}
+        QLabel#errorBanner {{
+            background: {color.surface};
+            color: {color.danger};
+            border: 1px solid {color.danger};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QComboBox {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            min-height: 36px;
+            padding: 0 10px;
+        }}
+        QComboBox:focus, QCheckBox:focus {{
+            border: 2px solid {color.focus};
+        }}
+        QCheckBox {{
+            spacing: 8px;
         }}
         QListWidget {{
             background: {color.surface};
@@ -105,5 +156,11 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         }}
         QPushButton#primaryButton:hover {{
             background: {color.accent_hover};
+        }}
+        QPushButton:disabled,
+        QPushButton#primaryButton:disabled {{
+            background: {color.surface_subtle};
+            border-color: {color.border};
+            color: {color.ink_muted};
         }}
     """

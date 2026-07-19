@@ -17,3 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Thread-safe latest-frame-only buffer and rolling FPS measurement.
 - Validated camera lifecycle state machine with pause, recovery, and deterministic shutdown.
 - Webcam-free camera worker tests, including blocked-read shutdown recovery.
+- Responsive camera dashboard with asynchronous discovery and device selection.
+- Preview-only mirroring that leaves processing coordinates unchanged.
+- Start, pause, resume, and stop controls with textual camera health and FPS.
+- Camera preference persistence and clean window-close shutdown.
+- Native Windows visual QA and physical webcam/controller smoke tests.

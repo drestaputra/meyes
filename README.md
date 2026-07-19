@@ -16,7 +16,7 @@ Every gesture can be rebound to supported mouse or keyboard actions. Camera proc
 
 ## Development status
 
-Phase 0 is complete and Phase 1 is in progress. The repository provides the Python project foundation, local configuration recovery, structured rotating logs, a PySide6 application shell, and a tested OpenCV camera core with explicit lifecycle states and latest-frame-only transport. The next iteration connects that core to the dashboard.
+Phase 0 and Phase 1 are complete. The runnable application provides local configuration recovery, structured rotating logs, a PySide6 camera dashboard, asynchronous device discovery, mirrored preview, lifecycle controls, health/FPS indicators, settings persistence, and tested shutdown/recovery behavior. MediaPipe is intentionally deferred until Phase 2.
 
 See:
 

@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from PySide6.QtWidgets import QApplication
 
+from meyes.camera.opencv_camera import OpenCVCameraBackend
 from meyes.config.manager import ConfigManager
 from meyes.ui.main_window import MainWindow
 from meyes.util.logging import get_logger, setup_logging
@@ -16,7 +17,8 @@ from meyes.util.paths import AppPaths
 def run(argv: Sequence[str] | None = None) -> int:
     """Configure and run the Qt application."""
     app_paths = AppPaths.for_user()
-    config_result = ConfigManager(app_paths).load()
+    config_manager = ConfigManager(app_paths)
+    config_result = config_manager.load()
     setup_logging(app_paths, config_result.config.app.log_level)
     logger = get_logger("APP")
 
@@ -35,7 +37,11 @@ def run(argv: Sequence[str] | None = None) -> int:
     qt_app.setOrganizationName("Meyes")
     qt_app.setApplicationVersion("0.1.0")
 
-    window = MainWindow(config_result.config)
+    window = MainWindow(
+        config_result.config,
+        camera_backend=OpenCVCameraBackend(),
+        config_manager=config_manager,
+    )
     window.show()
     exit_code = qt_app.exec()
     logger.info("application_stop", extra={"exit_code": exit_code})

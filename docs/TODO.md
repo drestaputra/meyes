@@ -35,12 +35,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Enumerate available cameras.
 - [x] Implement the OpenCV capture worker.
 - [x] Implement latest-frame-only buffering.
-- [ ] Keep preview mirroring separate from processing coordinates.
-- [ ] Add the camera selector.
-- [ ] Add a responsive camera preview.
-- [ ] Add start, pause, resume, and stop controls.
-- [ ] Display measured capture and preview FPS.
-- [ ] Display explicit camera health states.
+- [x] Keep preview mirroring separate from processing coordinates.
+- [x] Add the camera selector.
+- [x] Add a responsive camera preview.
+- [x] Add start, pause, resume, and stop controls.
+- [x] Display measured capture and preview FPS.
+- [x] Display explicit camera health states.
 - [x] Recover from camera open/read failure without crashing.
 - [x] Stop workers deterministically before releasing camera resources.
 
@@ -49,8 +49,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add configuration round-trip tests.
 - [x] Add corrupt-configuration recovery tests.
 - [x] Add camera-state transition tests without requiring a webcam.
-- [ ] Verify the UI stays responsive during capture.
-- [ ] Verify switching or reconnecting a camera does not leak resources.
+- [x] Verify the UI stays responsive during capture.
+- [x] Verify switching or reconnecting a camera does not leak resources.
 - [x] Verify pause and shutdown are deterministic.
 - [x] Run unit tests.
 - [x] Run Ruff lint and format checks.
