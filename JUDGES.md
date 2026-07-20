@@ -82,6 +82,8 @@ Working in the submitted source build:
 - independent semantic temple tap, hold-start, and hold-end events with cooldown and
   lifecycle-safe hold termination;
 - validated action schemas, logical default bindings, and a fail-closed user profile repository;
+- a user-facing profile catalog that creates complete all-disabled profiles, activates a
+  selected snapshot through a pause-first transition, and previews all six simulated bindings;
 - a Qt-owned fake-only runtime dispatcher with held-input cleanup, no-catch-up deadline polling,
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
 - watchdog-driven expiry and native Safe Mode diagnostics with OS input explicitly disconnected;
@@ -91,8 +93,8 @@ Intentionally not implemented or not enabled:
 
 - mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- operating-system binding execution, user-facing profile controls, global shortcuts, tray
-  controls, or an installer.
+- operating-system binding execution, binding editing, profile deletion/rename/import/export,
+  global shortcuts, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

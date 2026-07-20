@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindingProfile
+from meyes.bindings.repository import BindingProfileRepository
 from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
@@ -27,6 +28,8 @@ from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.placeholder_page import PlaceholderPage
+from meyes.ui.profile_controller import ProfileController, binding_profile
+from meyes.ui.profiles_page import ProfilesPage
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
 from meyes.vision.controller import VisionController
@@ -55,6 +58,7 @@ class MainWindow(QMainWindow):
         hand_backend_factory: HandBackendFactory,
         config_manager: ConfigManager | None = None,
         binding_profile: BindingProfile | None = None,
+        profile_repository: BindingProfileRepository | None = None,
     ) -> None:
         super().__init__()
         self._config = config
@@ -68,8 +72,22 @@ class MainWindow(QMainWindow):
             parent=self,
             hand_backend_factory=hand_backend_factory,
         )
+        initial_profile = (
+            BindingManager(binding_profile).active_profile
+            if binding_profile is not None
+            else BindingManager().active_profile
+        )
         self._action_simulation = ActionSimulationController(
-            BindingManager(binding_profile) if binding_profile is not None else BindingManager(),
+            BindingManager(initial_profile),
+            parent=self,
+        )
+        self._profile_controller = ProfileController(
+            initial_profile,
+            self._action_simulation,
+            repository=profile_repository,
+            persist_active_profile=(
+                self._persist_active_profile if config_manager is not None else None
+            ),
             parent=self,
         )
         self._last_camera_status = CameraStatus.STOPPED
@@ -84,6 +102,7 @@ class MainWindow(QMainWindow):
             self._camera_controller.resume,
             Qt.ConnectionType.QueuedConnection,
         )
+        self._profile_controller.active_profile_changed.connect(self._on_active_profile_changed)
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
@@ -110,8 +129,12 @@ class MainWindow(QMainWindow):
 
         product = QLabel("MEYES")
         product.setObjectName("productName")
-        profile = QLabel(f"Profile: {self._config.app.active_profile}")
-        profile.setObjectName("mutedText")
+        self._profile_label = QLabel()
+        self._profile_label.setObjectName("activeProfileLabel")
+        self._profile_label.setAccessibleName("Active profile")
+        self._profile_label.setMinimumWidth(0)
+        self._profile_label.setMaximumWidth(240)
+        self._set_profile_label(self._profile_controller.active_profile.profile_name)
         status = QLabel("TRACKING PAUSED")
         status.setObjectName("trackingStatus")
         resume = QPushButton("Resume tracking")
@@ -121,7 +144,7 @@ class MainWindow(QMainWindow):
         resume.setToolTip("Camera controls will be available in Phase 1")
 
         layout.addWidget(product)
-        layout.addWidget(profile)
+        layout.addWidget(self._profile_label)
         layout.addStretch(1)
         layout.addWidget(status)
         layout.addWidget(resume)
@@ -150,6 +173,7 @@ class MainWindow(QMainWindow):
                 self._vision_controller,
                 action_simulation=self._action_simulation,
             ),
+            "Profiles": ProfilesPage(self._profile_controller),
         }
         for item in NAVIGATION_ITEMS:
             page = page_widgets.get(item) or PlaceholderPage(
@@ -184,6 +208,28 @@ class MainWindow(QMainWindow):
         self._config = self._config.model_copy(update={"camera": settings})
         if self._config_manager is not None:
             self._config_manager.save(self._config)
+
+    def _persist_active_profile(self, profile_name: str) -> None:
+        if self._config_manager is None:
+            raise RuntimeError("Configuration persistence is unavailable")
+        app_settings = self._config.app.model_copy(update={"active_profile": profile_name})
+        candidate = self._config.model_copy(update={"app": app_settings})
+        self._config_manager.save(candidate)
+        self._config = candidate
+
+    def _on_active_profile_changed(self, payload: object) -> None:
+        profile = binding_profile(payload)
+        self._set_profile_label(profile.profile_name)
+
+    def _set_profile_label(self, profile_name: str) -> None:
+        full_text = f"Profile: {profile_name}"
+        display_text = self._profile_label.fontMetrics().elidedText(
+            full_text,
+            Qt.TextElideMode.ElideMiddle,
+            220,
+        )
+        self._profile_label.setText(display_text)
+        self._profile_label.setToolTip(full_text)
 
     def _sync_vision_lifecycle(self, payload: object) -> None:
         if not isinstance(payload, CameraHealth):

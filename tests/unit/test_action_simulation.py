@@ -9,7 +9,7 @@ from typing import cast
 import pytest
 from pytestqt.qtbot import QtBot
 
-from meyes.bindings.defaults import default_profile
+from meyes.bindings.defaults import default_profile, disabled_profile
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.domain.actions import Action, MouseButton, MouseDownAction
@@ -257,6 +257,58 @@ def test_pause_stops_timer_and_releases_all_fake_held_state(qtbot: QtBot) -> Non
         InputCall("mouse_up", (MouseButton.LEFT,)),
         InputCall("release_all"),
     )
+
+
+def test_profile_activation_releases_holds_stops_timer_and_does_not_rearm(
+    qtbot: QtBot,
+) -> None:
+    del qtbot
+    clock = ManualClock(30.0)
+    executor = FakeInputExecutor()
+    original = manager_with(
+        {BindableGesture.RIGHT_TEMPLE_HOLD: MouseDownAction(button=MouseButton.LEFT)}
+    )
+    controller = ActionSimulationController(original, executor=executor, clock=clock)
+    controller.start()
+    controller.dispatch_event(
+        event(GestureEventType.LEFT_TEMPLE_HOLD_START, timestamp=30.0, sequence=1)
+    )
+    controller.dispatch_event(
+        event(GestureEventType.RIGHT_TEMPLE_HOLD_START, timestamp=30.0, sequence=1)
+    )
+    assert_timer_state(controller, active=True)
+    assert_held_buttons(executor, {MouseButton.LEFT})
+    previous_snapshot = controller.active_profile
+    replacement = disabled_profile("Replacement")
+
+    activated = controller.activate_profile(replacement)
+
+    assert activated == LifecycleReport(
+        success=True,
+        state=DispatcherState.PAUSED,
+        released=True,
+    )
+    assert controller.active_profile == replacement
+    assert controller.active_profile is not replacement
+    assert previous_snapshot.profile_name == "Simulation test"
+    assert controller.snapshot.active_holds == ()
+    assert controller.snapshot.next_poll_deadline is None
+    assert_timer_state(controller, active=False)
+    assert_held_buttons(executor, set())
+    assert executor.release_all_calls == 2
+    assert controller.simulated_calls[-2:] == (
+        InputCall("mouse_up", (MouseButton.LEFT,)),
+        InputCall("release_all"),
+    )
+
+    clock.value = 31.0
+    suppressed = controller.dispatch_event(
+        event(GestureEventType.LEFT_WINK, timestamp=31.0, sequence=2)
+    )
+    assert suppressed is not None
+    assert suppressed.status is DispatchStatus.INACTIVE
+    assert controller.state is DispatcherState.PAUSED
+    assert InputCall("mouse_click", (MouseButton.LEFT,)) not in controller.simulated_calls
 
 
 def test_qt_object_boundary_contains_malformed_payloads(qtbot: QtBot) -> None:

@@ -11,6 +11,7 @@ from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import disabled_profile
 from meyes.bindings.models import BindableGesture, BindingProfile
+from meyes.bindings.repository import BindingProfileRepository
 from meyes.camera.models import CameraDevice, CameraOptions, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig
@@ -166,3 +167,59 @@ def test_window_wires_fake_dispatch_and_releases_before_close(qtbot: QtBot) -> N
         InputCall("mouse_up", (MouseButton.LEFT,)),
         InputCall("release_all"),
     )
+
+
+def test_profile_activation_updates_runtime_config_and_top_bar(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    repository = BindingProfileRepository(paths)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        binding_profile=repository.load("Default").profile,
+        profile_repository=repository,
+    )
+    qtbot.addWidget(window)
+
+    created = window._profile_controller.create_disabled(" Work ")
+    activated = window._profile_controller.activate("work")
+
+    assert created.success and created.profile_name == "Work"
+    assert activated.success and activated.profile_name == "Work"
+    assert manager.load().config.app.active_profile == "Work"
+    assert window._config.app.active_profile == "Work"
+    assert window._profile_label.text() == "Profile: Work"
+    assert window._profile_label.toolTip() == "Profile: Work"
+    assert window._action_simulation.snapshot.profile_name == "Work"
+    assert window._action_simulation.state is DispatcherState.PAUSED
+
+
+def test_maximum_length_profile_name_is_elided_without_expanding_shell(
+    qtbot: QtBot,
+) -> None:
+    profile_name = "W" * 80
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        binding_profile=disabled_profile(profile_name),
+    )
+    qtbot.addWidget(window)
+    window.resize(900, 640)
+    window.show()
+
+    assert "…" in window._profile_label.text()
+    assert window._profile_label.toolTip() == f"Profile: {profile_name}"
+    assert window._profile_label.sizeHint().width() <= 240
+    assert window._profile_label.width() <= 240
+    assert window.minimumSizeHint().width() <= 1000
+    assert window.width() == 900

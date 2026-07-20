@@ -34,6 +34,14 @@ class ProfileLoadResult:
     recovered_from: Path | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ProfileCatalogResult:
+    """Visible profile names plus a sanitized catalog warning."""
+
+    names: tuple[str, ...]
+    warning: str | None = None
+
+
 class BindingProfileRepository:
     """Load built-in defaults and persist Windows-safe user profiles."""
 
@@ -136,8 +144,39 @@ class BindingProfileRepository:
             temporary_path.unlink(missing_ok=True)
         return path
 
-    def list_profile_names(self) -> tuple[str, ...]:
-        """Return the built-in profile plus valid persisted profile names."""
+    def create(self, profile: BindingProfile) -> Path:
+        """Create one complete user profile through an exclusive destination."""
+        if not isinstance(profile, BindingProfile):
+            raise TypeError("Expected BindingProfile")
+        validated = BindingProfile.model_validate(
+            profile.model_dump(mode="python", warnings="none")
+        )
+        if validated.profile_name.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            raise ValueError("The built-in Default profile is immutable")
+        self._paths.ensure_directories()
+        self._assert_safe_profile_directory()
+        path = self._profile_path(validated.profile_name)
+        self._assert_safe_profile_path(path)
+        if self._find_profile_path(validated.profile_name) is not None:
+            raise FileExistsError("A profile with that name already exists")
+        serialized = f"{validated.model_dump_json(indent=2)}\n"
+        created = False
+        try:
+            with path.open("x", encoding="utf-8", newline="\n") as stream:
+                created = True
+                stream.write(serialized)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except FileExistsError as error:
+            raise FileExistsError("A profile with that name already exists") from error
+        except Exception:
+            if created:
+                path.unlink(missing_ok=True)
+            raise
+        return path
+
+    def catalog(self) -> ProfileCatalogResult:
+        """Return valid names and disclose storage or validation problems."""
         try:
             self._paths.ensure_directories()
             self._assert_safe_profile_directory()
@@ -146,8 +185,12 @@ class BindingProfileRepository:
                 key=lambda item: item.name.casefold(),
             )
         except OSError:
-            return (DEFAULT_PROFILE_NAME,)
+            return ProfileCatalogResult(
+                (DEFAULT_PROFILE_NAME,),
+                warning="Profile storage could not be read.",
+            )
         valid_names: dict[str, str | None] = {}
+        skipped_file = False
         for path in paths:
             try:
                 self._assert_safe_profile_path(path)
@@ -161,7 +204,13 @@ class BindingProfileRepository:
                     profile.profile_name.casefold() == path.stem.casefold()
                     and key != DEFAULT_PROFILE_NAME.casefold()
                 ):
-                    valid_names[key] = None if key in valid_names else profile.profile_name
+                    if key in valid_names:
+                        valid_names[key] = None
+                        skipped_file = True
+                    else:
+                        valid_names[key] = profile.profile_name
+                else:
+                    skipped_file = True
             except (
                 OSError,
                 UnicodeError,
@@ -170,9 +219,21 @@ class BindingProfileRepository:
                 ValidationError,
                 ValueError,
             ):
-                continue
+                skipped_file = True
         names = [name for name in valid_names.values() if name is not None]
-        return (DEFAULT_PROFILE_NAME, *sorted(names, key=str.casefold))
+        warning = (
+            "Some profile files were ignored because they are invalid or ambiguous."
+            if skipped_file
+            else None
+        )
+        return ProfileCatalogResult(
+            (DEFAULT_PROFILE_NAME, *sorted(names, key=str.casefold)),
+            warning=warning,
+        )
+
+    def list_profile_names(self) -> tuple[str, ...]:
+        """Return the built-in profile plus valid persisted profile names."""
+        return self.catalog().names
 
     def _profile_path(self, profile_name: str) -> Path:
         normalized = validate_profile_name(profile_name)

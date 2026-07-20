@@ -125,7 +125,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Implement the global emergency pause shortcut.
 - [x] Implement dispatcher no-input safe mode with an explicit arm gate.
 - [x] Wire live semantic events to a Qt-owned fake-only simulation and Diagnostics trace.
+- [x] Add a durable user-facing profile catalog and all-disabled profile creation.
+- [x] Activate selected profiles through a release-first paused transition with config rollback.
+- [x] Preview the active profile's six simulated gesture bindings.
 - [x] Test all actions through a fake executor.
+- [ ] Add a safe draft-based binding editor without enabling operating-system input.
+- [ ] Add profile rename, deletion, import/export, and restore-default workflows.
 
 ## Backlog — Phase 5
 

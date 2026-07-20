@@ -63,7 +63,7 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             font-size: 20pt;
             font-weight: 650;
         }}
-        QLabel#mutedText {{
+        QLabel#mutedText, QLabel#activeProfileLabel {{
             color: {color.ink_muted};
         }}
         QLabel#previewPlaceholder {{
@@ -101,14 +101,39 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border-radius: 4px;
             padding: 10px 12px;
         }}
-        QComboBox {{
+        QLabel#profileFeedback {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QLabel#warningBanner {{
+            background: {color.surface};
+            color: {color.warning};
+            border: 1px solid {color.warning};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QLabel#profileFeedback[feedbackStatus="warning"] {{
+            color: {color.warning};
+            border-color: {color.warning};
+        }}
+        QLabel#profileFeedback[feedbackStatus="error"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+        }}
+        QLabel#profileFeedback[feedbackStatus="success"] {{
+            color: {color.success};
+            border-color: {color.success};
+        }}
+        QComboBox, QLineEdit {{
             background: {color.surface};
             border: 1px solid {color.border};
             border-radius: 4px;
             min-height: 36px;
             padding: 0 10px;
         }}
-        QComboBox:focus, QCheckBox:focus {{
+        QComboBox:focus, QLineEdit:focus, QCheckBox:focus {{
             border: 2px solid {color.focus};
         }}
         QCheckBox {{
@@ -144,6 +169,37 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             min-height: 32px;
             border-bottom: 1px solid {color.border};
             padding: 0 8px;
+        }}
+        QListWidget#profileList {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            outline: 0;
+            padding: 4px;
+        }}
+        QListWidget#profileList::item {{
+            min-height: 34px;
+            border-radius: 3px;
+            padding: 0 8px;
+        }}
+        QListWidget#profileList::item:selected {{
+            background: {color.surface};
+            color: {color.ink};
+            font-weight: 600;
+        }}
+        QTableWidget#activeBindingsTable {{
+            background: {color.surface};
+            alternate-background-color: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            gridline-color: {color.border};
+        }}
+        QHeaderView::section {{
+            background: {color.surface_subtle};
+            border: 0;
+            border-bottom: 1px solid {color.border};
+            padding: 8px;
+            font-weight: 650;
         }}
         QLabel#safeBanner {{
             background: {color.surface};
@@ -184,7 +240,13 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.surface};
             min-height: 40px;
         }}
-        QPushButton#primaryButton:hover {{
+        QPushButton[primaryAction="true"] {{
+            background: {color.accent};
+            border-color: {color.accent};
+            color: {color.surface};
+            min-height: 40px;
+        }}
+        QPushButton#primaryButton:hover, QPushButton[primaryAction="true"]:hover {{
             background: {color.accent_hover};
         }}
         QPushButton:disabled,

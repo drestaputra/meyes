@@ -58,3 +58,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Platform-neutral input protocol plus an in-memory fake executor; no Windows input backend is connected.
 - Fake-only, poll-driven action dispatcher with per-producer at-most-once ordering, stable hold snapshots, shared-button ownership, no-catch-up continuous scheduling, lifecycle gating, and retryable release-all fault recovery.
 - Qt-owned action simulation that loads the active profile fail-closed, consumes live semantic events, schedules dispatcher deadlines without a worker loop, releases before camera shutdown, and exposes bounded fake primitive diagnostics in a responsive Safe Mode layout while OS input remains disconnected.
+- Durable Profiles workflow with all-disabled creation, pause-first activation, preference rollback, canonical active-profile status, and a read-only preview of all six simulated bindings.

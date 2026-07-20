@@ -42,6 +42,47 @@ def test_user_profile_round_trip_is_atomic_and_listed(tmp_path: Path) -> None:
     assert json.loads(path.read_text(encoding="utf-8"))["profile_name"] == "Work Profile"
 
 
+def test_catalog_returns_canonical_names_without_warning(tmp_path: Path) -> None:
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    repository.create(disabled_profile("Zulu"))
+    repository.create(disabled_profile("alpha"))
+
+    catalog = repository.catalog()
+
+    assert catalog.names == ("Default", "alpha", "Zulu")
+    assert catalog.warning is None
+
+
+def test_create_rejects_case_insensitive_collision_without_overwriting(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    existing = repository.create(disabled_profile("Work"))
+    original = existing.read_bytes()
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        repository.create(disabled_profile("work"))
+
+    assert existing.read_bytes() == original
+    assert repository.catalog().names == ("Default", "Work")
+    assert tuple(path.name for path in paths.profiles_dir.glob("*.json")) == ("Work.json",)
+
+
+def test_create_exclusively_rejects_a_collision_after_the_catalog_check(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    existing = repository.create(disabled_profile("Work"))
+    original = existing.read_bytes()
+    monkeypatch.setattr(repository, "_find_profile_path", lambda _name: None)
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        repository.create(disabled_profile("Work"))
+
+    assert existing.read_bytes() == original
+
+
 def test_profile_load_is_case_insensitive_without_quarantining_valid_data(tmp_path: Path) -> None:
     paths = AppPaths.under(tmp_path)
     repository = BindingProfileRepository(paths)
@@ -165,9 +206,12 @@ def test_listing_ignores_invalid_files_without_mutating_them(tmp_path: Path) -> 
     invalid = paths.profiles_dir / "Invalid.json"
     invalid.write_text("{}", encoding="utf-8")
 
-    names = repository.list_profile_names()
+    catalog = repository.catalog()
 
-    assert names == ("Default", "Valid")
+    assert catalog.names == ("Default", "Valid")
+    assert catalog.warning is not None
+    assert "ignored" in catalog.warning
+    assert repository.list_profile_names() == catalog.names
     assert invalid.exists()
 
 
@@ -181,7 +225,11 @@ def test_unavailable_profile_storage_fails_closed_for_load_and_list(tmp_path: Pa
     assert result.warning is not None
     assert "unavailable" in result.warning
     assert all(isinstance(action, DisabledAction) for action in result.profile.bindings.values())
-    assert repository.list_profile_names() == ("Default",)
+    catalog = repository.catalog()
+    assert catalog.names == ("Default",)
+    assert catalog.warning is not None
+    assert "could not be read" in catalog.warning
+    assert repository.list_profile_names() == catalog.names
 
 
 def test_secure_temp_write_does_not_follow_a_precreated_legacy_symlink(tmp_path: Path) -> None:

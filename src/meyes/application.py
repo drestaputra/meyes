@@ -34,9 +34,8 @@ def run(argv: Sequence[str] | None = None) -> int:
                 "backup": str(config_result.recovered_from or ""),
             },
         )
-    profile_result = BindingProfileRepository(app_paths).load(
-        config_result.config.app.active_profile
-    )
+    profile_repository = BindingProfileRepository(app_paths)
+    profile_result = profile_repository.load(config_result.config.app.active_profile)
     if profile_result.warning:
         logger.warning(
             "binding_profile_recovered",
@@ -58,6 +57,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         hand_backend_factory=MediaPipeHandLandmarker,
         config_manager=config_manager,
         binding_profile=profile_result.profile,
+        profile_repository=profile_repository,
     )
     window.show()
     exit_code = qt_app.exec()

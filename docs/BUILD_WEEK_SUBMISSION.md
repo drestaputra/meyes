@@ -42,14 +42,16 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   them through a synchronous fake-only dispatcher with fail-safe release behavior;
 - connects semantic events to that dispatcher through a Qt-owned timer adapter while keeping
   the executor strictly in memory and all operating-system input disconnected;
+- provides a durable local profile catalog with all-disabled creation, pause-first activation,
+  preference rollback, and a read-only preview of all six simulated bindings;
 - exposes health, latency, freshness, observations, dispatcher state, and a bounded fake
   primitive trace through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.
 
 The current build does **not** provide gaze cursor control, OS-level clicking or scrolling,
-calibration, user-facing binding controls, a packaged installer, a medical assessment, or a
-remote OpenAI-powered runtime. Those capabilities must not appear in the video or description
-as completed functionality.
+calibration, binding editing, profile deletion/rename/import/export, a packaged installer, a
+medical assessment, or a remote OpenAI-powered runtime. Those capabilities must not appear in
+the video or description as completed functionality.
 
 ## Requirement audit
 
@@ -137,8 +139,8 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, fail-closed binding profiles, a Qt-owned fake-only action simulation with no-catch-up polling and release-all recovery, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
-| Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, a Qt-owned fake-only action simulation with no-catch-up polling and release-all recovery, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog and six-binding preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while OS input stays behind an intentional safety boundary. |
 

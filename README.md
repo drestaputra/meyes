@@ -2,13 +2,13 @@
 
 MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. Those events can exercise configured bindings through an in-memory simulation, but the build does **not** send mouse or keyboard input.
 
-The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake-only dispatcher now exercise those mappings in tests and in the runnable Diagnostics view. Operating-system output remains a roadmap item rather than a claim about the current build.
+The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake-only dispatcher now exercise those mappings in tests and in the runnable Diagnostics view. The Profiles view can create durable all-disabled profiles, activate one through a pause-first transition, and preview all six simulated bindings. Operating-system output remains a roadmap item rather than a claim about the current build.
 
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 ## Development status
 
-Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. A Qt-owned adapter now feeds live semantic events into that dispatcher, schedules continuous-action deadlines on the UI thread, and exposes its state and bounded fake primitive trace in Diagnostics. It preserves at-most-once event handling, stable hold ownership, no-catch-up polling, and release-all fault containment. No Windows input backend exists, so the runnable application remains in Safe Mode with OS input disconnected.
+Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. A Qt-owned adapter feeds live semantic events into that dispatcher, schedules continuous-action deadlines on the UI thread, and exposes its state and bounded fake primitive trace in Diagnostics. A durable profile catalog now supports all-disabled profile creation, pause-first activation with preference rollback, and a read-only six-binding preview. Binding editing, profile deletion/rename/import/export, and every Windows input path remain pending, so the runnable application stays in Safe Mode with OS input disconnected.
 
 See:
 

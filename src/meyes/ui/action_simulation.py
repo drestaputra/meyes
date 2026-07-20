@@ -10,6 +10,7 @@ from math import ceil, isfinite
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from meyes.bindings.manager import BindingManager
+from meyes.bindings.models import BindingProfile
 from meyes.domain.events import GestureEvent
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.services.action_dispatcher import (
@@ -71,6 +72,11 @@ class ActionSimulationController(QObject):
         return self._dispatcher.snapshot
 
     @property
+    def active_profile(self) -> BindingProfile:
+        """Return the dispatcher-owned active profile snapshot."""
+        return self._dispatcher.active_profile
+
+    @property
     def simulated_calls(self) -> tuple[InputCall, ...]:
         """Return the latest bounded fake primitive trace."""
         return tuple(self._recent_calls)
@@ -107,6 +113,13 @@ class ActionSimulationController(QObject):
         """Retry fake cleanup after a fault and remain paused."""
         self._poll_timer.stop()
         return self._run_lifecycle(self._dispatcher.recover)
+
+    def activate_profile(self, profile: BindingProfile) -> LifecycleReport:
+        """Release old ownership and install a profile while remaining paused."""
+        if not isinstance(profile, BindingProfile):
+            raise TypeError("Expected BindingProfile")
+        self._poll_timer.stop()
+        return self._run_lifecycle(lambda: self._dispatcher.activate_profile(profile))
 
     def close(self) -> LifecycleReport:
         """Enter terminal state before the vision and camera workers shut down."""
