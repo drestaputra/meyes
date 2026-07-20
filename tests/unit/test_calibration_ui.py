@@ -8,6 +8,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton
 from pytestqt.qtbot import QtBot
 
+from meyes.calibration.acceptance import (
+    CalibrationAcceptancePolicy,
+    CalibrationAcceptanceState,
+)
 from meyes.calibration.session import (
     CALIBRATION_TARGETS,
     CalibrationSession,
@@ -237,9 +241,16 @@ def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
     assert outcome.validation is not None
     assert outcome.validation.root_mean_square_error < 1e-10
     assert page._fit_status.text() == "Ready"
+    assert page._progress_label.text() == "All 9 points complete"
+    assert page._progress.value() == 9
+    assert page._progress.format() == "9 / 9 points complete"
     assert "RMSE 0.0000" in page._fit_metrics.text()
     assert "n=18" in page._fit_metrics.text()
-    assert "Pointer output remains off" in page._feedback.text()
+    assert page._acceptance_status.text() == "Review Required"
+    assert outcome.acceptance is not None
+    assert outcome.acceptance.state is CalibrationAcceptanceState.REVIEW_REQUIRED
+    assert controller.accepted_fit_result is None
+    assert "Review is required" in page._feedback.text()
 
 
 def test_unstable_complete_collection_reports_fit_failure_without_mapper(
@@ -255,6 +266,7 @@ def test_unstable_complete_collection_reports_fit_failure_without_mapper(
     assert controller.fit_result is None
     assert controller.fit_outcome.state is CalibrationFitState.FAILED
     assert controller.fit_outcome.validation is None
+    assert controller.fit_outcome.acceptance is None
     assert page._fit_status.text() == "Failed"
     assert page._fit_metrics.text() == "—"
     assert "Retry collection" in page._feedback.text()
@@ -276,3 +288,43 @@ def test_new_session_and_cancellation_erase_volatile_fit(qtbot: QtBot) -> None:
     controller.cancel()
     assert controller.fit_result is None
     assert controller.fit_outcome.state is CalibrationFitState.NONE
+
+
+def test_configured_policy_exposes_only_an_accepted_fit(qtbot: QtBot) -> None:
+    policy = CalibrationAcceptancePolicy(0.01, 0.01, 0.01, 18)
+    controller = CalibrationController(
+        CalibrationSession(samples_per_target=3),
+        acceptance_policy=policy,
+    )
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+
+    complete_calibration(controller, stable_geometry=True)
+
+    outcome = controller.fit_outcome
+    assert outcome.acceptance is not None
+    assert outcome.acceptance.state is CalibrationAcceptanceState.ACCEPTED
+    assert controller.accepted_fit_result is controller.fit_result
+    assert page._acceptance_status.text() == "Accepted"
+    assert "meets every configured acceptance limit" in page._feedback.text()
+
+
+def test_configured_policy_rejection_never_exposes_an_accepted_fit(qtbot: QtBot) -> None:
+    policy = CalibrationAcceptancePolicy(0.01, 0.01, 0.01, 19)
+    controller = CalibrationController(
+        CalibrationSession(samples_per_target=3),
+        acceptance_policy=policy,
+    )
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+
+    complete_calibration(controller, stable_geometry=True)
+
+    outcome = controller.fit_outcome
+    assert outcome.acceptance is not None
+    assert outcome.acceptance.state is CalibrationAcceptanceState.REJECTED
+    assert controller.fit_result is not None
+    assert controller.accepted_fit_result is None
+    assert page._acceptance_status.text() == "Rejected"
+    assert "holdout n=18 is below 19" in page._feedback.text()
+    assert "Retry collection" in page._feedback.text()

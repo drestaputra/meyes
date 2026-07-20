@@ -106,6 +106,8 @@ Working in the submitted source build:
 - a user-triggered volatile quadratic calibration fit after complete collection, with
   complete-target coverage, matrix-rank, conditioning, finite-output, deterministic per-target
   holdout-validation guards, visible metrics, and recoverable failure feedback;
+- an optional all-or-none acceptance policy that reports every missed configured limit, defaults
+  to `Review Required` because no benchmark limits are claimed, and never activates its mapper;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
@@ -133,7 +135,7 @@ Working in the submitted source build:
 
 Intentionally not implemented or not enabled:
 
-- accepted, persisted, or activated gaze calibration and cursor mapping;
+- evidence-backed default calibration limits, mapper persistence/activation, and cursor mapping;
 - tray controls, gaze pointer movement, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any

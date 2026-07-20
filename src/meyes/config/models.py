@@ -6,6 +6,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from meyes.calibration.acceptance import CalibrationAcceptancePolicy
 from meyes.util.profile_names import validate_profile_name
 
 
@@ -104,6 +105,66 @@ class PrivacySettings(StrictConfigModel):
     diagnostic_recording_enabled: bool = False
 
 
+class CalibrationSettings(StrictConfigModel):
+    """Optional evidence limits; all remain unset until representative measurement."""
+
+    maximum_root_mean_square_error: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    maximum_mean_error: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    maximum_error: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    minimum_holdout_samples: int | None = Field(default=None, ge=1, strict=True)
+
+    @model_validator(mode="after")
+    def validate_complete_policy(self) -> Self:
+        values = (
+            self.maximum_root_mean_square_error,
+            self.maximum_mean_error,
+            self.maximum_error,
+            self.minimum_holdout_samples,
+        )
+        if any(value is not None for value in values) and not all(
+            value is not None for value in values
+        ):
+            raise ValueError("calibration acceptance limits must be all configured or all unset")
+        return self
+
+    @property
+    def acceptance_policy(self) -> CalibrationAcceptancePolicy | None:
+        values = (
+            self.maximum_root_mean_square_error,
+            self.maximum_mean_error,
+            self.maximum_error,
+            self.minimum_holdout_samples,
+        )
+        if any(value is None for value in values):
+            return None
+        maximum_rmse, maximum_mean, maximum_error, minimum_samples = values
+        assert isinstance(maximum_rmse, float)
+        assert isinstance(maximum_mean, float)
+        assert isinstance(maximum_error, float)
+        assert isinstance(minimum_samples, int)
+        return CalibrationAcceptancePolicy(
+            maximum_root_mean_square_error=maximum_rmse,
+            maximum_mean_error=maximum_mean,
+            maximum_error=maximum_error,
+            minimum_holdout_samples=minimum_samples,
+        )
+
+
 class AppConfig(StrictConfigModel):
     """Root versioned configuration document."""
 
@@ -112,5 +173,6 @@ class AppConfig(StrictConfigModel):
     camera: CameraSettings = Field(default_factory=CameraSettings)
     tracking: TrackingSettings = Field(default_factory=TrackingSettings)
     gestures: GestureSettings = Field(default_factory=GestureSettings)
+    calibration: CalibrationSettings = Field(default_factory=CalibrationSettings)
     ui: UiSettings = Field(default_factory=UiSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)

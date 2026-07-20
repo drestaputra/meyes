@@ -72,3 +72,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Robust per-target calibration outlier rejection using coordinate-wise median/MAD bounds, a zero-MAD floor, inlier-only quotas, bounded attempts, and explicit UI feedback.
 - Replaceable quadratic calibration mapper with complete-target coverage, finite/rank/conditioning guards, unclamped prediction, deterministic target-stratified holdouts, and normalized error metrics.
 - Guarded user-triggered volatile calibration fitting after all nine targets, with recoverable numerical-failure feedback and honest holdout metrics in the Calibration UI while pointer output remains disconnected.
+- Opt-in all-or-none calibration acceptance policy with transparent multi-limit rejection reasons, a fail-closed `Review Required` default, accepted-result isolation, and no mapper activation or persistence.

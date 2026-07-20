@@ -133,8 +133,12 @@ class CalibrationPage(QWidget):
         self._fit_metrics = QLabel("—")
         self._fit_metrics.setObjectName("calibrationFitMetrics")
         self._fit_metrics.setWordWrap(True)
+        self._acceptance_status = QLabel("Not evaluated")
+        self._acceptance_status.setObjectName("calibrationAcceptanceStatus")
+        self._acceptance_status.setWordWrap(True)
         fit_form.addRow("Volatile mapper", self._fit_status)
         fit_form.addRow("Holdout metrics", self._fit_metrics)
+        fit_form.addRow("Acceptance", self._acceptance_status)
         panel_layout.addLayout(fit_form)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
@@ -222,15 +226,26 @@ class CalibrationPage(QWidget):
     def _render_snapshot(self, payload: object) -> None:
         snapshot = calibration_snapshot(payload)
         target = snapshot.target
-        self._progress.setMaximum(snapshot.samples_per_target)
-        self._progress.setValue(snapshot.accepted_for_target)
-        self._progress.setFormat(
-            f"{snapshot.accepted_for_target} / {snapshot.samples_per_target} accepted"
-        )
+        if snapshot.state is CalibrationSessionState.COMPLETE:
+            self._progress.setMaximum(len(CALIBRATION_TARGETS))
+            self._progress.setValue(snapshot.completed_targets)
+            self._progress.setFormat(
+                f"{snapshot.completed_targets} / {len(CALIBRATION_TARGETS)} points complete"
+            )
+        else:
+            self._progress.setMaximum(snapshot.samples_per_target)
+            self._progress.setValue(snapshot.accepted_for_target)
+            self._progress.setFormat(
+                f"{snapshot.accepted_for_target} / {snapshot.samples_per_target} accepted"
+            )
         point_number = (
             snapshot.target_index + 1 if target is not None else snapshot.completed_targets
         )
-        self._progress_label.setText(f"Point {point_number} of 9")
+        self._progress_label.setText(
+            "All 9 points complete"
+            if snapshot.state is CalibrationSessionState.COMPLETE
+            else f"Point {point_number} of 9"
+        )
         if target is None:
             self._instruction.setText(snapshot.state.value.replace("_", " ").title())
         else:
@@ -301,6 +316,12 @@ class CalibrationPage(QWidget):
                 f"Mean {validation.mean_error:.4f} · Max {validation.maximum_error:.4f} · "
                 f"n={validation.sample_count}"
             )
+        )
+        acceptance = outcome.acceptance
+        self._acceptance_status.setText(
+            "Not evaluated"
+            if acceptance is None
+            else acceptance.state.value.replace("_", " ").title()
         )
         if outcome.state is not CalibrationFitState.NONE:
             self._feedback.setText(outcome.message)

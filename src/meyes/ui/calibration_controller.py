@@ -7,6 +7,13 @@ from enum import StrEnum
 
 from PySide6.QtCore import QObject, Signal, Slot
 
+from meyes.calibration.acceptance import (
+    CalibrationAcceptance,
+    CalibrationAcceptancePolicy,
+    CalibrationAcceptanceState,
+    evaluate_calibration_acceptance,
+    review_required_acceptance,
+)
 from meyes.calibration.mapper import (
     CalibrationFitResult,
     CalibrationValidation,
@@ -36,6 +43,7 @@ class CalibrationFitOutcome:
     state: CalibrationFitState
     message: str
     validation: CalibrationValidation | None = None
+    acceptance: CalibrationAcceptance | None = None
 
 
 class CalibrationController(QObject):
@@ -49,9 +57,16 @@ class CalibrationController(QObject):
         self,
         session: CalibrationSession | None = None,
         parent: QObject | None = None,
+        *,
+        acceptance_policy: CalibrationAcceptancePolicy | None = None,
     ) -> None:
         super().__init__(parent)
+        if acceptance_policy is not None and not isinstance(
+            acceptance_policy, CalibrationAcceptancePolicy
+        ):
+            raise TypeError("Expected CalibrationAcceptancePolicy or None")
         self._session = session or CalibrationSession()
+        self._acceptance_policy = acceptance_policy
         self._fit_result: CalibrationFitResult | None = None
         self._fit_outcome = CalibrationFitOutcome(
             CalibrationFitState.NONE,
@@ -69,6 +84,13 @@ class CalibrationController(QObject):
     @property
     def fit_outcome(self) -> CalibrationFitOutcome:
         return self._fit_outcome
+
+    @property
+    def accepted_fit_result(self) -> CalibrationFitResult | None:
+        acceptance = self._fit_outcome.acceptance
+        if acceptance is None or acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
+            return None
+        return self._fit_result
 
     def start(self) -> CalibrationSnapshot:
         self._clear_fit()
@@ -116,12 +138,20 @@ class CalibrationController(QObject):
                 "Retry collection.",
             )
         else:
+            acceptance = (
+                review_required_acceptance()
+                if self._acceptance_policy is None
+                else evaluate_calibration_acceptance(
+                    self._acceptance_policy,
+                    result.validation,
+                )
+            )
             self._fit_result = result
             self._fit_outcome = CalibrationFitOutcome(
                 CalibrationFitState.READY,
-                "Volatile mapper fitted and held-out metrics calculated. "
-                "Pointer output remains off.",
+                _acceptance_message(acceptance),
                 validation=result.validation,
+                acceptance=acceptance,
             )
         self.fit_changed.emit(self._fit_outcome)
 
@@ -150,3 +180,20 @@ def calibration_fit_outcome(value: object) -> CalibrationFitOutcome:
     if not isinstance(value, CalibrationFitOutcome):
         raise TypeError("Expected CalibrationFitOutcome")
     return value
+
+
+def _acceptance_message(acceptance: CalibrationAcceptance) -> str:
+    if acceptance.state is CalibrationAcceptanceState.ACCEPTED:
+        return (
+            "Volatile mapper meets every configured acceptance limit. "
+            "It remains disconnected from pointer output."
+        )
+    if acceptance.state is CalibrationAcceptanceState.REJECTED:
+        return (
+            "Volatile mapper missed configured acceptance limits: "
+            f"{'; '.join(acceptance.reasons)}. Retry collection."
+        )
+    return (
+        "Volatile mapper fitted, but no complete evidence-backed acceptance policy is "
+        "configured. Review is required and pointer output remains off."
+    )

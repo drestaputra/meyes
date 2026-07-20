@@ -58,6 +58,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - fits a volatile replaceable quadratic mapper after complete user collection, with fail-closed
   numerical guards and visible deterministic per-target holdout metrics, without accepting,
   activating, or persisting its output;
+- evaluates a mapper only when a complete four-limit acceptance policy is explicitly configured,
+  otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
@@ -67,8 +69,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - starts every application session with operating-system input disconnected and never persists
   Live Input consent.
 
-The current build does **not** provide gaze cursor control, an accepted, persisted, or activated
-calibration workflow, a packaged installer, a medical assessment,
+The current build does **not** provide gaze cursor control, evidence-backed default calibration
+limits, mapper persistence or activation, a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 

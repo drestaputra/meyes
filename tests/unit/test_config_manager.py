@@ -13,6 +13,7 @@ from meyes.config.manager import ConfigManager
 from meyes.config.models import (
     AppConfig,
     AppSettings,
+    CalibrationSettings,
     CameraSettings,
     GestureSettings,
     TrackingSettings,
@@ -103,3 +104,49 @@ def test_emergency_shortcut_migrates_reserved_f12_and_rejects_other_values() -> 
     assert migrated.emergency_shortcut == "CTRL+ALT+SHIFT+F11"
     with pytest.raises(ValidationError, match="emergency_shortcut"):
         TrackingSettings.model_validate({"emergency_shortcut": "CTRL+ALT+DELETE"})
+
+
+def test_calibration_acceptance_policy_is_opt_in_and_all_or_none() -> None:
+    assert CalibrationSettings().acceptance_policy is None
+    with pytest.raises(ValidationError, match="all configured or all unset"):
+        CalibrationSettings(maximum_root_mean_square_error=0.05)
+
+    settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.10,
+        minimum_holdout_samples=18,
+    )
+
+    assert settings.acceptance_policy is not None
+    assert settings.acceptance_policy.minimum_holdout_samples == 18
+
+
+def test_existing_schema_one_document_defaults_to_review_required() -> None:
+    config = AppConfig.model_validate({"schema_version": 1})
+
+    assert config.calibration == CalibrationSettings()
+    assert config.calibration.acceptance_policy is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("maximum_root_mean_square_error", float("inf")),
+        ("minimum_holdout_samples", True),
+    ],
+)
+def test_calibration_acceptance_config_rejects_non_finite_or_coerced_limits(
+    field: str,
+    value: object,
+) -> None:
+    arguments: dict[str, object] = {
+        "maximum_root_mean_square_error": 0.05,
+        "maximum_mean_error": 0.04,
+        "maximum_error": 0.10,
+        "minimum_holdout_samples": 18,
+    }
+    arguments[field] = value
+
+    with pytest.raises(ValidationError):
+        CalibrationSettings.model_validate(arguments)

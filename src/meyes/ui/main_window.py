@@ -120,7 +120,10 @@ class MainWindow(QMainWindow):
             repository=profile_repository,
             parent=self,
         )
-        self._calibration_controller = CalibrationController(parent=self)
+        self._calibration_controller = CalibrationController(
+            acceptance_policy=config.calibration.acceptance_policy,
+            parent=self,
+        )
         self._vision_controller.gaze_feature_changed.connect(
             self._calibration_controller.observe_feature
         )
