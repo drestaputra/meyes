@@ -145,7 +145,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Backlog — Phase 5
 
-- [ ] Extract normalized gaze features.
+- [x] Extract normalized binocular gaze features with explicit invalid states and freshness expiry.
 - [ ] Build the guided nine-point calibration flow.
 - [ ] Reject calibration outliers.
 - [ ] Implement a replaceable calibration mapper.

@@ -31,6 +31,7 @@ from meyes.ui.action_simulation import (
 from meyes.vision.controller import (
     VisionController,
     face_observation,
+    gaze_feature_observation,
     gesture_event,
     hand_observation,
     hand_vision_health,
@@ -89,6 +90,7 @@ class DiagnosticsPage(QWidget):
         self._build_ui()
         self._connect_signals()
         self._clear_observation()
+        self._clear_gaze_feature()
         self._clear_hand_observation()
         self._clear_temple_feature()
         self._clear_temple_proximity()
@@ -103,7 +105,8 @@ class DiagnosticsPage(QWidget):
         title = QLabel("Diagnostics")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Inspect local face, hand, temple, gesture, and simulated action signals. "
+            "Inspect local face, uncalibrated gaze, hand, temple, gesture, and simulated "
+            "action signals. "
             "Mappings run only against an in-memory fake; no mouse or keyboard input is sent."
         )
         description.setObjectName("mutedText")
@@ -118,7 +121,7 @@ class DiagnosticsPage(QWidget):
         self._face_panel = self._build_face_panel()
         self._hand_panel = self._build_hand_panel()
         self._event_panel = self._build_event_panel()
-        self._face_panel.setMinimumHeight(330)
+        self._face_panel.setMinimumHeight(410)
         self._hand_panel.setMinimumHeight(330)
 
         panel_container = QWidget()
@@ -183,7 +186,7 @@ class DiagnosticsPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
 
-        heading = QLabel("Face observations")
+        heading = QLabel("Face & gaze observations")
         heading.setObjectName("panelTitle")
         heading.setWordWrap(True)
         form = QFormLayout()
@@ -195,11 +198,20 @@ class DiagnosticsPage(QWidget):
         self._inference_fps_value = QLabel("—")
         self._latency_value = QLabel("—")
         self._sequence_value = QLabel("—")
+        self._gaze_status_value = QLabel("Unavailable")
+        self._gaze_status_value.setObjectName("gazeFeatureStatusValue")
+        self._gaze_horizontal_value = QLabel("—")
+        self._gaze_horizontal_value.setObjectName("gazeHorizontalValue")
+        self._gaze_vertical_value = QLabel("—")
+        self._gaze_vertical_value.setObjectName("gazeVerticalValue")
         form.addRow("Pipeline", self._pipeline_value)
         form.addRow("Face", self._face_value)
         form.addRow("Inference FPS", self._inference_fps_value)
         form.addRow("Latency", self._latency_value)
         form.addRow("Frame", self._sequence_value)
+        form.addRow("Gaze feature", self._gaze_status_value)
+        form.addRow("Eye-relative X", self._gaze_horizontal_value)
+        form.addRow("Eye-relative Y", self._gaze_vertical_value)
 
         self._left_eye = EyeMeter("Left eye openness")
         self._right_eye = EyeMeter("Right eye openness")
@@ -207,6 +219,10 @@ class DiagnosticsPage(QWidget):
         layout.addLayout(form)
         layout.addWidget(self._left_eye)
         layout.addWidget(self._right_eye)
+        gaze_note = QLabel("Eye-relative features are uncalibrated and are not screen coordinates.")
+        gaze_note.setObjectName("mutedText")
+        gaze_note.setWordWrap(True)
+        layout.addWidget(gaze_note)
         layout.addStretch(1)
         return panel
 
@@ -325,6 +341,8 @@ class DiagnosticsPage(QWidget):
     def _connect_signals(self) -> None:
         self._controller.observation_changed.connect(self._on_observation)
         self._controller.observation_cleared.connect(self._clear_observation)
+        self._controller.gaze_feature_changed.connect(self._on_gaze_feature)
+        self._controller.gaze_feature_cleared.connect(self._clear_gaze_feature)
         self._controller.health_changed.connect(self._on_health)
         self._controller.hand_observation_changed.connect(self._on_hand_observation)
         self._controller.hand_observation_cleared.connect(self._clear_hand_observation)
@@ -357,6 +375,18 @@ class DiagnosticsPage(QWidget):
         )
         self._latency_value.setText(
             f"{health.processing_latency_ms:.1f} ms" if health.processing_latency_ms > 0 else "—"
+        )
+
+    @Slot(object)
+    def _on_gaze_feature(self, payload: object) -> None:
+        feature = gaze_feature_observation(payload)
+        self._gaze_status_value.setText(feature.status.value.replace("_", " ").title())
+        combined = feature.combined
+        self._gaze_horizontal_value.setText(
+            f"{combined.horizontal:.3f}" if feature.ready and combined is not None else "—"
+        )
+        self._gaze_vertical_value.setText(
+            f"{combined.vertical:.3f}" if feature.ready and combined is not None else "—"
         )
 
     @Slot(object)
@@ -450,6 +480,12 @@ class DiagnosticsPage(QWidget):
         self._sequence_value.setText("—")
         self._left_eye.set_openness(None)
         self._right_eye.set_openness(None)
+
+    @Slot()
+    def _clear_gaze_feature(self) -> None:
+        self._gaze_status_value.setText("Unavailable")
+        self._gaze_horizontal_value.setText("—")
+        self._gaze_vertical_value.setText("—")
 
     @Slot()
     def _clear_hand_observation(self) -> None:

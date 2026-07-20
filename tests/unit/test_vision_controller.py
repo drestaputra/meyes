@@ -17,6 +17,8 @@ from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import (
     DetectedHand,
     FaceObservation,
+    GazeFeatureObservation,
+    GazeFeatureStatus,
     HandObservation,
     HandSide,
     NormalizedPoint,
@@ -25,7 +27,7 @@ from meyes.domain.observations import (
     TempleProximity,
 )
 from meyes.gestures.temple_proximity import ProximityState, TempleProximitySnapshot
-from meyes.vision.controller import VisionController
+from meyes.vision.controller import VisionController, gaze_feature_observation
 from meyes.vision.hand_worker import HandVisionHealth
 from meyes.vision.worker import VisionHealth, VisionShutdownError, VisionStatus
 
@@ -60,6 +62,14 @@ class FeatureFaceBackend:
             landmarks[index] = NormalizedPoint(0.2, 0.4)
         for index in (356, 389, 454):
             landmarks[index] = NormalizedPoint(0.8, 0.4)
+        landmarks[362] = NormalizedPoint(0.55, 0.45)
+        landmarks[263] = NormalizedPoint(0.75, 0.45)
+        landmarks[386] = NormalizedPoint(0.65, 0.40)
+        landmarks[374] = NormalizedPoint(0.65, 0.50)
+        landmarks[33] = NormalizedPoint(0.25, 0.45)
+        landmarks[133] = NormalizedPoint(0.45, 0.45)
+        landmarks[159] = NormalizedPoint(0.35, 0.40)
+        landmarks[145] = NormalizedPoint(0.35, 0.50)
         height, width = packet.frame.shape[:2]
         return FaceObservation(
             source_sequence=packet.sequence,
@@ -68,6 +78,8 @@ class FeatureFaceBackend:
             face_detected=True,
             left_eye_openness=0.9,
             right_eye_openness=0.9,
+            left_iris_center=NormalizedPoint(0.65, 0.45),
+            right_iris_center=NormalizedPoint(0.35, 0.45),
             landmarks=tuple(landmarks),
             frame_width=width,
             frame_height=height,
@@ -807,6 +819,71 @@ def test_old_generation_marker_drops_stale_result_without_losing_current(
     controller.stop()
 
     assert [item.source_sequence for item in observations] == [1]
+
+
+def test_fresh_face_publishes_binocular_gaze_and_watchdog_expires_it(qtbot: QtBot) -> None:
+    clock = FakeClock(10.0)
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        clock=clock,
+    )
+    features: list[GazeFeatureObservation] = []
+    controller.gaze_feature_changed.connect(features.append)
+    controller.start()
+
+    with qtbot.waitSignal(controller.gaze_feature_changed, timeout=1000):
+        controller._queue_face_result(
+            controller._face_worker_serial,
+            feature_face_observation(1, 9.95),
+        )
+    clock.now = 10.201
+    with qtbot.waitSignal(controller.gaze_feature_cleared, timeout=1000):
+        controller.poll_timeouts()
+    controller.stop()
+
+    assert len(features) == 1
+    assert features[0].status is GazeFeatureStatus.READY
+    assert features[0].combined is not None
+    assert features[0].combined.horizontal == pytest.approx(0.5)
+    assert features[0].combined.vertical == pytest.approx(0.5)
+
+
+def test_suspend_clears_gaze_and_old_generation_cannot_repopulate(qtbot: QtBot) -> None:
+    controller = VisionController(
+        LatestFrameBuffer(),
+        FeatureFaceBackend,
+        GestureSettings(),
+        clock=FakeClock(10.0),
+    )
+    features: list[GazeFeatureObservation] = []
+    controller.gaze_feature_changed.connect(features.append)
+    controller.start()
+    serial = controller._face_worker_serial
+
+    with qtbot.waitSignal(controller.gaze_feature_changed, timeout=1000):
+        controller._queue_face_result(serial, feature_face_observation(1, 9.95))
+    with qtbot.waitSignal(controller.gaze_feature_cleared, timeout=1000):
+        controller.suspend()
+    controller._queue_face_result(serial, feature_face_observation(2, 9.96))
+    qtbot.wait(20)
+    controller.stop()
+
+    assert [feature.source_sequence for feature in features] == [1]
+
+
+def test_gaze_feature_qt_boundary_rejects_wrong_payload() -> None:
+    feature = GazeFeatureObservation(
+        source_sequence=1,
+        capture_timestamp=1.0,
+        processed_timestamp=1.01,
+        status=GazeFeatureStatus.FACE_NOT_DETECTED,
+    )
+
+    assert gaze_feature_observation(feature) is feature
+    with pytest.raises(TypeError, match="Expected GazeFeatureObservation"):
+        gaze_feature_observation(object())
 
 
 def test_hand_first_same_frame_is_recomputed_when_face_finishes(qtbot: QtBot) -> None:

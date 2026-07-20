@@ -16,6 +16,7 @@ from meyes.config.models import GestureSettings
 from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import (
     FaceObservation,
+    GazeFeatureObservation,
     HandObservation,
     HandSide,
     TempleFeatureObservation,
@@ -24,6 +25,7 @@ from meyes.domain.observations import (
 from meyes.gestures.engine import GestureEngine
 from meyes.gestures.temple_proximity import TempleProximitySnapshot
 from meyes.util.logging import get_logger
+from meyes.vision.gaze_features import extract_gaze_features
 from meyes.vision.hand_worker import HandVisionHealth, HandVisionWorker
 from meyes.vision.interface import FaceBackendFactory, HandBackendFactory
 from meyes.vision.temple_features import MonotonicClock, TempleFeatureTracker
@@ -35,6 +37,8 @@ class VisionController(QObject):
 
     observation_changed = Signal(object)
     observation_cleared = Signal()
+    gaze_feature_changed = Signal(object)
+    gaze_feature_cleared = Signal()
     health_changed = Signal(object)
     hand_observation_changed = Signal(object)
     hand_observation_cleared = Signal()
@@ -70,6 +74,7 @@ class VisionController(QObject):
         self._hand_target_fps = hand_target_fps
         self._clock = clock or time.monotonic
         self._tracking_timeout = gesture_settings.tracking_timeout_ms / 1000.0
+        self._minimum_gaze_eye_openness = gesture_settings.wink_closed_threshold
         self._gesture_engine = GestureEngine.from_settings(gesture_settings)
         self._temple_tracker = TempleFeatureTracker(
             max_age=self._tracking_timeout,
@@ -98,6 +103,7 @@ class VisionController(QObject):
         self._event_publication_depth = 0
         self._deferred_lifecycle_events: list[GestureEvent] = []
         self._published_holds: set[HandSide] = set()
+        self._latest_gaze_feature: GazeFeatureObservation | None = None
 
         self._face_result_queued.connect(
             self._process_face_result,
@@ -166,6 +172,8 @@ class VisionController(QObject):
             events = self._gesture_engine.reset(self._clock())
         self._publish_or_defer_lifecycle_events(events)
         self.observation_cleared.emit()
+        self._latest_gaze_feature = None
+        self.gaze_feature_cleared.emit()
         self.hand_observation_cleared.emit()
         self.temple_feature_cleared.emit()
         self.temple_proximity_cleared.emit()
@@ -184,6 +192,9 @@ class VisionController(QObject):
             return
         generation, _ = self._delivery_snapshot()
         timestamp = self._clock()
+        self._expire_gaze_feature(timestamp)
+        if not self._delivery_generation_matches(generation):
+            return
         expired = self._temple_tracker.expire()
         if expired is not None:
             self._publish_temple_feature(expired)
@@ -362,10 +373,23 @@ class VisionController(QObject):
             with self._gesture_lock:
                 self._gesture_engine.reset_face()
             self.observation_cleared.emit()
+            self._clear_gaze_feature()
             self.poll_timeouts()
             return
+        generation, _ = self._delivery_snapshot()
         face_added = self._temple_tracker.update_face(accepted)
+        gaze_feature = extract_gaze_features(
+            accepted,
+            processed_timestamp=self._clock(),
+            minimum_eye_openness=self._minimum_gaze_eye_openness,
+        )
         self.observation_changed.emit(accepted)
+        if not self._delivery_generation_matches(generation):
+            return
+        self._latest_gaze_feature = gaze_feature
+        self.gaze_feature_changed.emit(gaze_feature)
+        if not self._delivery_generation_matches(generation):
+            return
         if face_added:
             refreshed = self._temple_tracker.recompute_latest_hand()
             if refreshed is not None:
@@ -475,6 +499,20 @@ class VisionController(QObject):
                 return
         self.temple_feature_changed.emit(feature)
 
+    def _expire_gaze_feature(self, timestamp: float) -> None:
+        latest = self._latest_gaze_feature
+        if latest is None:
+            return
+        age = timestamp - latest.capture_timestamp
+        if not isfinite(timestamp) or not isfinite(age) or age < 0 or age > self._tracking_timeout:
+            self._clear_gaze_feature()
+
+    def _clear_gaze_feature(self) -> None:
+        if self._latest_gaze_feature is None:
+            return
+        self._latest_gaze_feature = None
+        self.gaze_feature_cleared.emit()
+
     def _enable_delivery(self) -> None:
         with self._delivery_lock:
             if not self._delivery_enabled:
@@ -565,6 +603,13 @@ def face_observation(value: object) -> FaceObservation:
     """Validate a Qt object signal payload at the UI boundary."""
     if not isinstance(value, FaceObservation):
         raise TypeError("Expected FaceObservation")
+    return value
+
+
+def gaze_feature_observation(value: object) -> GazeFeatureObservation:
+    """Validate a Qt object signal payload at the UI boundary."""
+    if not isinstance(value, GazeFeatureObservation):
+        raise TypeError("Expected GazeFeatureObservation")
     return value
 
 

@@ -90,6 +90,45 @@ class FaceObservation:
         return max(0.0, (self.processed_timestamp - self.capture_timestamp) * 1000.0)
 
 
+class GazeFeatureStatus(StrEnum):
+    """Availability state for one uncalibrated eye-relative gaze feature."""
+
+    READY = "ready"
+    FACE_NOT_DETECTED = "face_not_detected"
+    EYE_OPENNESS_UNAVAILABLE = "eye_openness_unavailable"
+    EYES_CLOSED = "eyes_closed"
+    LANDMARKS_UNAVAILABLE = "landmarks_unavailable"
+    INVALID_GEOMETRY = "invalid_geometry"
+    INVALID_TIME = "invalid_time"
+
+
+@dataclass(frozen=True, slots=True)
+class GazeFeatureVector:
+    """Iris position relative to one eye-local horizontal and vertical axis."""
+
+    horizontal: float
+    vertical: float
+
+
+@dataclass(frozen=True, slots=True)
+class GazeFeatureObservation:
+    """Uncalibrated binocular gaze features derived from one face observation."""
+
+    source_sequence: int
+    capture_timestamp: float
+    processed_timestamp: float
+    status: GazeFeatureStatus
+    left_eye: GazeFeatureVector | None = None
+    right_eye: GazeFeatureVector | None = None
+    combined: GazeFeatureVector | None = None
+    face_confidence: float | None = None
+
+    @property
+    def ready(self) -> bool:
+        """Return whether a complete binocular feature is available for calibration."""
+        return self.status is GazeFeatureStatus.READY and self.combined is not None
+
+
 class TempleFeatureStatus(StrEnum):
     """Availability state for one paired temple-feature observation."""
 

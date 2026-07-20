@@ -98,6 +98,8 @@ Working in the submitted source build:
 
 - camera discovery, start, pause/resume, stop, recovery, and aspect-correct preview;
 - independent local face and lower-cadence hand inference;
+- fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
+  Diagnostics status; these uncalibrated values are not screen coordinates;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
