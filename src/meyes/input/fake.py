@@ -99,6 +99,12 @@ class FakeInputExecutor:
         if errors:
             raise InputReleaseError(tuple(errors))
 
+    def drain_calls(self) -> tuple[InputCall, ...]:
+        """Return and clear diagnostics records without changing held state."""
+        calls = tuple(self.calls)
+        self.calls.clear()
+        return calls
+
     def _release_keys(self, keys: Iterable[KeyName]) -> list[Exception]:
         errors: list[Exception] = []
         for key in keys:

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import NoReturn
 
-from PySide6.QtWidgets import QLabel, QListWidget, QProgressBar
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel, QListWidget, QProgressBar, QScrollArea
 from pytestqt.qtbot import QtBot
 
+from meyes.bindings.defaults import disabled_profile
+from meyes.bindings.manager import BindingManager
 from meyes.camera.buffer import LatestFrameBuffer
 from meyes.config.models import GestureSettings
 from meyes.domain.events import GestureEvent, GestureEventType
@@ -20,7 +23,9 @@ from meyes.domain.observations import (
     TempleProximity,
 )
 from meyes.gestures.temple_proximity import ProximityState, TempleProximitySnapshot
+from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.diagnostics_page import DiagnosticsPage
+from meyes.ui.theme import build_stylesheet
 from meyes.vision.controller import VisionController
 
 
@@ -110,3 +115,88 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
     assert right_state.text() == "Unknown"
     assert left_temple.text() == "0.125"
     assert right_temple.text() == "—"
+
+
+def test_diagnostics_renders_fake_only_dispatch_state_and_result(qtbot: QtBot) -> None:
+    controller = VisionController(LatestFrameBuffer(), unused_backend, GestureSettings())
+    simulation = ActionSimulationController(BindingManager(), clock=lambda: 2.5)
+    controller.event_detected.connect(simulation.handle_event)
+    page = DiagnosticsPage(controller, action_simulation=simulation)
+    qtbot.addWidget(page)
+    simulation.start()
+
+    controller.event_detected.emit(
+        GestureEvent(
+            type=GestureEventType.LEFT_WINK,
+            timestamp=2.0,
+            source_sequence=1,
+            duration_ms=160.0,
+        )
+    )
+
+    state = page.findChild(QLabel, "dispatchStateValue")
+    profile = page.findChild(QLabel, "dispatchProfileValue")
+    last_result = page.findChild(QLabel, "dispatchLastResultValue")
+    fault = page.findChild(QLabel, "dispatchFaultValue")
+    simulation_log = page.findChild(QListWidget, "simulatedActionLog")
+    safe_banner = page.findChild(QLabel, "safeBanner")
+
+    assert state is not None and state.text() == "Active"
+    assert profile is not None and profile.text() == "Default"
+    assert last_result is not None and last_result.text() == "Mouse Click · Executed"
+    assert fault is not None and fault.text() == "None"
+    assert simulation_log is not None and simulation_log.count() == 2
+    assert "Mouse Click · left" in simulation_log.item(0).text()
+    assert simulation_log.horizontalScrollBarPolicy() is Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert safe_banner is not None and "OS input disconnected" in safe_banner.text()
+
+
+def test_diagnostics_reflows_action_panel_below_observations_when_narrow(
+    qtbot: QtBot,
+) -> None:
+    controller = VisionController(LatestFrameBuffer(), unused_backend, GestureSettings())
+    long_profile_name = "A" * 80
+    simulation = ActionSimulationController(BindingManager(disabled_profile(long_profile_name)))
+    page = DiagnosticsPage(controller, action_simulation=simulation)
+    page.setStyleSheet(build_stylesheet())
+    qtbot.addWidget(page)
+    page.setFixedSize(690, 640)
+    page.show()
+
+    qtbot.waitUntil(lambda: page.width() == 690 and page._compact_panels is True)
+    compact_position = page._panel_grid.getItemPosition(page._panel_grid.indexOf(page._event_panel))
+    panel_scroll = page.findChild(QScrollArea, "diagnosticsPanelScroll")
+    safe_banner = page.findChild(QLabel, "safeBanner")
+    profile_value = page.findChild(QLabel, "dispatchProfileValue")
+
+    assert compact_position == (1, 0, 1, 2)
+    assert panel_scroll is not None
+    assert safe_banner is not None
+    assert profile_value is not None
+    assert len(profile_value.text()) <= 23
+    assert "…" in profile_value.text()
+    assert profile_value.toolTip() == long_profile_name
+    assert page.minimumSizeHint().width() <= page.width()
+    assert safe_banner.minimumSizeHint().width() <= safe_banner.width()
+    assert panel_scroll.horizontalScrollBarPolicy() is Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    qtbot.waitUntil(lambda: panel_scroll.horizontalScrollBar().maximum() == 0)
+    container = panel_scroll.widget()
+    assert container is not None
+    assert container.width() <= panel_scroll.viewport().width()
+    assert all(
+        panel.geometry().right() <= container.contentsRect().right()
+        for panel in (page._face_panel, page._hand_panel, page._event_panel)
+    )
+    assert panel_scroll.verticalScrollBar().maximum() > 0
+
+    page.setFixedSize(1190, 640)
+    qtbot.waitUntil(lambda: page.width() == 1190 and page._compact_panels is False)
+
+    wide_position = page._panel_grid.getItemPosition(page._panel_grid.indexOf(page._event_panel))
+    assert wide_position == (0, 2, 1, 1)
+    qtbot.waitUntil(lambda: panel_scroll.horizontalScrollBar().maximum() == 0)
+    panels = (page._face_panel, page._hand_panel, page._event_panel)
+    assert {panel.y() for panel in panels} == {0}
+    assert [panel.x() for panel in panels] == sorted(panel.x() for panel in panels)
+    assert max(panel.width() for panel in panels) - min(panel.width() for panel in panels) <= 1
+    assert all(panel.geometry().right() <= container.contentsRect().right() for panel in panels)

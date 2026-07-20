@@ -55,5 +55,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Semantic tap, hold-start, and exactly-once hold-end events in Diagnostics, including timeout, pause, and shutdown termination without bindings or OS input.
 - Closed, discriminated MVP action vocabulary with bounded scroll, supported-key, shortcut, and hold-only continuous-action validation.
 - Complete logical binding profiles, exact built-in defaults, phased hold-event resolution, and fail-closed user profile persistence.
-- Platform-neutral input protocol plus an in-memory test executor; no Windows input backend or runtime dispatch path is connected.
+- Platform-neutral input protocol plus an in-memory fake executor; no Windows input backend is connected.
 - Fake-only, poll-driven action dispatcher with per-producer at-most-once ordering, stable hold snapshots, shared-button ownership, no-catch-up continuous scheduling, lifecycle gating, and retryable release-all fault recovery.
+- Qt-owned action simulation that loads the active profile fail-closed, consumes live semantic events, schedules dispatcher deadlines without a worker loop, releases before camera shutdown, and exposes bounded fake primitive diagnostics in a responsive Safe Mode layout while OS input remains disconnected.

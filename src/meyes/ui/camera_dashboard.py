@@ -117,7 +117,7 @@ class CameraDashboard(QWidget):
         self._resolution_value.setText(
             f"{self._controller.settings.width} x {self._controller.settings.height}"
         )
-        self._safe_mode_value.setText("Safe mode")
+        self._safe_mode_value.setText("Simulation only")
         layout.setRowStretch(6, 1)
         return panel
 

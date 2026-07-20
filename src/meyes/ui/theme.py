@@ -134,13 +134,13 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QListWidget#mainNavigation::item:focus {{
             border: 2px solid {color.focus};
         }}
-        QListWidget#eventLog {{
+        QListWidget#eventLog, QListWidget#simulatedActionLog {{
             background: {color.surface_subtle};
             border: 1px solid {color.border};
             border-radius: 4px;
             padding: 4px;
         }}
-        QListWidget#eventLog::item {{
+        QListWidget#eventLog::item, QListWidget#simulatedActionLog::item {{
             min-height: 32px;
             border-bottom: 1px solid {color.border};
             padding: 0 8px;

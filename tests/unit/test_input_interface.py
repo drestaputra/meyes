@@ -81,6 +81,27 @@ def test_release_all_uses_reverse_acquisition_order() -> None:
     ]
 
 
+def test_drain_calls_bounds_diagnostics_without_changing_held_state() -> None:
+    executor = FakeInputExecutor()
+    executor.mouse_down(MouseButton.LEFT)
+    executor.key_down(KeyName.CTRL)
+
+    drained = executor.drain_calls()
+
+    assert drained == (
+        InputCall("mouse_down", (MouseButton.LEFT,)),
+        InputCall("key_down", (KeyName.CTRL,)),
+    )
+    assert executor.calls == []
+    assert executor.held_buttons == {MouseButton.LEFT}
+    assert executor.held_keys == {KeyName.CTRL}
+
+    executor.release_all()
+
+    assert executor.held_buttons == set()
+    assert executor.held_keys == set()
+
+
 def test_release_all_attempts_every_input_then_retries_a_failure() -> None:
     class FailFirstARelease(FakeInputExecutor):
         failed = False

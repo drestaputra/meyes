@@ -40,8 +40,10 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   capture-time ordering, and lifecycle-safe hold termination;
 - validates a closed action vocabulary and complete logical binding profiles, and exercises
   them through a synchronous fake-only dispatcher with fail-safe release behavior;
-- keeps that dispatcher disconnected from the runnable Qt event path and all OS input;
-- exposes health, latency, freshness, and observations through a native PySide6 Safe Mode UI;
+- connects semantic events to that dispatcher through a Qt-owned timer adapter while keeping
+  the executor strictly in memory and all operating-system input disconnected;
+- exposes health, latency, freshness, observations, dispatcher state, and a bounded fake
+  primitive trace through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.
 
 The current build does **not** provide gaze cursor control, OS-level clicking or scrolling,
@@ -135,7 +137,7 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, fail-closed binding profiles, a fake-only action dispatcher with release-all recovery, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, fail-closed binding profiles, a Qt-owned fake-only action simulation with no-catch-up polling and release-all recovery, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
 | Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while OS input stays behind an intentional safety boundary. |

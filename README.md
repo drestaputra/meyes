@@ -1,14 +1,14 @@
 # MEYES
 
-MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
+MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. Those events can exercise configured bindings through an in-memory simulation, but the build does **not** send mouse or keyboard input.
 
-The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a fake-only dispatcher now exercise those mappings in tests, but operating-system output remains a roadmap item rather than a claim about the runnable build.
+The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake-only dispatcher now exercise those mappings in tests and in the runnable Diagnostics view. Operating-system output remains a roadmap item rather than a claim about the current build.
 
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 ## Development status
 
-Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. The dispatcher provides at-most-once event handling, stable hold ownership, no-catch-up continuous polling, and release-all fault containment, but it is not composed into the PySide6 runtime and no Windows input backend exists. The runnable application therefore remains in Safe Mode.
+Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. A Qt-owned adapter now feeds live semantic events into that dispatcher, schedules continuous-action deadlines on the UI thread, and exposes its state and bounded fake primitive trace in Diagnostics. It preserves at-most-once event handling, stable hold ownership, no-catch-up polling, and release-all fault containment. No Windows input backend exists, so the runnable application remains in Safe Mode with OS input disconnected.
 
 See:
 
@@ -23,7 +23,7 @@ See:
 - Target platform: Windows 10/11 x64, Python 3.11, and an ordinary webcam; live and visual QA is currently recorded on Windows 11 x64.
 - Build-period evidence: Git history begins on July 19, 2026, inside the July 13-21 submission window and remains unsquashed.
 - Runtime boundary: GPT-5.6 and Codex helped build MEYES; neither is an application runtime dependency and no OpenAI API key is required.
-- Safety boundary: the submitted scope is local vision and diagnostics only until the README, demo, and code all truthfully show otherwise.
+- Safety boundary: the submitted scope is local vision plus in-memory action simulation; operating-system input stays disconnected until the README, demo, and code all truthfully show otherwise.
 
 See the [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md) and [judge quickstart](./JUDGES.md). The public demo URL, final Devpost URL, and `/feedback` Session ID remain explicit pre-submission checklist items.
 

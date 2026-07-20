@@ -124,6 +124,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Implement validated keyboard shortcut dispatch through the fake executor.
 - [ ] Implement the global emergency pause shortcut.
 - [x] Implement dispatcher no-input safe mode with an explicit arm gate.
+- [x] Wire live semantic events to a Qt-owned fake-only simulation and Diagnostics trace.
 - [x] Test all actions through a fake executor.
 
 ## Backlog — Phase 5

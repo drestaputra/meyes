@@ -4,21 +4,30 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QFormLayout,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from meyes.domain.observations import HandSide
+from meyes.ui.action_simulation import (
+    ActionSimulationController,
+    simulation_input_call,
+    simulation_report,
+    simulation_snapshot,
+)
 from meyes.vision.controller import (
     VisionController,
     face_observation,
@@ -29,6 +38,9 @@ from meyes.vision.controller import (
     temple_proximity_snapshot,
     vision_health,
 )
+
+_COMPACT_PANEL_BREAKPOINT = 960
+_MAX_PROFILE_DISPLAY_CHARS = 23
 
 
 class EyeMeter(QFrame):
@@ -62,17 +74,26 @@ class EyeMeter(QFrame):
 
 
 class DiagnosticsPage(QWidget):
-    """Display local semantic observations without executing actions."""
+    """Display local observations and fake-only action simulation."""
 
-    def __init__(self, controller: VisionController, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        controller: VisionController,
+        parent: QWidget | None = None,
+        *,
+        action_simulation: ActionSimulationController | None = None,
+    ) -> None:
         super().__init__(parent)
         self._controller = controller
+        self._action_simulation = action_simulation
         self._build_ui()
         self._connect_signals()
         self._clear_observation()
         self._clear_hand_observation()
         self._clear_temple_feature()
         self._clear_temple_proximity()
+        if self._action_simulation is not None:
+            self._on_simulation_snapshot(self._action_simulation.snapshot)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -82,24 +103,75 @@ class DiagnosticsPage(QWidget):
         title = QLabel("Diagnostics")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Inspect local face, hand, temple, and gesture signals. Safe mode is locked on: "
-            "no mouse or keyboard input is sent."
+            "Inspect local face, hand, temple, gesture, and simulated action signals. "
+            "Mappings run only against an in-memory fake; no mouse or keyboard input is sent."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
-        safe_banner = QLabel("SAFE MODE · Detection only · OS input disconnected")
+        safe_banner = QLabel("SAFE MODE · Simulated actions only · OS input disconnected")
         safe_banner.setObjectName("safeBanner")
+        safe_banner.setWordWrap(True)
 
-        columns = QHBoxLayout()
-        columns.setSpacing(16)
-        columns.addWidget(self._build_face_panel(), stretch=1)
-        columns.addWidget(self._build_hand_panel(), stretch=1)
-        columns.addWidget(self._build_event_panel(), stretch=1)
+        self._face_panel = self._build_face_panel()
+        self._hand_panel = self._build_hand_panel()
+        self._event_panel = self._build_event_panel()
+        self._face_panel.setMinimumHeight(330)
+        self._hand_panel.setMinimumHeight(330)
+
+        panel_container = QWidget()
+        panel_container.setObjectName("diagnosticsPanelContainer")
+        self._panel_grid = QGridLayout(panel_container)
+        self._panel_grid.setContentsMargins(0, 0, 0, 0)
+        self._panel_grid.setSpacing(16)
+        self._compact_panels: bool | None = None
+        self._arrange_panels(self.width())
+
+        panel_scroll = QScrollArea()
+        panel_scroll.setObjectName("diagnosticsPanelScroll")
+        panel_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        panel_scroll.setWidgetResizable(True)
+        panel_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        panel_scroll.setWidget(panel_container)
 
         root.addWidget(title)
         root.addWidget(description)
         root.addWidget(safe_banner)
-        root.addLayout(columns, stretch=1)
+        root.addWidget(panel_scroll, stretch=1)
+
+    def _arrange_panels(self, width: int) -> None:
+        compact = width < _COMPACT_PANEL_BREAKPOINT
+        if compact is self._compact_panels:
+            return
+        self._compact_panels = compact
+        for panel in (self._face_panel, self._hand_panel, self._event_panel):
+            self._panel_grid.removeWidget(panel)
+        for column in range(3):
+            self._panel_grid.setColumnStretch(column, 0)
+        for row in range(2):
+            self._panel_grid.setRowStretch(row, 0)
+
+        if compact:
+            self._panel_grid.addWidget(self._face_panel, 0, 0)
+            self._panel_grid.addWidget(self._hand_panel, 0, 1)
+            self._panel_grid.addWidget(self._event_panel, 1, 0, 1, 2)
+            self._panel_grid.setColumnStretch(0, 1)
+            self._panel_grid.setColumnStretch(1, 1)
+            self._panel_grid.setRowStretch(1, 1)
+            self._event_panel.setMinimumHeight(460)
+        else:
+            self._panel_grid.addWidget(self._face_panel, 0, 0)
+            self._panel_grid.addWidget(self._hand_panel, 0, 1)
+            self._panel_grid.addWidget(self._event_panel, 0, 2)
+            for column in range(3):
+                self._panel_grid.setColumnStretch(column, 1)
+            self._panel_grid.setRowStretch(0, 1)
+            self._event_panel.setMinimumHeight(0)
+
+        self._panel_grid.invalidate()
+        self._panel_grid.activate()
+        container = self._panel_grid.parentWidget()
+        if container is not None:
+            container.updateGeometry()
 
     def _build_face_panel(self) -> QFrame:
         panel = QFrame()
@@ -110,9 +182,11 @@ class DiagnosticsPage(QWidget):
 
         heading = QLabel("Face observations")
         heading.setObjectName("panelTitle")
+        heading.setWordWrap(True)
         form = QFormLayout()
         form.setHorizontalSpacing(16)
         form.setVerticalSpacing(10)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self._pipeline_value = QLabel("Stopped")
         self._face_value = QLabel("Not detected")
         self._inference_fps_value = QLabel("—")
@@ -142,9 +216,11 @@ class DiagnosticsPage(QWidget):
 
         heading = QLabel("Hand & temple features")
         heading.setObjectName("panelTitle")
+        heading.setWordWrap(True)
         form = QFormLayout()
         form.setHorizontalSpacing(16)
         form.setVerticalSpacing(12)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self._hand_pipeline_value = QLabel("Stopped")
         self._hand_count_value = QLabel("0")
         self._hand_count_value.setObjectName("handCountValue")
@@ -188,6 +264,7 @@ class DiagnosticsPage(QWidget):
         heading_row = QHBoxLayout()
         heading = QLabel("Semantic events")
         heading.setObjectName("panelTitle")
+        heading.setWordWrap(True)
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self._clear_events)
         heading_row.addWidget(heading)
@@ -197,15 +274,49 @@ class DiagnosticsPage(QWidget):
         self._event_log = QListWidget()
         self._event_log.setObjectName("eventLog")
         self._event_log.setAccessibleName("Recent semantic gesture events")
-        empty = QLabel(
-            "Events appear here. Detection and temple features do not trigger actions in Safe mode."
-        )
+        self._event_log.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._event_log.setTextElideMode(Qt.TextElideMode.ElideRight)
+        empty = QLabel("Semantic events appear here; their action mappings are simulated below.")
         empty.setObjectName("mutedText")
         empty.setWordWrap(True)
+
+        dispatch_form = QFormLayout()
+        dispatch_form.setHorizontalSpacing(12)
+        dispatch_form.setVerticalSpacing(6)
+        dispatch_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        self._dispatch_state_value = QLabel("Disconnected")
+        self._dispatch_state_value.setObjectName("dispatchStateValue")
+        self._dispatch_profile_value = QLabel("—")
+        self._dispatch_profile_value.setObjectName("dispatchProfileValue")
+        self._dispatch_holds_value = QLabel("None")
+        self._dispatch_holds_value.setObjectName("dispatchHoldsValue")
+        self._dispatch_last_value = QLabel("No events")
+        self._dispatch_last_value.setObjectName("dispatchLastResultValue")
+        self._dispatch_last_value.setWordWrap(True)
+        self._dispatch_fault_value = QLabel("None")
+        self._dispatch_fault_value.setObjectName("dispatchFaultValue")
+        self._dispatch_fault_value.setWordWrap(True)
+        dispatch_form.addRow("Simulation", self._dispatch_state_value)
+        dispatch_form.addRow("Profile", self._dispatch_profile_value)
+        dispatch_form.addRow("Active holds", self._dispatch_holds_value)
+        dispatch_form.addRow("Last result", self._dispatch_last_value)
+        dispatch_form.addRow("Fault", self._dispatch_fault_value)
+
+        simulation_heading = QLabel("Simulated primitive trace (fake only)")
+        simulation_heading.setObjectName("panelTitle")
+        simulation_heading.setWordWrap(True)
+        self._simulation_log = QListWidget()
+        self._simulation_log.setObjectName("simulatedActionLog")
+        self._simulation_log.setAccessibleName("Recent fake-only action results")
+        self._simulation_log.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._simulation_log.setTextElideMode(Qt.TextElideMode.ElideRight)
 
         layout.addLayout(heading_row)
         layout.addWidget(empty)
         layout.addWidget(self._event_log, stretch=1)
+        layout.addLayout(dispatch_form)
+        layout.addWidget(simulation_heading)
+        layout.addWidget(self._simulation_log, stretch=1)
         return panel
 
     def _connect_signals(self) -> None:
@@ -220,6 +331,10 @@ class DiagnosticsPage(QWidget):
         self._controller.temple_proximity_changed.connect(self._on_temple_proximity)
         self._controller.temple_proximity_cleared.connect(self._clear_temple_proximity)
         self._controller.event_detected.connect(self._on_event)
+        if self._action_simulation is not None:
+            self._action_simulation.snapshot_changed.connect(self._on_simulation_snapshot)
+            self._action_simulation.report_emitted.connect(self._on_simulation_report)
+            self._action_simulation.input_call_emitted.connect(self._on_simulated_input)
 
     @Slot(object)
     def _on_observation(self, payload: object) -> None:
@@ -290,6 +405,42 @@ class DiagnosticsPage(QWidget):
         while self._event_log.count() > 50:
             self._event_log.takeItem(self._event_log.count() - 1)
 
+    @Slot(object)
+    def _on_simulation_snapshot(self, payload: object) -> None:
+        snapshot = simulation_snapshot(payload)
+        self._dispatch_state_value.setText(snapshot.state.value.capitalize())
+        profile_name = snapshot.profile_name
+        self._dispatch_profile_value.setText(_elide_middle(profile_name))
+        self._dispatch_profile_value.setToolTip(profile_name)
+        holds = ", ".join(gesture.value for gesture in snapshot.active_holds)
+        self._dispatch_holds_value.setText(holds or "None")
+        fault = snapshot.fault
+        self._dispatch_fault_value.setText(
+            "None" if fault is None else f"{fault.operation}: {fault.error_type}"
+        )
+
+    @Slot(object)
+    def _on_simulation_report(self, payload: object) -> None:
+        report = simulation_report(payload)
+        action = (report.action_type or "no action").replace("_", " ").title()
+        status = report.status.value.replace("_", " ").title()
+        self._dispatch_last_value.setText(f"{action} · {status}")
+
+    @Slot(object)
+    def _on_simulated_input(self, payload: object) -> None:
+        call = simulation_input_call(payload)
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        operation = call.operation.replace("_", " ").title()
+        arguments = ", ".join(
+            str(getattr(argument, "value", argument)) for argument in call.arguments
+        )
+        suffix = f" · {arguments}" if arguments else ""
+        item = QListWidgetItem(f"{timestamp}  {operation}{suffix}")
+        item.setToolTip(f"FakeInputExecutor.{call.operation}{call.arguments!r}")
+        self._simulation_log.insertItem(0, item)
+        while self._simulation_log.count() > 50:
+            self._simulation_log.takeItem(self._simulation_log.count() - 1)
+
     @Slot()
     def _clear_observation(self) -> None:
         self._face_value.setText("Not detected")
@@ -315,3 +466,19 @@ class DiagnosticsPage(QWidget):
     @Slot()
     def _clear_events(self) -> None:
         self._event_log.clear()
+        self._simulation_log.clear()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Switch panel composition at a page-width breakpoint."""
+        super().resizeEvent(event)
+        self._arrange_panels(event.size().width())
+
+
+def _elide_middle(value: str) -> str:
+    """Bound unbroken profile labels while keeping both identifying ends."""
+    if len(value) <= _MAX_PROFILE_DISPLAY_CHARS:
+        return value
+    visible_characters = _MAX_PROFILE_DISPLAY_CHARS - 1
+    prefix_length = (visible_characters + 1) // 2
+    suffix_length = visible_characters // 2
+    return f"{value[:prefix_length]}…{value[-suffix_length:]}"

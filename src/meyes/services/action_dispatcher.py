@@ -98,7 +98,7 @@ class LifecycleReport:
 
 @dataclass(frozen=True, slots=True)
 class DispatcherSnapshot:
-    """Read-only dispatcher state for diagnostics and future UI adapters."""
+    """Read-only dispatcher state for runtime diagnostics."""
 
     state: DispatcherState
     profile_name: str
@@ -185,7 +185,7 @@ _POLL_ORDER = {
 class ActionDispatcher:
     """Serialize bindings into safe fake/backend calls on one owning thread.
 
-    The default state is deliberately paused. A future runtime adapter must call
+    The default state is deliberately paused. A runtime adapter must call
     :meth:`arm` only after its own tracking lifecycle is ready. This service owns
     a validated binding snapshot, contains backend errors, and never creates a
     timer or worker thread; callers drive continuous actions through :meth:`poll`.

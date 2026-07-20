@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from PySide6.QtWidgets import QApplication
 
+from meyes.bindings.repository import BindingProfileRepository
 from meyes.camera.opencv_camera import OpenCVCameraBackend
 from meyes.config.manager import ConfigManager
 from meyes.ui.main_window import MainWindow
@@ -33,6 +34,17 @@ def run(argv: Sequence[str] | None = None) -> int:
                 "backup": str(config_result.recovered_from or ""),
             },
         )
+    profile_result = BindingProfileRepository(app_paths).load(
+        config_result.config.app.active_profile
+    )
+    if profile_result.warning:
+        logger.warning(
+            "binding_profile_recovered",
+            extra={
+                "warning": profile_result.warning,
+                "backup": str(profile_result.recovered_from or ""),
+            },
+        )
 
     qt_app = QApplication(list(argv) if argv is not None else sys.argv)
     qt_app.setApplicationName("Meyes")
@@ -45,6 +57,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         face_backend_factory=MediaPipeFaceLandmarker,
         hand_backend_factory=MediaPipeHandLandmarker,
         config_manager=config_manager,
+        binding_profile=profile_result.profile,
     )
     window.show()
     exit_code = qt_app.exec()

@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 from typing import NoReturn
 
 from pytestqt.qtbot import QtBot
 
+from meyes.bindings.defaults import disabled_profile
+from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.camera.models import CameraDevice, CameraOptions, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig
+from meyes.domain.actions import MouseButton, MouseDownAction
+from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import FaceObservation, HandObservation
+from meyes.input.fake import InputCall
+from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
 from meyes.vision.worker import VisionStatus
@@ -117,8 +124,45 @@ def test_window_close_stops_both_active_vision_workers(qtbot: QtBot) -> None:
     assert hand.closed.is_set()
     assert window._vision_controller.status is VisionStatus.STOPPED
     assert window._vision_controller.hand_status is VisionStatus.STOPPED
+    assert window._action_simulation.state is DispatcherState.CLOSED
     assert not [
         thread.name
         for thread in threading.enumerate()
         if thread.name in {"meyes-face", "meyes-hand"}
     ]
+
+
+def test_window_wires_fake_dispatch_and_releases_before_close(qtbot: QtBot) -> None:
+    bindings = dict(disabled_profile("Close safety").bindings)
+    bindings[BindableGesture.LEFT_TEMPLE_HOLD] = MouseDownAction(button=MouseButton.LEFT)
+    profile = BindingProfile(profile_name="Close safety", bindings=bindings)
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        binding_profile=profile,
+    )
+    qtbot.addWidget(window)
+    assert window._action_simulation.snapshot.profile_name == "Close safety"
+    assert window._action_simulation.start().success is True
+    timestamp = time.monotonic()
+
+    window._vision_controller.event_detected.emit(
+        GestureEvent(
+            GestureEventType.LEFT_TEMPLE_HOLD_START,
+            timestamp=timestamp,
+            source_sequence=1,
+            duration_ms=550.0,
+        )
+    )
+
+    assert InputCall("mouse_down", (MouseButton.LEFT,)) in window._action_simulation.simulated_calls
+
+    window.close()
+
+    assert window._action_simulation.state is DispatcherState.CLOSED
+    assert window._action_simulation.simulated_calls[-2:] == (
+        InputCall("mouse_up", (MouseButton.LEFT,)),
+        InputCall("release_all"),
+    )

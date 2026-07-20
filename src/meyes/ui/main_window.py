@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFrame,
@@ -15,11 +16,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from meyes.bindings.manager import BindingManager
+from meyes.bindings.models import BindingProfile
 from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CameraSettings
+from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.placeholder_page import PlaceholderPage
@@ -50,6 +54,7 @@ class MainWindow(QMainWindow):
         face_backend_factory: FaceBackendFactory,
         hand_backend_factory: HandBackendFactory,
         config_manager: ConfigManager | None = None,
+        binding_profile: BindingProfile | None = None,
     ) -> None:
         super().__init__()
         self._config = config
@@ -63,9 +68,22 @@ class MainWindow(QMainWindow):
             parent=self,
             hand_backend_factory=hand_backend_factory,
         )
+        self._action_simulation = ActionSimulationController(
+            BindingManager(binding_profile) if binding_profile is not None else BindingManager(),
+            parent=self,
+        )
         self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)
         self._camera_controller.health_changed.connect(self._sync_vision_lifecycle)
+        self._vision_controller.event_detected.connect(self._action_simulation.handle_event)
+        self._action_simulation.tracking_pause_requested.connect(
+            self._camera_controller.pause,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        self._action_simulation.tracking_resume_requested.connect(
+            self._camera_controller.resume,
+            Qt.ConnectionType.QueuedConnection,
+        )
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
@@ -128,7 +146,10 @@ class MainWindow(QMainWindow):
         pages.setObjectName("mainPages")
         page_widgets: dict[str, QWidget] = {
             "Dashboard": CameraDashboard(self._camera_controller),
-            "Diagnostics": DiagnosticsPage(self._vision_controller),
+            "Diagnostics": DiagnosticsPage(
+                self._vision_controller,
+                action_simulation=self._action_simulation,
+            ),
         }
         for item in NAVIGATION_ITEMS:
             page = page_widgets.get(item) or PlaceholderPage(
@@ -148,7 +169,7 @@ class MainWindow(QMainWindow):
         frame.setObjectName("safetyBar")
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(24, 10, 24, 10)
-        shortcut = QLabel("Ctrl + Alt + F12 pauses tracking immediately")
+        shortcut = QLabel("Emergency shortcut planned: Ctrl + Alt + F12")
         local = QLabel("Camera processing stays on this device")
         local.setObjectName("mutedText")
         layout.addWidget(shortcut)
@@ -173,14 +194,18 @@ class MainWindow(QMainWindow):
             return
         self._last_camera_status = status
         if status is CameraStatus.RUNNING:
+            self._action_simulation.start()
             self._vision_controller.start()
         elif status in {CameraStatus.STOPPING, CameraStatus.STOPPED}:
+            self._action_simulation.stop(f"camera:{status.value}")
             self._vision_controller.stop()
         else:
+            self._action_simulation.pause(f"camera:{status.value}")
             self._vision_controller.suspend()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""
+        self._action_simulation.close()
         self._vision_controller.stop()
         self._camera_controller.shutdown()
         event.accept()
