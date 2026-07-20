@@ -63,3 +63,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Fail-safe inactive profile lifecycle with rename, exact-name-confirmed recoverable deletion, restore-from-Default, and built-in/active-profile protections.
 - Dormant Windows `SendInput` executor for validated mouse and keyboard primitives with ABI-safe ctypes structures, owned held-state tracking, partial-send detection, reverse-order cleanup, and fake native-boundary tests.
 - Dormant Windows live-safety foundation with `Ctrl+Alt+Shift+F11` registration, native Qt hotkey filtering, retryable cleanup, and physical button/modifier preflight.
+- Dormant explicit-consent live session controller with hotkey-first preflight, lazy `SendInput` construction, release-first arming, emergency disarm, profile-transition gating, and terminal cleanup.

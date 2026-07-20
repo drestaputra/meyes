@@ -52,6 +52,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   not construct, arm, or expose it from the submitted Safe Mode application;
 - includes an unwired global-hotkey/preflight service; the runnable application does not register
   the shortcut or claim emergency-pause coverage yet;
+- includes an unwired live session controller with volatile exact-phrase consent, release-first
+  initialization, emergency release, profile-transition disarm, and terminal cleanup tests;
 - exposes health, latency, freshness, observations, dispatcher state, and a bounded fake
   primitive trace through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.

@@ -94,6 +94,8 @@ Working in the submitted source build:
   reverse-order cleanup, and no connection to the runnable application;
 - a dormant `Ctrl+Alt+Shift+F11` global-hotkey and physical-input preflight service that is not
   yet registered by the runnable application;
+- a dormant, fake-boundary-tested live session controller requiring exact typed consent, hotkey
+  registration, clear physical inputs, and release-first arm/disarm before native dispatch;
 - watchdog-driven expiry and native Safe Mode diagnostics with OS input explicitly disconnected;
 - deterministic shutdown and race/lifecycle regression coverage.
 
@@ -101,8 +103,8 @@ Intentionally not implemented or not enabled:
 
 - mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- armed operating-system binding execution, gaze pointer mapping, profile import/export, global
-  emergency shortcuts, tray controls, or an installer.
+- application-wired operating-system binding execution, gaze pointer mapping, profile
+  import/export, registered global emergency shortcuts, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.
