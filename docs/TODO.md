@@ -161,7 +161,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Bind stored calibration to UTC creation time and exact physical primary-display geometry.
 - [ ] Add an explicit replace-confirmation control for a saved calibration.
 - [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
-- [ ] Add a safe deleted-backup restore or permanent-cleanup workflow.
+- [x] Add an exact-phrase newest deleted-backup restore workflow with full lifecycle gates.
+- [ ] Add a permanent deleted-backup cleanup workflow.
 - [x] Add bounded read-only metadata cataloging for recoverably deleted calibration backups.
 - [x] Add guarded repository restore with exact-record, checksum, policy, and exclusive-create gates.
 - [x] Add lifecycle restore with display validation and exact-copy rollback on incompatibility.

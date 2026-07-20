@@ -38,7 +38,10 @@ from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
 from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
-from meyes.ui.calibration_page import FORGET_CALIBRATION_PHRASE
+from meyes.ui.calibration_page import (
+    FORGET_CALIBRATION_PHRASE,
+    RESTORE_CALIBRATION_PHRASE,
+)
 from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
 from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputState
@@ -195,6 +198,9 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     persistence_label = window.findChild(QLabel, "calibrationPersistenceStatus")
     forget_confirmation = window.findChild(QLineEdit, "forgetCalibrationConfirmation")
     forget_button = window.findChild(QPushButton, "forgetCalibrationButton")
+    backup_status = window.findChild(QLabel, "calibrationDeletedBackupStatus")
+    restore_confirmation = window.findChild(QLineEdit, "restoreCalibrationConfirmation")
+    restore_button = window.findChild(QPushButton, "restoreCalibrationButton")
     recovered_result = window._calibration_persistence_result
     recovered_cursor = window._cursor_diagnostics.snapshot
 
@@ -206,6 +212,9 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert paths.calibration_file.exists()
     assert forget_confirmation is not None
     assert forget_button is not None
+    assert backup_status is not None
+    assert restore_confirmation is not None
+    assert restore_button is not None
 
     forget_confirmation.setText(FORGET_CALIBRATION_PHRASE)
     assert forget_button.isEnabled()
@@ -220,6 +229,21 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert len(tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json"))) == 1
     assert "recoverable deleted backup" in persistence_label.text()
     assert forget_confirmation.text() == ""
+    assert "Newest deleted backup" in backup_status.text()
+
+    restore_confirmation.setText(RESTORE_CALIBRATION_PHRASE)
+    assert restore_button.isEnabled()
+    restore_button.click()
+    restored_result = window._calibration_persistence_result
+    restored_cursor = window._cursor_diagnostics.snapshot
+
+    assert restored_result.status is CalibrationPersistenceStatus.RESTORED
+    assert restored_cursor.status is CursorDiagnosticsStatus.SUSPENDED
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert paths.calibration_file.exists()
+    assert len(tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json"))) == 1
+    assert "Restored calibration" in persistence_label.text()
+    assert restore_confirmation.text() == ""
 
 
 def test_newly_accepted_fit_is_saved_without_arming_live_input(

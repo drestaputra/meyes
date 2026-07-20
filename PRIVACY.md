@@ -72,6 +72,11 @@ timestamped `accepted-calibration.deleted-*.json` backup after the exact phrase
 `FORGET SAVED CALIBRATION` is typed. This clears fake cursor provisioning but does not permanently
 erase the backup or change Live Input state.
 
+The page shows only the newest deleted backup's UTC deletion time and byte size. Typing
+`RESTORE SAVED CALIBRATION` revalidates the local checksum, configured policy, validation evidence,
+and current physical display geometry before fake diagnostics are restored. The deleted backup is
+retained, and Live Input state is unchanged.
+
 MEYES does not currently provide in-app permanent backup deletion, a cloud account, telemetry
 opt-out for MediaPipe, or an automated data-retention scheduler.
 

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from meyes.calibration.persistence import DeletedCalibrationBackup, DeletedCalibrationCatalog
 from meyes.calibration.session import (
     CALIBRATION_TARGETS,
     CalibrationCaptureStatus,
@@ -36,7 +37,10 @@ from meyes.ui.calibration_presentation import CalibrationPresentation
 
 PrepareCalibration = Callable[[], bool]
 ForgetCalibration = Callable[[], CalibrationPersistenceResult]
+BackupCatalog = Callable[[], DeletedCalibrationCatalog]
+RestoreCalibration = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
 FORGET_CALIBRATION_PHRASE = "FORGET SAVED CALIBRATION"
+RESTORE_CALIBRATION_PHRASE = "RESTORE SAVED CALIBRATION"
 
 
 class CalibrationPage(QWidget):
@@ -48,6 +52,8 @@ class CalibrationPage(QWidget):
         *,
         prepare_calibration: PrepareCalibration,
         forget_calibration: ForgetCalibration | None = None,
+        backup_catalog: BackupCatalog | None = None,
+        restore_calibration: RestoreCalibration | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -57,9 +63,18 @@ class CalibrationPage(QWidget):
             raise TypeError("prepare_calibration must be callable")
         if forget_calibration is not None and not callable(forget_calibration):
             raise TypeError("forget_calibration must be callable or None")
+        if (backup_catalog is None) != (restore_calibration is None):
+            raise ValueError("Backup catalog and restore callback must be configured together")
+        if backup_catalog is not None and not callable(backup_catalog):
+            raise TypeError("backup_catalog must be callable or None")
+        if restore_calibration is not None and not callable(restore_calibration):
+            raise TypeError("restore_calibration must be callable or None")
         self._controller = controller
         self._prepare_calibration = prepare_calibration
         self._forget_calibration = forget_calibration
+        self._backup_catalog = backup_catalog
+        self._restore_calibration = restore_calibration
+        self._newest_backup: DeletedCalibrationBackup | None = None
         self._tracking_available = False
         self._presentation = CalibrationPresentation(controller, parent=self)
         self._build_ui()
@@ -166,6 +181,21 @@ class CalibrationPage(QWidget):
         forget_actions.addWidget(self._forget_confirmation, stretch=1)
         forget_actions.addWidget(self._forget_button)
         panel_layout.addLayout(forget_actions)
+        self._backup_status = QLabel("Deleted backup restore is unavailable.")
+        self._backup_status.setObjectName("calibrationDeletedBackupStatus")
+        self._backup_status.setWordWrap(True)
+        panel_layout.addWidget(self._backup_status)
+        restore_actions = QHBoxLayout()
+        self._restore_confirmation = QLineEdit()
+        self._restore_confirmation.setObjectName("restoreCalibrationConfirmation")
+        self._restore_confirmation.setPlaceholderText(f"Type {RESTORE_CALIBRATION_PHRASE}")
+        self._restore_confirmation.setAccessibleName("Restore saved calibration confirmation")
+        self._restore_button = QPushButton("Restore newest deleted backup")
+        self._restore_button.setObjectName("restoreCalibrationButton")
+        self._restore_button.setEnabled(False)
+        restore_actions.addWidget(self._restore_confirmation, stretch=1)
+        restore_actions.addWidget(self._restore_button)
+        panel_layout.addLayout(restore_actions)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
         layout.addWidget(description)
@@ -180,6 +210,9 @@ class CalibrationPage(QWidget):
         self._cancel_button.clicked.connect(self._controller.cancel)
         self._forget_confirmation.textChanged.connect(self._update_forget_button)
         self._forget_button.clicked.connect(self._forget_saved_calibration)
+        self._restore_confirmation.textChanged.connect(self._update_restore_button)
+        self._restore_button.clicked.connect(self._restore_saved_calibration)
+        self._refresh_backup_catalog()
 
     def set_tracking_available(self, available: bool) -> None:
         """Cancel volatile collection as soon as camera tracking becomes unavailable."""
@@ -225,6 +258,54 @@ class CalibrationPage(QWidget):
         else:
             self.set_persistence_status(result.message)
         self._forget_confirmation.clear()
+        self._refresh_backup_catalog()
+
+    @Slot(str)
+    def _update_restore_button(self, value: str) -> None:
+        self._restore_button.setEnabled(
+            self._restore_calibration is not None
+            and self._newest_backup is not None
+            and value == RESTORE_CALIBRATION_PHRASE
+        )
+
+    @Slot()
+    def _restore_saved_calibration(self) -> None:
+        backup = self._newest_backup
+        if (
+            self._restore_calibration is None
+            or backup is None
+            or self._restore_confirmation.text() != RESTORE_CALIBRATION_PHRASE
+        ):
+            return
+        try:
+            result = self._restore_calibration(backup)
+        except Exception:
+            self.set_persistence_status("Deleted calibration could not be restored safely.")
+        else:
+            self.set_persistence_status(result.message)
+        self._restore_confirmation.clear()
+        self._refresh_backup_catalog()
+
+    def _refresh_backup_catalog(self) -> None:
+        if self._backup_catalog is None:
+            self._newest_backup = None
+            self._backup_status.setText("Deleted backup restore is unavailable.")
+            self._update_restore_button(self._restore_confirmation.text())
+            return
+        try:
+            catalog = self._backup_catalog()
+        except Exception:
+            catalog = DeletedCalibrationCatalog((), "Deleted backup metadata is unavailable.")
+        self._newest_backup = catalog.backups[0] if catalog.backups else None
+        if self._newest_backup is None:
+            message = catalog.warning or "No deleted calibration backup is available."
+        else:
+            deleted = self._newest_backup.deleted_at_utc.strftime("%Y-%m-%d %H:%M UTC")
+            message = f"Newest deleted backup: {deleted} · {self._newest_backup.size_bytes} bytes."
+            if catalog.warning:
+                message = f"{message} Some older metadata was omitted."
+        self._backup_status.setText(message)
+        self._update_restore_button(self._restore_confirmation.text())
 
     def set_live_input_armed(self, armed: bool) -> None:
         """Cancel collection if real operating-system output becomes armed."""

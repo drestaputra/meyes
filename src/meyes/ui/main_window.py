@@ -19,7 +19,11 @@ from PySide6.QtWidgets import (
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
-from meyes.calibration.persistence import AcceptedCalibrationRepository
+from meyes.calibration.persistence import (
+    AcceptedCalibrationRepository,
+    DeletedCalibrationBackup,
+    DeletedCalibrationCatalog,
+)
 from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
@@ -296,6 +300,8 @@ class MainWindow(QMainWindow):
             self._calibration_controller,
             prepare_calibration=self._prepare_calibration,
             forget_calibration=self._forget_saved_calibration,
+            backup_catalog=self._calibration_backup_catalog,
+            restore_calibration=self._restore_saved_calibration,
         )
         self._live_input_page = LiveInputPage(
             self._live_input_controller,
@@ -420,6 +426,23 @@ class MainWindow(QMainWindow):
             self._logger.error("calibration_forget_failed")
         elif result.status is CalibrationPersistenceStatus.FORGOTTEN:
             self._logger.info("calibration_forgotten")
+        return result
+
+    def _calibration_backup_catalog(self) -> DeletedCalibrationCatalog:
+        return self._calibration_persistence.deleted_catalog()
+
+    def _restore_saved_calibration(
+        self,
+        backup: DeletedCalibrationBackup,
+    ) -> CalibrationPersistenceResult:
+        result = self._calibration_persistence.restore(backup)
+        self._calibration_persistence_result = result
+        if result.status is CalibrationPersistenceStatus.RESTORED:
+            self._logger.info("calibration_backup_restored")
+        elif result.status is CalibrationPersistenceStatus.INCOMPATIBLE:
+            self._logger.warning("calibration_backup_restore_display_mismatch")
+        elif result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error("calibration_backup_restore_failed")
         return result
 
     def _on_navigation_changed(self, row: int) -> None:
