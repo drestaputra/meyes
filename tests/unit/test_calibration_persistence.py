@@ -275,3 +275,84 @@ def test_deleted_catalog_does_not_follow_backup_symlink(tmp_path: Path) -> None:
     assert catalog.warning is not None
     assert link.is_symlink()
     assert sentinel.read_text(encoding="utf-8") == "keep"
+
+
+def test_restore_exclusively_reactivates_valid_backup_and_retains_copy(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    expected = _calibration()
+    repository.save(expected, _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    deleted_bytes = deleted.read_bytes()
+
+    result = repository.restore(backup, _policy())
+
+    assert result.calibration == expected
+    assert result.provenance == _provenance()
+    assert repository.path.read_bytes() == deleted_bytes
+    assert deleted.read_bytes() == deleted_bytes
+
+
+def test_restore_never_replaces_an_active_envelope(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    repository.save(_calibration(), _policy(), _provenance())
+    active = repository.path.read_bytes()
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        repository.restore(backup, _policy())
+
+    assert repository.path.read_bytes() == active
+    assert deleted.exists()
+
+
+def test_restore_keeps_tampered_backup_inactive(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    document = json.loads(deleted.read_text(encoding="utf-8"))
+    document["payload"]["mapper"]["horizontal_coefficients"][1] = 9.0
+    deleted.write_text(json.dumps(document), encoding="utf-8")
+    backup = repository.deleted_catalog().backups[0]
+
+    result = repository.restore(backup, _policy())
+
+    assert result.calibration is None
+    assert "checksum" in (result.warning or "")
+    assert not repository.path.exists()
+    assert deleted.exists()
+
+
+def test_restore_requires_exact_current_catalog_record(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    stale_metadata = type(backup)(backup.path, backup.deleted_at_utc, backup.size_bytes + 1)
+
+    with pytest.raises(ValueError, match="exact current catalog record"):
+        repository.restore(stale_metadata, _policy())
+
+    assert not repository.path.exists()
+    assert deleted.exists()
+
+
+def test_restore_is_disabled_without_runtime_policy(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+
+    result = repository.restore(backup, None)
+
+    assert result.calibration is None
+    assert "no policy" in (result.warning or "")
+    assert not repository.path.exists()
+    assert deleted.exists()

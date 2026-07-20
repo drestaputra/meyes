@@ -48,6 +48,10 @@ class LegacyCalibrationSchemaError(ValueError):
     """Keep a valid old envelope inactive without treating it as corrupt."""
 
 
+class CalibrationPolicyMismatchError(ValueError):
+    """Keep valid evidence inactive when runtime policy changed."""
+
+
 @dataclass(frozen=True, slots=True)
 class CalibrationProvenance:
     """Bounded context required before persisted calibration may be reused."""
@@ -178,28 +182,11 @@ class AcceptedCalibrationRepository:
             return CalibrationLoadResult(None)
         try:
             self._assert_safe_path()
-            if self.path.stat().st_size > MAXIMUM_CALIBRATION_FILE_BYTES:
-                raise ValueError("Calibration file exceeds the 64 KiB limit")
-            raw = self.path.read_text(encoding="utf-8")
-            document = json.loads(
-                raw,
-                object_pairs_hook=_reject_duplicate_keys,
-                parse_constant=_reject_json_constant,
-            )
-            fit_result, stored_policy, provenance = _decode_envelope(document)
-            if stored_policy != policy:
-                return CalibrationLoadResult(
-                    None,
-                    "Stored calibration policy does not match the current policy; recalibrate.",
-                )
-            acceptance = evaluate_calibration_acceptance(policy, fit_result.validation)
-            if acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
-                raise ValueError("Stored calibration evidence no longer satisfies its policy")
-            return CalibrationLoadResult(
-                AcceptedCalibration(fit_result, acceptance),
-                provenance=provenance,
-            )
+            calibration, provenance, _raw = _read_valid_envelope(self.path, policy)
+            return CalibrationLoadResult(calibration, provenance=provenance)
         except LegacyCalibrationSchemaError as error:
+            return CalibrationLoadResult(None, str(error))
+        except CalibrationPolicyMismatchError as error:
             return CalibrationLoadResult(None, str(error))
         except (
             OSError,
@@ -280,6 +267,69 @@ class AcceptedCalibrationRepository:
         if ignored or truncated:
             warning = "Some deleted calibration backup metadata was ignored or omitted."
         return DeletedCalibrationCatalog(visible, warning)
+
+    def restore(
+        self,
+        backup: DeletedCalibrationBackup,
+        policy: CalibrationAcceptancePolicy | None,
+    ) -> CalibrationLoadResult:
+        """Exclusively reactivate one exact valid catalog record while retaining its backup."""
+        if not isinstance(backup, DeletedCalibrationBackup):
+            raise TypeError("Expected DeletedCalibrationBackup")
+        if policy is not None and not isinstance(policy, CalibrationAcceptancePolicy):
+            raise TypeError("Expected CalibrationAcceptancePolicy or None")
+        if policy is None:
+            return CalibrationLoadResult(
+                None,
+                "Calibration restore is disabled because no policy is configured.",
+            )
+        self._assert_safe_data_directory()
+        try:
+            self.path.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            raise FileExistsError("An active accepted calibration already exists")
+        catalog = self.deleted_catalog()
+        if backup not in catalog.backups:
+            raise ValueError("Deleted calibration backup is not an exact current catalog record")
+        try:
+            calibration, provenance, raw = _read_valid_envelope(backup.path, policy)
+        except (
+            OSError,
+            UnicodeError,
+            json.JSONDecodeError,
+            DuplicateCalibrationKeyError,
+            LegacyCalibrationSchemaError,
+            CalibrationPolicyMismatchError,
+            TypeError,
+            ValueError,
+        ) as error:
+            return CalibrationLoadResult(
+                None,
+                f"Deleted calibration backup remains inactive: {error}",
+            )
+        descriptor = -1
+        created = False
+        try:
+            descriptor = os.open(
+                self.path,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600,
+            )
+            created = True
+            with os.fdopen(descriptor, "wb") as stream:
+                descriptor = -1
+                stream.write(raw)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except OSError:
+            if descriptor >= 0:
+                os.close(descriptor)
+            if created:
+                self.path.unlink(missing_ok=True)
+            raise
+        return CalibrationLoadResult(calibration, provenance=provenance)
 
     def _assert_safe_path(self) -> None:
         self._assert_safe_data_directory()
@@ -362,6 +412,39 @@ def _payload(
             "maximum_error": validation.maximum_error,
         },
     }
+
+
+def _read_valid_envelope(
+    path: Path,
+    policy: CalibrationAcceptancePolicy,
+) -> tuple[AcceptedCalibration, CalibrationProvenance, bytes]:
+    metadata = path.lstat()
+    attributes = int(getattr(metadata, "st_file_attributes", 0))
+    if (
+        stat.S_ISLNK(metadata.st_mode)
+        or attributes & _WINDOWS_REPARSE_POINT
+        or not stat.S_ISREG(metadata.st_mode)
+    ):
+        raise OSError("Calibration envelope must be a regular non-link file")
+    if metadata.st_size > MAXIMUM_CALIBRATION_FILE_BYTES:
+        raise ValueError("Calibration file exceeds the 64 KiB limit")
+    raw = path.read_bytes()
+    if len(raw) > MAXIMUM_CALIBRATION_FILE_BYTES:
+        raise ValueError("Calibration file exceeds the 64 KiB limit")
+    document = json.loads(
+        raw.decode("utf-8"),
+        object_pairs_hook=_reject_duplicate_keys,
+        parse_constant=_reject_json_constant,
+    )
+    fit_result, stored_policy, provenance = _decode_envelope(document)
+    if stored_policy != policy:
+        raise CalibrationPolicyMismatchError(
+            "Stored calibration policy does not match the current policy; recalibrate."
+        )
+    acceptance = evaluate_calibration_acceptance(policy, fit_result.validation)
+    if acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
+        raise ValueError("Stored calibration evidence no longer satisfies its policy")
+    return AcceptedCalibration(fit_result, acceptance), provenance, raw
 
 
 def _decode_envelope(
