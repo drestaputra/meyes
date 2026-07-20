@@ -52,9 +52,9 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   profiles through exclusive creation or atomically confirmed replacement without runtime change;
 - derives a fail-closed binocular iris-to-eye feature, expires it with the tracking watchdog, and
   labels it in Diagnostics as uncalibrated rather than claiming cursor coordinates;
-- provides a user-facing in-shell nine-point collection flow with explicit target capture,
-  progress/retry/cancel controls, bounded volatile samples, quality/replay rejection, and robust
-  per-target median/MAD outlier filtering;
+- provides a distraction-free primary-display nine-point collection flow with normalized target
+  placement, Space/Enter/R/Escape controls, bounded volatile samples, quality/replay rejection,
+  robust per-target median/MAD filtering, and fail-safe presentation-close cancellation;
 - fits a volatile replaceable quadratic mapper after complete user collection, with fail-closed
   numerical guards and visible deterministic per-target holdout metrics, without accepting,
   activating, or persisting its output;

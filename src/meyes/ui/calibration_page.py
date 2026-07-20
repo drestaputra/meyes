@@ -30,6 +30,7 @@ from meyes.ui.calibration_controller import (
     calibration_fit_outcome,
     calibration_snapshot,
 )
+from meyes.ui.calibration_presentation import CalibrationPresentation
 
 PrepareCalibration = Callable[[], bool]
 
@@ -52,6 +53,7 @@ class CalibrationPage(QWidget):
         self._controller = controller
         self._prepare_calibration = prepare_calibration
         self._tracking_available = False
+        self._presentation = CalibrationPresentation(controller, parent=self)
         self._build_ui()
         controller.snapshot_changed.connect(self._render_snapshot)
         controller.capture_decided.connect(self._show_capture_result)
@@ -108,7 +110,7 @@ class CalibrationPage(QWidget):
             target_grid.addWidget(label, index // 3, index % 3)
 
         actions = QHBoxLayout()
-        self._start_button = QPushButton("Start collection")
+        self._start_button = QPushButton("Start full-screen collection")
         self._start_button.setObjectName("primaryButton")
         self._capture_button = QPushButton("Capture current point")
         self._capture_button.setObjectName("captureCalibrationPointButton")
@@ -212,7 +214,11 @@ class CalibrationPage(QWidget):
             self._feedback.setText("Live Input could not be released; collection was not started.")
             return
         self._controller.start()
-        self._feedback.setText("Look at the highlighted point, then choose Capture current point.")
+        self._feedback.setText(
+            "Full-screen collection started. Space captures and Escape cancels safely."
+        )
+        if self.isVisible():
+            self._presentation.present()
 
     @Slot()
     def _advance_or_retry(self) -> None:

@@ -100,9 +100,9 @@ Working in the submitted source build:
 - independent local face and lower-cadence hand inference;
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;
-- a user-facing in-shell nine-point sample collector with explicit capture, progress, retry,
-  cancellation, quota, attempt, ordering, replay, range, binocular-consistency, and robust
-  per-target median/MAD outlier guards;
+- a distraction-free primary-display nine-point collector with targets at normalized 10/50/90%
+  positions, Space/Enter/R/Escape controls, explicit capture, progress, retry, cancellation, quota,
+  attempt, ordering, replay, range, binocular-consistency, and robust per-target median/MAD guards;
 - a user-triggered volatile quadratic calibration fit after complete collection, with
   complete-target coverage, matrix-rank, conditioning, finite-output, deterministic per-target
   holdout-validation guards, visible metrics, and recoverable failure feedback;

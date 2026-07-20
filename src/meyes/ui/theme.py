@@ -43,6 +43,33 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#appRoot, QWidget#workspace {{
             background: {color.canvas};
         }}
+        QWidget#calibrationPresentation {{
+            background: {color.canvas};
+        }}
+        QFrame#calibrationPresentationHeader,
+        QFrame#calibrationPresentationFooter {{
+            background: {color.surface};
+            border: 0;
+        }}
+        QFrame#calibrationPresentationHeader {{
+            border-bottom: 1px solid {color.border};
+        }}
+        QFrame#calibrationPresentationFooter {{
+            border-top: 1px solid {color.border};
+        }}
+        QLabel#calibrationPresentationInstruction {{
+            color: {color.ink};
+            font-size: 12pt;
+            font-weight: 700;
+        }}
+        QLabel#calibrationFocusTarget {{
+            background: {color.surface};
+            color: {color.accent};
+            border: 4px solid {color.accent};
+            border-radius: 16px;
+            font-size: 18pt;
+            font-weight: 700;
+        }}
         QFrame#topBar, QFrame#safetyBar {{
             background: {color.surface};
             border-bottom: 1px solid {color.border};

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import patch
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton
@@ -125,6 +126,23 @@ def test_page_requires_tracking_and_release_then_completes_target(qtbot: QtBot) 
     advance.click()
     assert controller.snapshot.target_index == 1
     assert controller.snapshot.state.value == CalibrationSessionState.AWAITING_TARGET.value
+
+
+def test_visible_page_launches_full_screen_presentation(qtbot: QtBot) -> None:
+    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+    page.set_tracking_available(True)
+    page.resize(900, 640)
+    page.show()
+    qtbot.waitExposed(page)
+
+    with patch.object(page._presentation, "present") as present:
+        page._start_button.click()
+
+    present.assert_called_once_with()
+    assert controller.snapshot.state is CalibrationSessionState.AWAITING_TARGET
+    assert "Full-screen collection started" in page._feedback.text()
 
 
 def test_release_failure_escape_and_tracking_loss_discard_samples(qtbot: QtBot) -> None:

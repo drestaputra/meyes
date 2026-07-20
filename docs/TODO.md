@@ -146,10 +146,10 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 ## Backlog — Phase 5
 
 - [x] Extract normalized binocular gaze features with explicit invalid states and freshness expiry.
-- [ ] Build the guided nine-point calibration flow.
+- [x] Build the guided nine-point calibration flow.
   - [x] Implement the bounded ordered sample-collection state machine.
   - [x] Connect collection to an in-shell Calibration UI with safe cancellation.
-  - [ ] Promote collection to the distraction-free full-screen presentation.
+  - [x] Promote collection to the distraction-free full-screen presentation.
 - [x] Reject per-target calibration outliers with median/MAD filtering and an absolute floor.
 - [x] Implement a replaceable quadratic calibration mapper with deterministic holdout metrics.
 - [x] Fit a volatile mapper after complete collection and show guarded holdout metrics in Calibration.
