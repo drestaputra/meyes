@@ -78,3 +78,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dormant primary-screen coordinate mapper with explicit physical-pixel geometry, inclusive endpoints, per-axis clamping evidence, signed 32-bit bounds, and no executor dependency.
 - Dormant fail-closed cursor movement gate with tracking suspension, overlapping temple holds, tap pulses, monotonic ordering, configurable resume delay, and no output consumer.
 - Proof-carrying accepted-calibration token and fake-only cursor pipeline composing calibration, smoothing, screen mapping, and movement gating without an input executor.
+- Qt-owned fake cursor diagnostics with separate capture/delivery clocks, freshness expiry, lifecycle/event wiring, candidate display, and an honest unavailable production default.

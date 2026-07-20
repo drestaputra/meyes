@@ -32,6 +32,7 @@ from meyes.ui.bindings_page import BindingsPage
 from meyes.ui.calibration_controller import CalibrationController
 from meyes.ui.calibration_page import CalibrationPage
 from meyes.ui.camera_dashboard import CameraDashboard
+from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
     EmergencyHotkeyFactory,
@@ -124,14 +125,23 @@ class MainWindow(QMainWindow):
             acceptance_policy=config.calibration.acceptance_policy,
             parent=self,
         )
+        self._cursor_diagnostics = CursorDiagnosticsController(
+            parent=self,
+            freshness_timeout=config.gestures.tracking_timeout_ms / 1000.0,
+        )
         self._vision_controller.gaze_feature_changed.connect(
             self._calibration_controller.observe_feature
         )
+        self._vision_controller.gaze_feature_changed.connect(
+            self._cursor_diagnostics.observe_feature
+        )
+        self._vision_controller.gaze_feature_cleared.connect(self._cursor_diagnostics.clear_feature)
         self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)
         self._camera_controller.health_changed.connect(self._sync_vision_lifecycle)
         self._vision_controller.event_detected.connect(self._action_simulation.handle_event)
         self._vision_controller.event_detected.connect(self._live_input_controller.handle_event)
+        self._vision_controller.event_detected.connect(self._cursor_diagnostics.handle_event)
         self._action_simulation.tracking_pause_requested.connect(
             self._camera_controller.pause,
             Qt.ConnectionType.QueuedConnection,
@@ -236,6 +246,7 @@ class MainWindow(QMainWindow):
             "Diagnostics": DiagnosticsPage(
                 self._vision_controller,
                 action_simulation=self._action_simulation,
+                cursor_diagnostics=self._cursor_diagnostics,
             ),
             "Profiles": ProfilesPage(
                 self._profile_controller,
@@ -365,14 +376,17 @@ class MainWindow(QMainWindow):
         self._last_camera_status = status
         if status is CameraStatus.RUNNING:
             self._action_simulation.start()
+            self._cursor_diagnostics.start()
             self._vision_controller.start()
         elif status in {CameraStatus.STOPPING, CameraStatus.STOPPED}:
             self._live_input_controller.disarm(f"camera:{status.value}")
             self._action_simulation.stop(f"camera:{status.value}")
+            self._cursor_diagnostics.suspend()
             self._vision_controller.stop()
         else:
             self._live_input_controller.disarm(f"camera:{status.value}")
             self._action_simulation.pause(f"camera:{status.value}")
+            self._cursor_diagnostics.suspend()
             self._vision_controller.suspend()
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -380,6 +394,7 @@ class MainWindow(QMainWindow):
         self._calibration_controller.cancel()
         self._live_input_controller.close()
         self._action_simulation.close()
+        self._cursor_diagnostics.close()
         self._vision_controller.stop()
         self._camera_controller.shutdown()
         event.accept()

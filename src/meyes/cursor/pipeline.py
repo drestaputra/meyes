@@ -56,10 +56,17 @@ class CursorPipeline:
     def gate_snapshot(self) -> CursorGateSnapshot:
         return self._gate.snapshot
 
-    def update(self, observation: GazeFeatureObservation) -> CursorPipelineResult:
+    def update(
+        self,
+        observation: GazeFeatureObservation,
+        *,
+        gate_timestamp: float | None = None,
+    ) -> CursorPipelineResult:
         if not isinstance(observation, GazeFeatureObservation):
             raise TypeError("Expected GazeFeatureObservation")
-        gate = self._gate.poll(observation.capture_timestamp)
+        gate = self._gate.poll(
+            observation.capture_timestamp if gate_timestamp is None else gate_timestamp
+        )
         if not observation.ready or not isinstance(observation.combined, GazeFeatureVector):
             self._smoother.reset()
             return CursorPipelineResult(CursorPipelineStatus.FEATURE_UNAVAILABLE, gate)

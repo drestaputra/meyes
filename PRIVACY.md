@@ -16,6 +16,7 @@ current session.
 | Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; configuring limits does not persist or activate the mapper. |
 | Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration only. The current runtime does not feed gaze predictions into the filter or move the pointer. |
 | Cursor gate settings | Temple-freeze and resume-delay values are local configuration. Disabling temple freeze never disables tracking-loss suspension; no gaze pointer runtime consumes the gate yet. |
+| Fake cursor diagnostics | When an accepted pipeline is injected in tests, the latest normalized and physical-pixel candidate is held only in memory and removed on block, expiry, suspension, or fault. Production has no configured candidate pipeline yet. |
 | Gesture diagnostics | Displayed in memory. Conservative semantic event metadata may appear in the local application log; frames and landmark arrays are not intentionally logged. |
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |

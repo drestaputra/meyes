@@ -161,7 +161,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Acquire DPI-aware primary-screen geometry and connect the accepted mapper pipeline safely.
 - [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
 - [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake-only pipeline.
-- [ ] Wire the fake-only cursor pipeline to Qt lifecycle and Diagnostics without native output.
+- [x] Wire a Qt-owned fake cursor diagnostics controller to lifecycle, freshness, and Diagnostics.
+- [ ] Construct the production pipeline only after accepted calibration and native screen geometry.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

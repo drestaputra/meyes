@@ -28,6 +28,10 @@ from meyes.ui.action_simulation import (
     simulation_report,
     simulation_snapshot,
 )
+from meyes.ui.cursor_diagnostics import (
+    CursorDiagnosticsController,
+    cursor_diagnostics_snapshot,
+)
 from meyes.vision.controller import (
     VisionController,
     face_observation,
@@ -83,10 +87,12 @@ class DiagnosticsPage(QWidget):
         parent: QWidget | None = None,
         *,
         action_simulation: ActionSimulationController | None = None,
+        cursor_diagnostics: CursorDiagnosticsController | None = None,
     ) -> None:
         super().__init__(parent)
         self._controller = controller
         self._action_simulation = action_simulation
+        self._cursor_diagnostics = cursor_diagnostics
         self._build_ui()
         self._connect_signals()
         self._clear_observation()
@@ -96,6 +102,8 @@ class DiagnosticsPage(QWidget):
         self._clear_temple_proximity()
         if self._action_simulation is not None:
             self._on_simulation_snapshot(self._action_simulation.snapshot)
+        if self._cursor_diagnostics is not None:
+            self._on_cursor_diagnostics(self._cursor_diagnostics.snapshot)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -204,6 +212,17 @@ class DiagnosticsPage(QWidget):
         self._gaze_horizontal_value.setObjectName("gazeHorizontalValue")
         self._gaze_vertical_value = QLabel("—")
         self._gaze_vertical_value.setObjectName("gazeVerticalValue")
+        self._cursor_status_value = QLabel("Unavailable")
+        self._cursor_status_value.setObjectName("cursorDiagnosticsStatus")
+        self._cursor_status_value.setWordWrap(True)
+        self._cursor_gate_value = QLabel("—")
+        self._cursor_gate_value.setObjectName("cursorDiagnosticsGate")
+        self._cursor_normalized_value = QLabel("—")
+        self._cursor_normalized_value.setObjectName("cursorDiagnosticsNormalized")
+        self._cursor_pixel_value = QLabel("—")
+        self._cursor_pixel_value.setObjectName("cursorDiagnosticsPixel")
+        self._cursor_clamp_value = QLabel("—")
+        self._cursor_clamp_value.setObjectName("cursorDiagnosticsClamp")
         form.addRow("Pipeline", self._pipeline_value)
         form.addRow("Face", self._face_value)
         form.addRow("Inference FPS", self._inference_fps_value)
@@ -212,6 +231,11 @@ class DiagnosticsPage(QWidget):
         form.addRow("Gaze feature", self._gaze_status_value)
         form.addRow("Eye-relative X", self._gaze_horizontal_value)
         form.addRow("Eye-relative Y", self._gaze_vertical_value)
+        form.addRow("Fake cursor candidate", self._cursor_status_value)
+        form.addRow("Cursor gate", self._cursor_gate_value)
+        form.addRow("Smoothed normalized", self._cursor_normalized_value)
+        form.addRow("Physical pixel candidate", self._cursor_pixel_value)
+        form.addRow("Clamped", self._cursor_clamp_value)
 
         self._left_eye = EyeMeter("Left eye openness")
         self._right_eye = EyeMeter("Right eye openness")
@@ -356,6 +380,8 @@ class DiagnosticsPage(QWidget):
             self._action_simulation.snapshot_changed.connect(self._on_simulation_snapshot)
             self._action_simulation.report_emitted.connect(self._on_simulation_report)
             self._action_simulation.input_call_emitted.connect(self._on_simulated_input)
+        if self._cursor_diagnostics is not None:
+            self._cursor_diagnostics.snapshot_changed.connect(self._on_cursor_diagnostics)
 
     @Slot(object)
     def _on_observation(self, payload: object) -> None:
@@ -387,6 +413,30 @@ class DiagnosticsPage(QWidget):
         )
         self._gaze_vertical_value.setText(
             f"{combined.vertical:.3f}" if feature.ready and combined is not None else "—"
+        )
+
+    @Slot(object)
+    def _on_cursor_diagnostics(self, payload: object) -> None:
+        snapshot = cursor_diagnostics_snapshot(payload)
+        self._cursor_status_value.setText(snapshot.status.value.replace("_", " ").title())
+        self._cursor_status_value.setToolTip(snapshot.message)
+        self._cursor_gate_value.setText(
+            "—"
+            if snapshot.gate_state is None
+            else snapshot.gate_state.value.replace("_", " ").title()
+        )
+        self._cursor_normalized_value.setText(
+            "—"
+            if snapshot.normalized_x is None or snapshot.normalized_y is None
+            else f"{snapshot.normalized_x:.4f}, {snapshot.normalized_y:.4f}"
+        )
+        self._cursor_pixel_value.setText(
+            "—"
+            if snapshot.pixel_x is None or snapshot.pixel_y is None
+            else f"{snapshot.pixel_x}, {snapshot.pixel_y}"
+        )
+        self._cursor_clamp_value.setText(
+            "—" if snapshot.pixel_x is None else ("Yes" if snapshot.clamped else "No")
         )
 
     @Slot(object)

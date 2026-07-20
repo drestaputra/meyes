@@ -116,6 +116,8 @@ Working in the submitted source build:
   pulses, applies a configurable resume delay, and never overrides tracking-loss suspension;
 - a proof-carrying accepted-calibration token and fake-only pipeline that emits pixel candidates
   only through open freshness/gate boundaries and has no `InputExecutor` dependency;
+- Qt-owned fake cursor diagnostics wired to gaze, gesture, camera lifecycle, and freshness signals,
+  defaulting honestly to unavailable in production and never sending its candidate to the OS;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
