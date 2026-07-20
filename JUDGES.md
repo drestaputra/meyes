@@ -100,6 +100,8 @@ Working in the submitted source build:
 - independent local face and lower-cadence hand inference;
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;
+- a dormant bounded nine-point sample collector with quota, attempt, ordering, replay, range, and
+  binocular-consistency guards; it is not yet exposed as a completed Calibration workflow;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

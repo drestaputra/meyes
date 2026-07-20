@@ -52,6 +52,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   profiles through exclusive creation or atomically confirmed replacement without runtime change;
 - derives a fail-closed binocular iris-to-eye feature, expires it with the tracking watchdog, and
   labels it in Diagnostics as uncalibrated rather than claiming cursor coordinates;
+- provides a tested, dormant nine-point calibration collector with bounded volatile samples and
+  basic quality/replay rejection, without claiming a completed calibration experience;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
@@ -152,7 +154,7 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, exact-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, bounded nine-point sample collection, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, exact-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
 | Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog, an inline-validating six-binding editor and preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while real OS output stays behind an explicit, volatile safety boundary. |
