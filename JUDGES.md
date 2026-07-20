@@ -108,6 +108,8 @@ Working in the submitted source build:
   holdout-validation guards, visible metrics, and recoverable failure feedback;
 - an optional all-or-none acceptance policy that reports every missed configured limit, defaults
   to `Review Required` because no benchmark limits are claimed, and never activates its mapper;
+- a dormant configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive
+  cutoff, independent axes, and stale-gap reset, with no pointer-output consumer;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

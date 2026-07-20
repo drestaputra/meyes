@@ -60,6 +60,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   activating, or persisting its output;
 - evaluates a mapper only when a complete four-limit acceptance policy is explicitly configured,
   otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
+- provides a dormant configurable One Euro 2D filter with deterministic jitter, rapid-step,
+  timestamp-order, independent-axis, reset, and stale-gap tests, without a pointer consumer;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,

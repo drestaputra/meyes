@@ -7,6 +7,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from meyes.calibration.acceptance import CalibrationAcceptancePolicy
+from meyes.cursor.smoothing import OneEuroFilterSettings
 from meyes.util.profile_names import validate_profile_name
 
 
@@ -165,6 +166,39 @@ class CalibrationSettings(StrictConfigModel):
         )
 
 
+class CursorSettings(StrictConfigModel):
+    """Dormant adaptive-smoothing values; no pointer runtime consumes them yet."""
+
+    minimum_cutoff: float = Field(
+        default=1.0,
+        gt=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    speed_coefficient: float = Field(
+        default=0.01,
+        ge=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    derivative_cutoff: float = Field(
+        default=1.0,
+        gt=0,
+        allow_inf_nan=False,
+        strict=True,
+    )
+    maximum_gap_ms: int = Field(default=250, ge=50, le=5000, strict=True)
+
+    @property
+    def filter_settings(self) -> OneEuroFilterSettings:
+        return OneEuroFilterSettings(
+            minimum_cutoff=self.minimum_cutoff,
+            speed_coefficient=self.speed_coefficient,
+            derivative_cutoff=self.derivative_cutoff,
+            maximum_gap_seconds=self.maximum_gap_ms / 1000.0,
+        )
+
+
 class AppConfig(StrictConfigModel):
     """Root versioned configuration document."""
 
@@ -174,5 +208,6 @@ class AppConfig(StrictConfigModel):
     tracking: TrackingSettings = Field(default_factory=TrackingSettings)
     gestures: GestureSettings = Field(default_factory=GestureSettings)
     calibration: CalibrationSettings = Field(default_factory=CalibrationSettings)
+    cursor: CursorSettings = Field(default_factory=CursorSettings)
     ui: UiSettings = Field(default_factory=UiSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)

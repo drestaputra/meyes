@@ -156,7 +156,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add an opt-in all-or-none acceptance-policy contract with a fail-closed review-required default.
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
 - [ ] Persist and recover an accepted mapper without weakening Live Input startup safety.
-- [ ] Implement adaptive cursor smoothing.
+- [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [ ] Map gaze to the primary Windows screen.
 - [ ] Freeze and safely resume cursor movement around temple gestures.
 - [ ] Validate broad screen reach after calibration.
