@@ -129,7 +129,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Activate selected profiles through a release-first paused transition with config rollback.
 - [x] Preview the active profile's six simulated gesture bindings.
 - [x] Test all actions through a fake executor.
-- [ ] Add a safe draft-based binding editor without enabling operating-system input.
+- [x] Add a safe draft-based binding editor without enabling operating-system input.
 - [ ] Add profile rename, deletion, import/export, and restore-default workflows.
 
 ## Backlog — Phase 5

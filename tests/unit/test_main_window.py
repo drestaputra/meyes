@@ -10,6 +10,7 @@ from typing import NoReturn
 from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import disabled_profile
+from meyes.bindings.editor import EditableActionKind
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
 from meyes.camera.models import CameraDevice, CameraOptions, FramePacket
@@ -223,3 +224,42 @@ def test_maximum_length_profile_name_is_elided_without_expanding_shell(
     assert window._profile_label.width() <= 240
     assert window.minimumSizeHint().width() <= 1000
     assert window.width() == 900
+
+
+def test_binding_draft_save_updates_catalog_without_runtime_activation(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    repository = BindingProfileRepository(paths)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        binding_profile=repository.load("Default").profile,
+        profile_repository=repository,
+    )
+    qtbot.addWidget(window)
+
+    edited = window._binding_editor_controller.edit_binding(
+        BindableGesture.LEFT_WINK,
+        EditableActionKind.DISABLED,
+        "",
+    )
+    saved = window._binding_editor_controller.save_as_copy("Quiet Copy")
+
+    assert edited.success
+    assert saved.success and saved.profile_name == "Quiet Copy"
+    assert window._profile_controller.profile_names == ("Default", "Quiet Copy")
+    assert window._profile_controller.active_profile.profile_name == "Default"
+    assert window._action_simulation.active_profile.profile_name == "Default"
+    assert window._action_simulation.state is DispatcherState.PAUSED
+    assert window._config.app.active_profile == "Default"
+    assert manager.load().config.app.active_profile == "Default"
+    assert window._binding_editor_controller.state.source_profile.profile_name == "Quiet Copy"
+    assert window._binding_editor_controller.state.active_profile_name == "Default"

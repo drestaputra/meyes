@@ -25,6 +25,8 @@ from meyes.camera.models import CameraHealth, CameraStatus
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CameraSettings
 from meyes.ui.action_simulation import ActionSimulationController
+from meyes.ui.binding_editor_controller import BindingEditorController
+from meyes.ui.bindings_page import BindingsPage
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.placeholder_page import PlaceholderPage
@@ -90,6 +92,11 @@ class MainWindow(QMainWindow):
             ),
             parent=self,
         )
+        self._binding_editor_controller = BindingEditorController(
+            initial_profile,
+            repository=profile_repository,
+            parent=self,
+        )
         self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)
         self._camera_controller.health_changed.connect(self._sync_vision_lifecycle)
@@ -103,6 +110,10 @@ class MainWindow(QMainWindow):
             Qt.ConnectionType.QueuedConnection,
         )
         self._profile_controller.active_profile_changed.connect(self._on_active_profile_changed)
+        self._profile_controller.active_profile_changed.connect(
+            self._binding_editor_controller.observe_active_profile
+        )
+        self._binding_editor_controller.profile_saved.connect(self._on_binding_profile_saved)
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
@@ -169,6 +180,7 @@ class MainWindow(QMainWindow):
         pages.setObjectName("mainPages")
         page_widgets: dict[str, QWidget] = {
             "Dashboard": CameraDashboard(self._camera_controller),
+            "Bindings": BindingsPage(self._binding_editor_controller),
             "Diagnostics": DiagnosticsPage(
                 self._vision_controller,
                 action_simulation=self._action_simulation,
@@ -220,6 +232,10 @@ class MainWindow(QMainWindow):
     def _on_active_profile_changed(self, payload: object) -> None:
         profile = binding_profile(payload)
         self._set_profile_label(profile.profile_name)
+
+    def _on_binding_profile_saved(self, payload: object) -> None:
+        binding_profile(payload)
+        self._profile_controller.synchronize_catalog()
 
     def _set_profile_label(self, profile_name: str) -> None:
         full_text = f"Profile: {profile_name}"

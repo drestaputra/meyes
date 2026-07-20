@@ -116,7 +116,10 @@ class BindingProfileRepository:
         )
         if validated.profile_name.casefold() == DEFAULT_PROFILE_NAME.casefold():
             raise ValueError("The built-in Default profile is immutable")
-        self._paths.ensure_directories()
+        try:
+            self._paths.ensure_directories()
+        except OSError as error:
+            raise OSError("Profile storage could not be prepared") from error
         self._assert_safe_profile_directory()
         path = self._profile_path(validated.profile_name)
         existing = self._find_profile_path(validated.profile_name)
@@ -153,7 +156,10 @@ class BindingProfileRepository:
         )
         if validated.profile_name.casefold() == DEFAULT_PROFILE_NAME.casefold():
             raise ValueError("The built-in Default profile is immutable")
-        self._paths.ensure_directories()
+        try:
+            self._paths.ensure_directories()
+        except OSError as error:
+            raise OSError("Profile storage could not be prepared") from error
         self._assert_safe_profile_directory()
         path = self._profile_path(validated.profile_name)
         self._assert_safe_profile_path(path)

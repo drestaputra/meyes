@@ -101,7 +101,7 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border-radius: 4px;
             padding: 10px 12px;
         }}
-        QLabel#profileFeedback {{
+        QLabel#profileFeedback, QLabel#bindingFeedback {{
             background: {color.surface};
             border: 1px solid {color.border};
             border-radius: 4px;
@@ -122,7 +122,15 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.danger};
             border-color: {color.danger};
         }}
+        QLabel#bindingFeedback[feedbackStatus="error"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+        }}
         QLabel#profileFeedback[feedbackStatus="success"] {{
+            color: {color.success};
+            border-color: {color.success};
+        }}
+        QLabel#bindingFeedback[feedbackStatus="success"] {{
             color: {color.success};
             border-color: {color.success};
         }}
@@ -135,6 +143,9 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         }}
         QComboBox:focus, QLineEdit:focus, QCheckBox:focus {{
             border: 2px solid {color.focus};
+        }}
+        QLineEdit[invalid="true"] {{
+            border: 2px solid {color.danger};
         }}
         QCheckBox {{
             spacing: 8px;
@@ -187,7 +198,7 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.ink};
             font-weight: 600;
         }}
-        QTableWidget#activeBindingsTable {{
+        QTableWidget#activeBindingsTable, QTableWidget#draftBindingsTable {{
             background: {color.surface};
             alternate-background-color: {color.surface_subtle};
             border: 1px solid {color.border};
@@ -200,6 +211,27 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border-bottom: 1px solid {color.border};
             padding: 8px;
             font-weight: 650;
+        }}
+        QFrame#bindingRow {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 6px;
+        }}
+        QLabel#bindingRowTitle {{
+            font-weight: 650;
+        }}
+        QLabel#bindingError,
+        QLabel#draftStatus[draftState="error"] {{
+            color: {color.danger};
+            font-weight: 600;
+        }}
+        QLabel#draftStatus[draftState="dirty"] {{
+            color: {color.warning};
+            font-weight: 600;
+        }}
+        QLabel#draftStatus[draftState="clean"] {{
+            color: {color.success};
+            font-weight: 600;
         }}
         QLabel#safeBanner {{
             background: {color.surface};

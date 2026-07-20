@@ -97,10 +97,7 @@ class ProfileController(QObject):
                     warning=True,
                 )
             )
-        catalog = self._repository.catalog()
-        names, warning = self._catalog_state(catalog.names, catalog.warning)
-        self._catalog_warning = warning
-        self._set_profile_names(names)
+        warning = self.synchronize_catalog()
         if warning:
             return self._finish(
                 ProfileOperationResult(
@@ -110,6 +107,17 @@ class ProfileController(QObject):
                 )
             )
         return self._finish(ProfileOperationResult(True, "Profile list refreshed."))
+
+    def synchronize_catalog(self) -> str | None:
+        """Refresh catalog state without emitting user-operation feedback."""
+        if self._repository is None:
+            self._catalog_warning = "Profile storage is unavailable in this session."
+            return self._catalog_warning
+        catalog = self._repository.catalog()
+        names, warning = self._catalog_state(catalog.names, catalog.warning)
+        self._catalog_warning = warning
+        self._set_profile_names(names)
+        return warning
 
     def create_disabled(self, profile_name: str) -> ProfileOperationResult:
         """Create a complete all-disabled profile without activating it."""
