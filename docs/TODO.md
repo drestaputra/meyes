@@ -119,12 +119,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Create validated action and binding models.
 - [x] Create default and user profile repositories.
 - [ ] Implement the Windows `SendInput` executor.
-- [ ] Implement mouse click and scroll actions.
-- [ ] Implement continuous scroll with fail-safe release.
-- [ ] Implement validated keyboard shortcuts.
+- [x] Implement mouse click and scroll action dispatch through the fake executor.
+- [x] Implement poll-driven continuous scroll with fail-safe release and no catch-up.
+- [x] Implement validated keyboard shortcut dispatch through the fake executor.
 - [ ] Implement the global emergency pause shortcut.
-- [ ] Implement no-input safe mode.
-- [ ] Test all actions through a fake executor.
+- [x] Implement dispatcher no-input safe mode with an explicit arm gate.
+- [x] Test all actions through a fake executor.
 
 ## Backlog — Phase 5
 

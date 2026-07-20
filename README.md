@@ -2,13 +2,13 @@
 
 MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. It does **not** send mouse or keyboard input yet.
 
-The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Those mappings are roadmap items, not claims about the current runnable build.
+The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a fake-only dispatcher now exercise those mappings in tests, but operating-system output remains a roadmap item rather than a claim about the runnable build.
 
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 ## Development status
 
-Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, and fail-closed user-profile persistence. These new contracts are not connected to gesture events or operating-system input; the runnable application remains in Safe Mode while dispatcher and release-all safety work is developed and tested.
+Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. The dispatcher provides at-most-once event handling, stable hold ownership, no-catch-up continuous polling, and release-all fault containment, but it is not composed into the PySide6 runtime and no Windows input backend exists. The runnable application therefore remains in Safe Mode.
 
 See:
 

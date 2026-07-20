@@ -81,8 +81,8 @@ Working in the submitted source build:
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
 - independent semantic temple tap, hold-start, and hold-end events with cooldown and
   lifecycle-safe hold termination;
-- validated but runtime-disconnected action schemas, logical default bindings, and a
-  fail-closed user profile repository;
+- validated action schemas, logical default bindings, a fail-closed user profile repository,
+  and a runtime-disconnected fake-only dispatcher with held-input cleanup and fault recovery;
 - watchdog-driven expiry and native Safe Mode diagnostics;
 - deterministic shutdown and race/lifecycle regression coverage.
 
@@ -90,7 +90,8 @@ Intentionally not implemented or not enabled:
 
 - mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- binding execution, user-facing profile controls, global shortcuts, tray controls, or an installer.
+- runtime binding execution, user-facing profile controls, global shortcuts, tray controls,
+  or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

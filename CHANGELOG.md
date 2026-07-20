@@ -56,3 +56,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Closed, discriminated MVP action vocabulary with bounded scroll, supported-key, shortcut, and hold-only continuous-action validation.
 - Complete logical binding profiles, exact built-in defaults, phased hold-event resolution, and fail-closed user profile persistence.
 - Platform-neutral input protocol plus an in-memory test executor; no Windows input backend or runtime dispatch path is connected.
+- Fake-only, poll-driven action dispatcher with per-producer at-most-once ordering, stable hold snapshots, shared-button ownership, no-catch-up continuous scheduling, lifecycle gating, and retryable release-all fault recovery.
