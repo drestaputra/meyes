@@ -108,7 +108,10 @@ class DiagnosticsPage(QWidget):
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
-        safe_banner = QLabel("SAFE MODE · Simulated actions only · OS input disconnected")
+        safe_banner = QLabel(
+            "DIAGNOSTIC TRACE · Fake actions are always shown · "
+            "Check the persistent bar for Live Input state"
+        )
         safe_banner.setObjectName("safeBanner")
         safe_banner.setWordWrap(True)
 

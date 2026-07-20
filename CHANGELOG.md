@@ -65,3 +65,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dormant Windows live-safety foundation with `Ctrl+Alt+Shift+F11` registration, native Qt hotkey filtering, retryable cleanup, and physical button/modifier preflight.
 - Dormant explicit-consent live session controller with hotkey-first preflight, lazy `SendInput` construction, release-first arming, emergency disarm, profile-transition gating, and terminal cleanup.
 - Application-wired Live Input view with volatile typed consent, real `SendInput` dispatch, persistent Safe/Live/Fault status, native emergency pause, physical-input preflight, camera/profile lifecycle disarm, pending-profile recovery, and terminal release paths.
+- Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.

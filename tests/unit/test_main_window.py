@@ -249,17 +249,29 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     assert InputCall("mouse_click", (MouseButton.LEFT,)) in executor.calls
     assert "LIVE INPUT" in safety_status.text()
 
+    assert window._prepare_profile_transfer()
+    transfer_snapshot = window._live_input_controller.snapshot
+    assert transfer_snapshot.state.value == "safe"
+    assert safety.unregistered == 1
+    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
+    arm.click()
+    rearmed_snapshot = window._live_input_controller.snapshot
+    assert rearmed_snapshot.state.value == "armed"
+    assert safety.registered == 2
+
     window._sync_vision_lifecycle(
         CameraHealth(status=CameraStatus.PAUSED, message="Camera is paused")
     )
 
-    assert window._live_input_controller.snapshot.state.value == "safe"
-    assert safety.unregistered == 1
+    paused_snapshot = window._live_input_controller.snapshot
+    assert paused_snapshot.state.value == "safe"
+    assert safety.unregistered == 2
     assert executor.calls[-1] == InputCall("release_all")
     assert "SAFE MODE" in safety_status.text()
 
     window.close()
-    assert window._live_input_controller.snapshot.state.value == "closed"
+    closed_snapshot = window._live_input_controller.snapshot
+    assert closed_snapshot.state.value == "closed"
 
 
 def test_profile_activation_updates_runtime_config_and_top_bar(

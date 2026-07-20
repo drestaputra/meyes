@@ -100,6 +100,17 @@ class BindingProfileRepository:
                 recovered_from=backup_path,
             )
 
+    def read(self, profile_name: str) -> BindingProfile:
+        """Read one valid stored snapshot without recovery mutation or fallback."""
+        normalized = validate_profile_name(profile_name)
+        if normalized.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            return default_profile()
+        self._prepare_profile_storage()
+        path = self._find_profile_path(normalized)
+        if path is None:
+            raise FileNotFoundError("The profile was not found")
+        return self._read_profile_path(path, normalized)
+
     def save(self, profile: BindingProfile) -> Path:
         """Persist one non-default profile atomically as human-readable UTF-8 JSON."""
         if not isinstance(profile, BindingProfile):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
 
@@ -11,6 +12,7 @@ from meyes.bindings.defaults import DEFAULT_PROFILE_NAME, default_profile, disab
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
+from meyes.bindings.transfer import read_profile_file, write_profile_file
 from meyes.ui.action_simulation import ActionSimulationController
 from meyes.util.logging import get_logger
 from meyes.util.profile_names import validate_profile_name
@@ -323,6 +325,123 @@ class ProfileController(QObject):
                 "Restored all six bindings from the built-in Default snapshot. The profile "
                 "remains inactive.",
                 profile_name=selected,
+            )
+        )
+
+    def import_profile_file(
+        self,
+        source: Path,
+        *,
+        local_name: object = "",
+    ) -> ProfileOperationResult:
+        """Import one validated file as a new inactive local profile."""
+        unavailable = self._lifecycle_unavailable()
+        if unavailable is not None:
+            return unavailable
+        if not isinstance(local_name, str):
+            return self._finish(
+                ProfileOperationResult(False, "The optional local profile name is invalid.")
+            )
+        requested_name: str | None = None
+        if local_name.strip():
+            try:
+                requested_name = validate_profile_name(local_name)
+            except ValueError:
+                return self._finish(
+                    ProfileOperationResult(
+                        False,
+                        "Use 1-80 characters and avoid Windows-reserved names or symbols.",
+                    )
+                )
+        try:
+            imported = read_profile_file(source)
+            effective_name = requested_name or imported.profile_name
+            if effective_name.casefold() == DEFAULT_PROFILE_NAME.casefold():
+                return self._finish(
+                    ProfileOperationResult(
+                        False,
+                        "Choose a different local name because Default is built in.",
+                    )
+                )
+            candidate = BindingProfile(
+                profile_name=effective_name,
+                bindings=imported.bindings,
+            )
+            assert self._repository is not None
+            self._repository.create(candidate)
+        except FileExistsError:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "A profile with that name already exists. Enter a different local name.",
+                )
+            )
+        except (OSError, UnicodeError, ValueError, TypeError):
+            self._logger.error("profile_import_failed")
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The selected file is not a valid MEYES profile or could not be read safely.",
+                )
+            )
+        self.synchronize_catalog()
+        return self._finish(
+            ProfileOperationResult(
+                True,
+                "Imported the validated profile as a new inactive snapshot.",
+                profile_name=candidate.profile_name,
+            )
+        )
+
+    def export_profile_file(
+        self,
+        profile_name: str,
+        destination: Path,
+        *,
+        overwrite: bool = False,
+    ) -> ProfileOperationResult:
+        """Export one valid snapshot without changing catalog or runtime state."""
+        if self._repository is None:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "Profile export is unavailable in this session.",
+                )
+            )
+        try:
+            normalized = validate_profile_name(profile_name)
+            profile = self._repository.read(normalized)
+            write_profile_file(profile, destination, overwrite=overwrite)
+        except FileExistsError:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "That export file already exists. Choose another file or confirm "
+                    "replacement in the save dialog.",
+                )
+            )
+        except FileNotFoundError:
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The selected profile or export directory is no longer available.",
+                    warning=True,
+                )
+            )
+        except (OSError, UnicodeError, ValueError, TypeError):
+            self._logger.error("profile_export_failed")
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The profile could not be exported safely. Choose a local JSON "
+                    "destination and try again.",
+                )
+            )
+        return self._finish(
+            ProfileOperationResult(
+                True,
+                "Exported the selected profile to the chosen JSON file.",
             )
         )
 

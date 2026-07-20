@@ -69,6 +69,15 @@ Optional controlled OS-output check on Windows:
 Live Input consent is never persisted. Windows UIPI can block injection into a higher-integrity
 target without a specific error; run MEYES and the disposable target at the same integrity level.
 
+Profile transfer check:
+
+1. Open **Profiles**, select **Default**, and export it to a temporary `.json` file.
+2. Select **Browse**, choose that file, enter `Default Copy` as the optional local name, and import.
+3. Confirm `Default Copy` appears selected but inactive, while the active profile and tracking state
+   remain unchanged. Import never overwrites an existing local profile.
+4. Delete the temporary exported file when finished. The import copy can be removed through the
+   exact-name-confirmed, recoverable profile lifecycle control.
+
 Lighting, camera field of view, occlusion, and landmark confidence affect live detection.
 Do not interpret the diagnostics as a medical or safety assessment.
 
@@ -101,6 +110,8 @@ Working in the submitted source build:
   inline errors, isolated preview, dirty-draft preservation, and inactive save-as-copy;
 - inactive-only profile rename, restore-from-Default, and exact-name-confirmed deletion that
   retains a local recovery backup without changing the runtime snapshot;
+- bounded, duplicate-key-rejecting profile JSON import as a new inactive snapshot, plus read-only
+  export with explicit collision handling and atomic confirmed replacement;
 - a Qt-owned fake runtime dispatcher with held-input cleanup, no-catch-up deadline polling,
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
 - an application-wired Windows `SendInput` executor with owned-state tracking, partial-send
@@ -115,7 +126,7 @@ Working in the submitted source build:
 Intentionally not implemented or not enabled:
 
 - gaze calibration and cursor mapping;
-- profile import/export, tray controls, gaze pointer movement, or an installer.
+- tray controls, gaze pointer movement, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

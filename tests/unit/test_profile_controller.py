@@ -12,6 +12,7 @@ from meyes.bindings.defaults import default_profile, disabled_profile
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
+from meyes.bindings.transfer import read_profile_file, write_profile_file
 from meyes.domain.actions import DisabledAction, MouseButton, MouseDownAction
 from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.input.fake import FakeInputExecutor, InputCall
@@ -594,6 +595,165 @@ def test_active_and_default_profiles_are_protected_from_lifecycle_changes(
     assert simulation.active_profile == active
     assert isinstance(persistence, RecordingPersistence)
     assert persistence.names == []
+
+
+def test_import_creates_inactive_profile_without_runtime_or_preference_change(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    source = tmp_path / "imported.json"
+    imported = held_mouse_profile("Imported")
+    write_profile_file(imported, source)
+    controller, simulation, repository, persistence, fake, _ = make_controller(tmp_path)
+    calls_before = simulation.simulated_calls
+    release_count_before = fake.release_all_calls
+
+    result = controller.import_profile_file(source)
+
+    assert result.success
+    assert result.profile_name == "Imported"
+    assert controller.profile_names == ("Default", "Imported")
+    loaded = repository.read("Imported")
+    assert loaded == imported
+    assert controller.active_profile == default_profile()
+    assert simulation.active_profile == default_profile()
+    assert simulation.simulated_calls == calls_before
+    assert fake.release_all_calls == release_count_before
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_import_collision_requires_explicit_alternative_local_name(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    repository = BindingProfileRepository(AppPaths.under(tmp_path / "local"))
+    repository.create(disabled_profile("Work"))
+    source = tmp_path / "incoming.json"
+    incoming = held_mouse_profile("Work")
+    write_profile_file(incoming, source)
+    controller, _, _, persistence, _, _ = make_controller(
+        tmp_path,
+        repository=repository,
+    )
+
+    collision = controller.import_profile_file(source)
+    renamed = controller.import_profile_file(source, local_name=" Focus ")
+
+    assert not collision.success
+    assert "different local name" in collision.message
+    assert renamed.success
+    assert renamed.profile_name == "Focus"
+    assert controller.profile_names == ("Default", "Focus", "Work")
+    assert repository.read("Work") == disabled_profile("Work")
+    assert repository.read("Focus").bindings == incoming.bindings
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_import_default_requires_local_name_and_invalid_file_writes_nothing(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    default_source = tmp_path / "default.json"
+    invalid_source = tmp_path / "invalid.json"
+    write_profile_file(default_profile(), default_source)
+    invalid_source.write_text("{}", encoding="utf-8")
+    controller, _, repository, persistence, _, _ = make_controller(tmp_path)
+
+    default_collision = controller.import_profile_file(default_source)
+    imported_default = controller.import_profile_file(
+        default_source,
+        local_name="Default Copy",
+    )
+    invalid = controller.import_profile_file(invalid_source)
+
+    assert not default_collision.success
+    assert "Default is built in" in default_collision.message
+    assert imported_default.success
+    assert repository.read("Default Copy").bindings == default_profile().bindings
+    assert not invalid.success
+    assert "not a valid MEYES profile" in invalid.message
+    assert controller.profile_names == ("Default", "Default Copy")
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_import_rejects_non_string_local_name_without_reading_source(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    controller, _, _, persistence, _, _ = make_controller(tmp_path)
+
+    result = controller.import_profile_file(
+        tmp_path / "missing.json",
+        local_name=object(),
+    )
+
+    assert not result.success
+    assert "local profile name is invalid" in result.message
+    assert controller.profile_names == ("Default",)
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_export_is_read_only_and_requires_explicit_overwrite(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    repository = BindingProfileRepository(AppPaths.under(tmp_path / "local"))
+    repository.create(held_mouse_profile("Work"))
+    controller, simulation, _, persistence, fake, _ = make_controller(
+        tmp_path,
+        repository=repository,
+    )
+    destination = tmp_path / "export.json"
+    calls_before = simulation.simulated_calls
+    release_count_before = fake.release_all_calls
+
+    exported = controller.export_profile_file("Work", destination)
+    collision = controller.export_profile_file("Default", destination)
+    overwritten = controller.export_profile_file(
+        "Default",
+        destination,
+        overwrite=True,
+    )
+
+    assert exported.success
+    assert not collision.success
+    assert "already exists" in collision.message
+    assert overwritten.success
+    assert read_profile_file(destination) == default_profile()
+    assert controller.profile_names == ("Default", "Work")
+    assert controller.active_profile == default_profile()
+    assert simulation.active_profile == default_profile()
+    assert simulation.simulated_calls == calls_before
+    assert fake.release_all_calls == release_count_before
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_transfer_operations_fail_closed_when_storage_or_files_are_unavailable(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    profile = default_profile()
+    simulation = ActionSimulationController(BindingManager(profile))
+    controller = ProfileController(profile, simulation)
+
+    imported = controller.import_profile_file(tmp_path / "missing.json")
+    exported = controller.export_profile_file("Default", tmp_path / "export.json")
+
+    assert not imported.success
+    assert "unavailable" in imported.message
+    assert not exported.success
+    assert "unavailable" in exported.message
 
 
 def test_profile_signal_payload_validators_accept_expected_values_and_reject_others() -> None:

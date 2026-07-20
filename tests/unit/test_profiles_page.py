@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
+import pytest
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
+    QFileDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -24,6 +27,7 @@ from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindableGesture
 from meyes.bindings.presentation import action_label, gesture_label
 from meyes.bindings.repository import BindingProfileRepository
+from meyes.bindings.transfer import read_profile_file, write_profile_file
 from meyes.domain.actions import DisabledAction
 from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.profile_controller import ProfileController
@@ -46,7 +50,12 @@ class ProfilePageHarness:
     persisted_names: list[str]
 
 
-def _profile_page(qtbot: QtBot, tmp_path: Path) -> ProfilePageHarness:
+def _profile_page(
+    qtbot: QtBot,
+    tmp_path: Path,
+    *,
+    prepare_transfer: Callable[[], bool] | None = None,
+) -> ProfilePageHarness:
     paths = AppPaths.under(tmp_path)
     repository = BindingProfileRepository(paths)
     profile = default_profile()
@@ -58,7 +67,7 @@ def _profile_page(qtbot: QtBot, tmp_path: Path) -> ProfilePageHarness:
         repository=repository,
         persist_active_profile=persisted_names.append,
     )
-    page = ProfilesPage(controller)
+    page = ProfilesPage(controller, prepare_transfer=prepare_transfer)
     page.setStyleSheet(build_stylesheet())
     qtbot.addWidget(page)
     return ProfilePageHarness(
@@ -115,6 +124,12 @@ def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
         "deleteProfileConfirmation",
     )
     delete_button = _required_child(harness.page, QPushButton, "deleteProfileButton")
+    import_path = _required_child(harness.page, QLineEdit, "importProfilePath")
+    import_name = _required_child(harness.page, QLineEdit, "importProfileName")
+    browse_import = _required_child(harness.page, QPushButton, "browseImportProfileButton")
+    import_button = _required_child(harness.page, QPushButton, "importProfileButton")
+    export_button = _required_child(harness.page, QPushButton, "exportProfileButton")
+    safety_banner = _required_child(harness.page, QLabel, "safeBanner")
 
     assert profile_list.count() == 1
     default_item = profile_list.item(0)
@@ -140,6 +155,16 @@ def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
     assert restore_confirmation.accessibleName() == "Confirm replacing all bindings with Default"
     assert delete_confirmation.accessibleName() == "Exact selected profile name to confirm deletion"
     assert delete_button.accessibleName() == "Delete selected inactive profile"
+    assert import_path.accessibleName() == "Selected profile import file"
+    assert import_name.accessibleName() == "Optional local name for imported profile"
+    assert browse_import.accessibleName() == "Choose profile JSON to import"
+    assert import_button.accessibleName() == "Import selected JSON as inactive profile"
+    assert export_button.accessibleName() == "Export selected profile to JSON"
+    assert browse_import.isEnabled()
+    assert not import_button.isEnabled()
+    assert export_button.isEnabled()
+    assert "Activation and file dialogs disarm Live Input" in safety_banner.text()
+    assert "persistent status bar" in safety_banner.text()
 
 
 def test_profile_mutation_controls_are_disabled_without_persistence(
@@ -405,6 +430,149 @@ def test_ui_rename_restore_and_exact_confirmation_delete_stay_inactive(
     assert "recovery backup" in feedback.text()
 
 
+def test_import_dialog_creates_inactive_profile_without_runtime_activation(
+    qtbot: QtBot,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "outside" / "imported.json"
+    source.parent.mkdir()
+    imported = disabled_profile("Imported")
+    write_profile_file(imported, source)
+    prepare_calls: list[str] = []
+
+    def prepare_transfer() -> bool:
+        prepare_calls.append("prepare")
+        return True
+
+    harness = _profile_page(
+        qtbot,
+        tmp_path / "local",
+        prepare_transfer=prepare_transfer,
+    )
+    page = harness.page
+    profile_list = _required_child(page, QListWidget, "profileList")
+    path_display = _required_child(page, QLineEdit, "importProfilePath")
+    browse = _required_child(page, QPushButton, "browseImportProfileButton")
+    import_button = _required_child(page, QPushButton, "importProfileButton")
+    feedback = _required_child(page, QLabel, "profileFeedback")
+    snapshot_before = harness.simulation.snapshot
+    calls_before = harness.simulation.simulated_calls
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        staticmethod(lambda *_args, **_kwargs: (str(source), "MEYES profile (*.json)")),
+    )
+
+    browse.click()
+
+    assert prepare_calls == ["prepare"]
+    assert path_display.text() == source.name
+    assert path_display.toolTip() == str(source)
+    assert import_button.isEnabled()
+
+    import_button.click()
+
+    assert harness.controller.profile_names == ("Default", "Imported")
+    assert harness.repository.read("Imported") == imported
+    assert profile_list.currentItem().data(Qt.ItemDataRole.UserRole) == "Imported"
+    assert "Active" not in profile_list.currentItem().text()
+    assert harness.controller.active_profile == default_profile()
+    assert harness.simulation.snapshot == snapshot_before
+    assert harness.simulation.simulated_calls == calls_before
+    assert harness.persisted_names == []
+    assert path_display.text() == ""
+    assert not import_button.isEnabled()
+    assert feedback.property("feedbackStatus") == "success"
+    assert "inactive" in feedback.text()
+
+
+def test_export_dialog_writes_selected_snapshot_without_runtime_change(
+    qtbot: QtBot,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    destination = tmp_path / "outside" / "work.json"
+    destination.parent.mkdir()
+    prepare_calls: list[str] = []
+
+    def prepare_transfer() -> bool:
+        prepare_calls.append("prepare")
+        return True
+
+    harness = _profile_page(
+        qtbot,
+        tmp_path / "local",
+        prepare_transfer=prepare_transfer,
+    )
+    created = harness.controller.create_disabled("Work")
+    assert created.success
+    page = harness.page
+    export_button = _required_child(page, QPushButton, "exportProfileButton")
+    feedback = _required_child(page, QLabel, "profileFeedback")
+    snapshot_before = harness.simulation.snapshot
+    calls_before = harness.simulation.simulated_calls
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *_args, **_kwargs: (str(destination), "MEYES profile (*.json)")),
+    )
+
+    export_button.click()
+
+    assert prepare_calls == ["prepare"]
+    assert read_profile_file(destination) == disabled_profile("Work")
+    assert harness.controller.active_profile == default_profile()
+    assert harness.simulation.snapshot == snapshot_before
+    assert harness.simulation.simulated_calls == calls_before
+    assert harness.persisted_names == []
+    assert feedback.property("feedbackStatus") == "success"
+    assert "Exported" in feedback.text()
+
+
+def test_transfer_dialogs_are_blocked_when_live_release_preparation_fails(
+    qtbot: QtBot,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    harness = _profile_page(qtbot, tmp_path, prepare_transfer=lambda: False)
+    page = harness.page
+    browse = _required_child(page, QPushButton, "browseImportProfileButton")
+    export_button = _required_child(page, QPushButton, "exportProfileButton")
+    feedback = _required_child(page, QLabel, "profileFeedback")
+    dialog_calls: list[str] = []
+
+    def record_open(*args: object, **kwargs: object) -> tuple[str, str]:
+        del args, kwargs
+        dialog_calls.append("open")
+        return "", ""
+
+    def record_save(*args: object, **kwargs: object) -> tuple[str, str]:
+        del args, kwargs
+        dialog_calls.append("save")
+        return "", ""
+
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        staticmethod(record_open),
+    )
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        staticmethod(record_save),
+    )
+
+    browse.click()
+    export_button.click()
+
+    assert dialog_calls == []
+    assert feedback.property("feedbackStatus") == "error"
+    assert "could not be released safely" in feedback.text()
+    assert harness.controller.profile_names == ("Default",)
+    assert harness.persisted_names == []
+
+
 def test_lifecycle_feedback_scrolls_into_view_after_bottom_action(
     qtbot: QtBot,
     tmp_path: Path,
@@ -454,6 +622,11 @@ def test_profiles_page_has_no_hidden_horizontal_overflow_at_690_px(
     restore_button = _required_child(page, QPushButton, "restoreDefaultButton")
     delete_confirmation = _required_child(page, QLineEdit, "deleteProfileConfirmation")
     delete_button = _required_child(page, QPushButton, "deleteProfileButton")
+    import_path = _required_child(page, QLineEdit, "importProfilePath")
+    import_name = _required_child(page, QLineEdit, "importProfileName")
+    browse_import = _required_child(page, QPushButton, "browseImportProfileButton")
+    import_button = _required_child(page, QPushButton, "importProfileButton")
+    export_button = _required_child(page, QPushButton, "exportProfileButton")
     preview = _required_child(page, QTableWidget, "activeBindingsTable")
 
     page.setFixedSize(690, 640)
@@ -476,6 +649,11 @@ def test_profiles_page_has_no_hidden_horizontal_overflow_at_690_px(
         restore_button,
         delete_confirmation,
         delete_button,
+        import_path,
+        import_name,
+        browse_import,
+        import_button,
+        export_button,
         preview,
     ):
         mapped_right = widget.mapTo(content, QPoint(widget.width() - 1, 0)).x()

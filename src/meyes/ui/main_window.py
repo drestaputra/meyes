@@ -223,7 +223,10 @@ class MainWindow(QMainWindow):
                 self._vision_controller,
                 action_simulation=self._action_simulation,
             ),
-            "Profiles": ProfilesPage(self._profile_controller),
+            "Profiles": ProfilesPage(
+                self._profile_controller,
+                prepare_transfer=self._prepare_profile_transfer,
+            ),
         }
         for item in NAVIGATION_ITEMS:
             page = page_widgets.get(item) or PlaceholderPage(
@@ -301,6 +304,15 @@ class MainWindow(QMainWindow):
     def _on_binding_profile_saved(self, payload: object) -> None:
         binding_profile(payload)
         self._profile_controller.synchronize_catalog()
+
+    def _prepare_profile_transfer(self) -> bool:
+        result = self._live_input_controller.disarm("profile file dialog")
+        if not result.success:
+            self._logger.error(
+                "profile_transfer_live_release_failed",
+                extra={"state": result.state.value},
+            )
+        return result.success
 
     def _set_profile_label(self, profile_name: str) -> None:
         full_text = f"Profile: {profile_name}"

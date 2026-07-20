@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from pathlib import Path
+
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QAbstractScrollArea,
     QCheckBox,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QHeaderView,
@@ -35,6 +39,7 @@ from meyes.ui.profile_controller import (
 )
 
 _MAX_PROFILE_DISPLAY_CHARACTERS = 32
+PrepareTransfer = Callable[[], bool]
 
 
 class ProfilesPage(QWidget):
@@ -43,12 +48,18 @@ class ProfilesPage(QWidget):
     def __init__(
         self,
         controller: ProfileController,
+        *,
+        prepare_transfer: PrepareTransfer | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         if not isinstance(controller, ProfileController):
             raise TypeError("Expected ProfileController")
+        if prepare_transfer is not None and not callable(prepare_transfer):
+            raise TypeError("prepare_transfer must be callable")
         self._controller = controller
+        self._prepare_transfer = prepare_transfer
+        self._selected_import_path: Path | None = None
         self._build_ui()
         self._feedback_scroll_timer = QTimer(self)
         self._feedback_scroll_timer.setSingleShot(True)
@@ -86,11 +97,14 @@ class ProfilesPage(QWidget):
         title.setObjectName("sectionTitle")
         description = QLabel(
             "Create local configuration sets and choose which complete binding snapshot "
-            "the Safe Mode simulation uses."
+            "Diagnostics and explicitly armed Live Input use."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
-        safe_banner = QLabel("SAFE MODE · Profile changes pause tracking · OS input disconnected")
+        safe_banner = QLabel(
+            "PROFILE SAFETY · Activation and file dialogs disarm Live Input · "
+            "Check the persistent status bar"
+        )
         safe_banner.setObjectName("safeBanner")
         safe_banner.setWordWrap(True)
         self._feedback = QLabel()
@@ -104,6 +118,7 @@ class ProfilesPage(QWidget):
         layout.addWidget(self._feedback)
         layout.addWidget(self._build_catalog_panel())
         layout.addWidget(self._build_lifecycle_panel())
+        layout.addWidget(self._build_transfer_panel())
         layout.addWidget(self._build_binding_preview())
         layout.addStretch(1)
         self._scroll.setWidget(content)
@@ -265,6 +280,76 @@ class ProfilesPage(QWidget):
         layout.addWidget(self._delete_button)
         return panel
 
+    def _build_transfer_panel(self) -> QFrame:
+        panel = QFrame()
+        panel.setObjectName("statusPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        heading = QLabel("Import or export profile JSON")
+        heading.setObjectName("panelTitle")
+        helper = QLabel(
+            "Imports are limited to 256 KiB, validated as a complete six-binding MEYES "
+            "profile, and always created as inactive. Existing local profiles are never "
+            "overwritten by import."
+        )
+        helper.setObjectName("mutedText")
+        helper.setWordWrap(True)
+
+        import_label = QLabel("Import a profile")
+        import_label.setObjectName("fieldLabel")
+        import_row = QHBoxLayout()
+        import_row.setSpacing(8)
+        self._import_path_display = QLineEdit()
+        self._import_path_display.setObjectName("importProfilePath")
+        self._import_path_display.setAccessibleName("Selected profile import file")
+        self._import_path_display.setPlaceholderText("No JSON file selected")
+        self._import_path_display.setReadOnly(True)
+        self._import_path_display.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Fixed,
+        )
+        self._browse_import_button = QPushButton("Browse...")
+        self._browse_import_button.setObjectName("browseImportProfileButton")
+        self._browse_import_button.setAccessibleName("Choose profile JSON to import")
+        import_row.addWidget(self._import_path_display, stretch=1)
+        import_row.addWidget(self._browse_import_button)
+
+        self._import_name_input = QLineEdit()
+        self._import_name_input.setObjectName("importProfileName")
+        self._import_name_input.setAccessibleName("Optional local name for imported profile")
+        self._import_name_input.setPlaceholderText(
+            "Optional local name (required to resolve a collision)"
+        )
+        self._import_button = QPushButton("Import as inactive profile")
+        self._import_button.setObjectName("importProfileButton")
+        self._import_button.setAccessibleName("Import selected JSON as inactive profile")
+
+        export_label = QLabel("Export selected catalog profile")
+        export_label.setObjectName("fieldLabel")
+        export_helper = QLabel(
+            "Default and active profiles may be exported because export is read-only. "
+            "An existing file is replaced only after confirmation in the native save dialog."
+        )
+        export_helper.setObjectName("mutedText")
+        export_helper.setWordWrap(True)
+        self._export_button = QPushButton("Export selected profile...")
+        self._export_button.setObjectName("exportProfileButton")
+        self._export_button.setAccessibleName("Export selected profile to JSON")
+
+        layout.addWidget(heading)
+        layout.addWidget(helper)
+        layout.addWidget(import_label)
+        layout.addLayout(import_row)
+        layout.addWidget(self._import_name_input)
+        layout.addWidget(self._import_button)
+        layout.addSpacing(4)
+        layout.addWidget(export_label)
+        layout.addWidget(export_helper)
+        layout.addWidget(self._export_button)
+        return panel
+
     def _build_binding_preview(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("statusPanel")
@@ -287,7 +372,7 @@ class ProfilesPage(QWidget):
         self._binding_table = QTableWidget(len(BindableGesture), 2)
         self._binding_table.setObjectName("activeBindingsTable")
         self._binding_table.setAccessibleName("Active gesture bindings")
-        self._binding_table.setHorizontalHeaderLabels(("Gesture", "Simulated action"))
+        self._binding_table.setHorizontalHeaderLabels(("Gesture", "Configured action"))
         self._binding_table.verticalHeader().hide()
         self._binding_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._binding_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
@@ -317,11 +402,15 @@ class ProfilesPage(QWidget):
         self._rename_input.textChanged.connect(self._update_controls)
         self._delete_confirmation.textChanged.connect(self._update_controls)
         self._restore_confirmation.stateChanged.connect(self._update_controls)
+        self._import_name_input.textChanged.connect(self._update_controls)
         self._create_button.clicked.connect(self._create_profile)
         self._activate_button.clicked.connect(self._activate_selected)
         self._rename_button.clicked.connect(self._rename_selected)
         self._restore_button.clicked.connect(self._restore_selected)
         self._delete_button.clicked.connect(self._delete_selected)
+        self._browse_import_button.clicked.connect(self._browse_import_file)
+        self._import_button.clicked.connect(self._import_selected_file)
+        self._export_button.clicked.connect(self._export_selected_profile)
         self._refresh_button.clicked.connect(self._controller.refresh)
 
     @Slot(object)
@@ -381,6 +470,11 @@ class ProfilesPage(QWidget):
             and selected is not None
             and self._delete_confirmation.text() == selected
         )
+        self._browse_import_button.setEnabled(can_manage)
+        self._import_path_display.setEnabled(can_manage)
+        self._import_name_input.setEnabled(can_manage)
+        self._import_button.setEnabled(can_manage and self._selected_import_path is not None)
+        self._export_button.setEnabled(self._controller.storage_available and selected is not None)
         self._render_lifecycle_status(selected, active, can_manage)
 
     @Slot()
@@ -413,6 +507,73 @@ class ProfilesPage(QWidget):
         selected = self._selected_profile_name()
         if selected is not None:
             self._controller.delete(selected, self._delete_confirmation.text())
+
+    @Slot()
+    def _browse_import_file(self) -> None:
+        if not self._prepare_transfer_dialog():
+            return
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Import MEYES profile",
+            "",
+            "MEYES profile (*.json)",
+        )
+        if not selected:
+            return
+        self._selected_import_path = Path(selected)
+        self._import_path_display.setText(self._selected_import_path.name)
+        self._import_path_display.setToolTip(str(self._selected_import_path))
+        self._update_controls()
+
+    @Slot()
+    def _import_selected_file(self) -> None:
+        if self._selected_import_path is None:
+            return
+        result = self._controller.import_profile_file(
+            self._selected_import_path,
+            local_name=self._import_name_input.text(),
+        )
+        if result.success:
+            self._clear_transfer_inputs()
+            self._update_controls()
+
+    @Slot()
+    def _export_selected_profile(self) -> None:
+        selected = self._selected_profile_name()
+        if selected is None or not self._prepare_transfer_dialog():
+            return
+        destination, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Export MEYES profile",
+            f"{selected}.json",
+            "MEYES profile (*.json)",
+        )
+        if not destination:
+            return
+        path = Path(destination)
+        self._controller.export_profile_file(
+            selected,
+            path,
+            overwrite=path.exists(),
+        )
+
+    def _prepare_transfer_dialog(self) -> bool:
+        prepare = self._prepare_transfer
+        if prepare is None:
+            return True
+        try:
+            ready = prepare()
+        except Exception:
+            ready = False
+        if ready is True:
+            return True
+        self._show_result(
+            ProfileOperationResult(
+                False,
+                "Live Input could not be released safely, so the file dialog was not opened.",
+            )
+        )
+        return False
 
     def _render_names(self, names: tuple[str, ...]) -> None:
         selected = self._selected_profile_name()
@@ -479,6 +640,12 @@ class ProfilesPage(QWidget):
         self._rename_input.clear()
         self._delete_confirmation.clear()
         self._restore_confirmation.setChecked(False)
+
+    def _clear_transfer_inputs(self) -> None:
+        self._selected_import_path = None
+        self._import_path_display.clear()
+        self._import_path_display.setToolTip("")
+        self._import_name_input.clear()
 
     def _render_lifecycle_status(
         self,

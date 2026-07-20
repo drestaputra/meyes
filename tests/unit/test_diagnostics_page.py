@@ -148,7 +148,9 @@ def test_diagnostics_renders_fake_only_dispatch_state_and_result(qtbot: QtBot) -
     assert simulation_log is not None and simulation_log.count() == 2
     assert "Mouse Click · left" in simulation_log.item(0).text()
     assert simulation_log.horizontalScrollBarPolicy() is Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-    assert safe_banner is not None and "OS input disconnected" in safe_banner.text()
+    assert safe_banner is not None
+    assert "Fake actions are always shown" in safe_banner.text()
+    assert "Live Input state" in safe_banner.text()
 
 
 def test_diagnostics_reflows_action_panel_below_observations_when_narrow(

@@ -16,6 +16,7 @@ current session.
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
 | Model assets | Loaded from the repository's `resources/models/` directory and verified by size and SHA-256 in tests. |
 | Live Input consent | Held only in widget memory long enough to validate the exact phrase, then cleared. It is not persisted or intentionally logged. |
+| Profile import/export | Reads or writes only the local `.json` path explicitly selected in the native file dialog. Imports are copied into the local profile catalog; exports are not uploaded or transmitted by MEYES. |
 
 `diagnostic_recording_enabled` defaults to `false`, and the current build has no frame
 recording implementation or recording UI. Enabling that configuration field does not create

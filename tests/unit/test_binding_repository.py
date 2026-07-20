@@ -43,6 +43,23 @@ def test_user_profile_round_trip_is_atomic_and_listed(tmp_path: Path) -> None:
     assert json.loads(path.read_text(encoding="utf-8"))["profile_name"] == "Work Profile"
 
 
+def test_strict_read_returns_default_and_user_without_recovery_mutation(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    user = disabled_profile("Work")
+    repository.create(user)
+
+    assert repository.read("default") == default_profile()
+    assert repository.read("work") == user
+
+    broken = paths.profiles_dir / "Broken.json"
+    broken.write_text("{not-json", encoding="utf-8")
+    with pytest.raises(json.JSONDecodeError):
+        repository.read("Broken")
+    assert broken.exists()
+    assert not tuple(paths.profiles_dir.glob("*.invalid-*.bak"))
+
+
 def test_catalog_returns_canonical_names_without_warning(tmp_path: Path) -> None:
     repository = BindingProfileRepository(AppPaths.under(tmp_path))
     repository.create(disabled_profile("Zulu"))

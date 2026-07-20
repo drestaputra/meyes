@@ -140,7 +140,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add a safe draft-based binding editor without enabling operating-system input.
 - [x] Add inactive profile rename, exact-confirmation recoverable deletion, and restore-default
   workflows with built-in and active-profile protections.
-- [ ] Add profile import/export workflows.
+- [x] Add bounded profile import/export workflows with inactive-only import and atomic confirmed
+  export replacement.
 
 ## Backlog — Phase 5
 
@@ -158,7 +159,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Complete the first-run setup wizard.
 - [ ] Complete Dashboard, Calibration, Bindings, Sensitivity, Camera, Profiles, Diagnostics, and Privacy views.
 - [ ] Add system tray controls.
-- [ ] Add profile import/export.
+- [x] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.
 - [ ] Verify Windows 100%, 125%, and 150% scaling.
 - [ ] Verify Windows high-contrast behavior.
