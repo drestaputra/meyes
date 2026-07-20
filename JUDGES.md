@@ -103,6 +103,8 @@ Working in the submitted source build:
 - a user-facing in-shell nine-point sample collector with explicit capture, progress, retry,
   cancellation, quota, attempt, ordering, replay, range, binocular-consistency, and robust
   per-target median/MAD outlier guards;
+- a dormant replaceable quadratic calibration mapper with complete-target coverage, matrix-rank,
+  conditioning, finite-output, and deterministic per-target holdout-validation guards;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
@@ -130,7 +132,7 @@ Working in the submitted source build:
 
 Intentionally not implemented or not enabled:
 
-- fitted, validated, or persisted gaze calibration and cursor mapping;
+- user-triggered or persisted fitted gaze calibration and cursor mapping;
 - tray controls, gaze pointer movement, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any

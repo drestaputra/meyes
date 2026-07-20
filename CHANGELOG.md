@@ -70,3 +70,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.
 - User-facing in-shell Calibration collection with explicit target arming, progress/retry controls, Live Input release-before-start, and volatile cancellation on Escape, navigation away, camera loss, Live Input arming, or shutdown.
 - Robust per-target calibration outlier rejection using coordinate-wise median/MAD bounds, a zero-MAD floor, inlier-only quotas, bounded attempts, and explicit UI feedback.
+- Replaceable quadratic calibration mapper with complete-target coverage, finite/rank/conditioning guards, unclamped prediction, deterministic target-stratified holdouts, and normalized error metrics.

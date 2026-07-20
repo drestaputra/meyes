@@ -55,6 +55,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - provides a user-facing in-shell nine-point collection flow with explicit target capture,
   progress/retry/cancel controls, bounded volatile samples, quality/replay rejection, and robust
   per-target median/MAD outlier filtering;
+- provides a dormant replaceable quadratic mapper with fail-closed numerical guards and
+  deterministic per-target holdout metrics, without yet applying or persisting its output;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
@@ -64,8 +66,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - starts every application session with operating-system input disconnected and never persists
   Live Input consent.
 
-The current build does **not** provide gaze cursor control, fitted/validated/persisted calibration,
-a packaged installer, a medical assessment,
+The current build does **not** provide gaze cursor control, a user-triggered or persisted fitted
+calibration workflow, a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 
@@ -155,7 +157,7 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, bounded nine-point sample collection with robust outlier rejection, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, exact-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, bounded nine-point sample collection with robust outlier rejection, a rank/condition-guarded quadratic mapper with holdout metrics, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, exact-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
 | Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog, an inline-validating six-binding editor and preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while real OS output stays behind an explicit, volatile safety boundary. |
