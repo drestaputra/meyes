@@ -116,8 +116,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Backlog — Phase 4
 
-- [ ] Create validated action and binding models.
-- [ ] Create default and user profile repositories.
+- [x] Create validated action and binding models.
+- [x] Create default and user profile repositories.
 - [ ] Implement the Windows `SendInput` executor.
 - [ ] Implement mouse click and scroll actions.
 - [ ] Implement continuous scroll with fail-safe release.

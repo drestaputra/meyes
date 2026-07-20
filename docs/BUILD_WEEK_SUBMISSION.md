@@ -38,6 +38,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   independent tracking-loss timeout;
 - classifies independent semantic temple tap, hold-start, and hold-end events with cooldown,
   capture-time ordering, and lifecycle-safe hold termination;
+- validates a closed action vocabulary and complete logical binding profiles, while keeping
+  that foundation disconnected from runtime gesture events and OS input;
 - exposes health, latency, freshness, and observations through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.
 
@@ -131,7 +133,7 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, hysteretic proximity and semantic tap/hold state machines, fail-closed binding profiles, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
 | Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while OS input stays behind an intentional safety boundary. |

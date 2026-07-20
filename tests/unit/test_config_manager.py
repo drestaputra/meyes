@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig, CameraSettings, GestureSettings
+from meyes.config.models import AppConfig, AppSettings, CameraSettings, GestureSettings
 from meyes.util.paths import AppPaths
 
 
@@ -82,3 +82,10 @@ def test_temple_semantic_timing_defaults_and_bounds() -> None:
         GestureSettings(temple_hold_threshold_ms=49)
     with pytest.raises(ValidationError, match="temple_cooldown_ms"):
         GestureSettings(temple_cooldown_ms=-1)
+
+
+def test_active_profile_name_uses_repository_safe_validation() -> None:
+    assert AppSettings(active_profile=" Work ").active_profile == "Work"
+
+    with pytest.raises(ValidationError, match="profile name"):
+        AppSettings(active_profile="../escape")

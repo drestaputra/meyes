@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from meyes.util.profile_names import validate_profile_name
 
 
 class StrictConfigModel(BaseModel):
@@ -19,6 +21,11 @@ class AppSettings(StrictConfigModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     first_run: bool = True
     active_profile: str = Field(default="Default", min_length=1, max_length=80)
+
+    @field_validator("active_profile", mode="before")
+    @classmethod
+    def validate_active_profile(cls, value: object) -> object:
+        return validate_profile_name(value)
 
 
 class CameraSettings(StrictConfigModel):

@@ -8,7 +8,7 @@ The planned product controls are gaze-driven pointer movement, wink clicks, and 
 
 ## Development status
 
-Phase 0 through Phase 3 are complete. Local face and lower-cadence hand inference feed Qt-safe diagnostics, live aspect-correct temple-distance features, per-side hysteretic proximity states, and deterministic tap/hold semantics with watchdog and lifecycle termination. Operating-system input remains intentionally disabled before Phase 4 bindings and action execution.
+Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, and fail-closed user-profile persistence. These new contracts are not connected to gesture events or operating-system input; the runnable application remains in Safe Mode while dispatcher and release-all safety work is developed and tested.
 
 See:
 

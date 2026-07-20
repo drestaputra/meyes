@@ -42,11 +42,16 @@ class AppPaths:
         return self.config_dir / "config.json"
 
     @property
+    def profiles_dir(self) -> Path:
+        """Directory containing user binding profiles."""
+        return self.config_dir / "profiles"
+
+    @property
     def log_file(self) -> Path:
         """Canonical rotating log path."""
         return self.log_dir / "meyes.log"
 
     def ensure_directories(self) -> None:
         """Create private application directories when missing."""
-        for directory in (self.config_dir, self.data_dir, self.log_dir):
+        for directory in (self.config_dir, self.profiles_dir, self.data_dir, self.log_dir):
             directory.mkdir(parents=True, exist_ok=True)

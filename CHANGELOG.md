@@ -53,3 +53,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Configurable `550 ms` temple hold threshold and `250 ms` post-interaction cooldown.
 - Framework-independent, independently armed left/right temple tap and hold state machines using fresh capture-time evidence.
 - Semantic tap, hold-start, and exactly-once hold-end events in Diagnostics, including timeout, pause, and shutdown termination without bindings or OS input.
+- Closed, discriminated MVP action vocabulary with bounded scroll, supported-key, shortcut, and hold-only continuous-action validation.
+- Complete logical binding profiles, exact built-in defaults, phased hold-event resolution, and fail-closed user profile persistence.
+- Platform-neutral input protocol plus an in-memory test executor; no Windows input backend or runtime dispatch path is connected.
