@@ -6,12 +6,14 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from meyes.calibration.acceptance import AcceptedCalibration
+from meyes.cursor.gate import CursorGateSettings, CursorMovementGate
 from meyes.cursor.pipeline import CursorPipeline
 from meyes.cursor.screen_mapping import (
     PhysicalScreenGeometry,
     PhysicalScreenGeometryProvider,
     PrimaryScreenMapper,
 )
+from meyes.cursor.smoothing import OneEuroFilterSettings, OneEuroPointFilter
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
 
 
@@ -35,6 +37,9 @@ class CursorPipelineProvisioner:
         self,
         diagnostics: CursorDiagnosticsController,
         geometry_provider: PhysicalScreenGeometryProvider | None,
+        *,
+        filter_settings: OneEuroFilterSettings | None = None,
+        gate_settings: CursorGateSettings | None = None,
     ) -> None:
         if not isinstance(diagnostics, CursorDiagnosticsController):
             raise TypeError("Expected CursorDiagnosticsController")
@@ -42,8 +47,14 @@ class CursorPipelineProvisioner:
             geometry_provider, PhysicalScreenGeometryProvider
         ):
             raise TypeError("Expected PhysicalScreenGeometryProvider or None")
+        if filter_settings is not None and not isinstance(filter_settings, OneEuroFilterSettings):
+            raise TypeError("Expected OneEuroFilterSettings or None")
+        if gate_settings is not None and not isinstance(gate_settings, CursorGateSettings):
+            raise TypeError("Expected CursorGateSettings or None")
         self._diagnostics = diagnostics
         self._geometry_provider = geometry_provider
+        self._filter_settings = filter_settings or OneEuroFilterSettings()
+        self._gate_settings = gate_settings or CursorGateSettings()
 
     def configure(
         self,
@@ -63,7 +74,12 @@ class CursorPipelineProvisioner:
             geometry = self._geometry_provider.read()
             if not isinstance(geometry, PhysicalScreenGeometry):
                 raise TypeError("Geometry provider returned an invalid result")
-            pipeline = CursorPipeline(calibration, PrimaryScreenMapper(geometry))
+            pipeline = CursorPipeline(
+                calibration,
+                PrimaryScreenMapper(geometry),
+                smoother=OneEuroPointFilter(self._filter_settings),
+                gate=CursorMovementGate(self._gate_settings),
+            )
         except (OSError, TypeError, ValueError, RuntimeError):
             message = "Physical-screen geometry could not be read safely."
             self._diagnostics.set_unavailable(message)

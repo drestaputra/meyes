@@ -67,7 +67,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
   scope;
 - constructs the production fake-only diagnostics pipeline only from proof-carrying accepted
-  calibration plus validated geometry, and tears it down on acceptance loss or native failure;
+  calibration plus validated geometry, applies configured smoothing/gate values, and tears it down
+  on acceptance loss or native failure;
 - stores only an accepted mapper's coefficients, exact acceptance policy, and holdout evidence in a
   versioned, checksummed local envelope using clear-before-save lifecycle ordering;
 - recovers accepted calibration once at SAFE startup under the exact stored policy and can configure

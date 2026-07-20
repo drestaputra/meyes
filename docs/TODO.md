@@ -160,6 +160,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Wire accepted-mapper save/recovery without weakening Live Input startup safety.
 - [ ] Add explicit replace/forget controls and stored-calibration provenance details to Calibration UI.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
+- [x] Feed validated cursor smoothing and gate configuration into the production fake diagnostics pipeline.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.
 - [x] Connect the accepted mapper pipeline safely using validated native geometry.

@@ -152,6 +152,8 @@ class MainWindow(QMainWindow):
         self._cursor_pipeline_provisioner = CursorPipelineProvisioner(
             self._cursor_diagnostics,
             native_geometry,
+            filter_settings=config.cursor.filter_settings,
+            gate_settings=config.cursor.gate_settings,
         )
         persistence_store = calibration_store
         if persistence_store is None and config_manager is not None:

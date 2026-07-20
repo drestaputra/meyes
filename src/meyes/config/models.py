@@ -168,7 +168,7 @@ class CalibrationSettings(StrictConfigModel):
 
 
 class CursorSettings(StrictConfigModel):
-    """Dormant adaptive-smoothing values; no pointer runtime consumes them yet."""
+    """Fake-diagnostics smoothing and movement-gate values; no pointer output consumes them."""
 
     minimum_cutoff: float = Field(
         default=1.0,
