@@ -101,7 +101,8 @@ Working in the submitted source build:
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;
 - a user-facing in-shell nine-point sample collector with explicit capture, progress, retry,
-  cancellation, quota, attempt, ordering, replay, range, and binocular-consistency guards;
+  cancellation, quota, attempt, ordering, replay, range, binocular-consistency, and robust
+  per-target median/MAD outlier guards;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

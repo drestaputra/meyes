@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton
 from pytestqt.qtbot import QtBot
@@ -157,3 +159,26 @@ def test_page_target_map_is_readable_without_horizontal_overflow(qtbot: QtBot) -
     assert len(targets) == 9
     assert page.minimumSizeHint().width() <= page.width()
     assert all(target.text() for target in targets)
+
+
+def test_page_explains_statistical_outlier_without_advancing_progress(qtbot: QtBot) -> None:
+    controller = CalibrationController(
+        CalibrationSession(samples_per_target=5, max_attempts_per_target=9)
+    )
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+    page.set_tracking_available(True)
+    page._start_button.click()
+    page._capture_button.click()
+    for sequence in range(1, 5):
+        controller.observe_feature(feature(sequence))
+    outlier = replace(
+        feature(5),
+        left_eye=GazeFeatureVector(0.85, 0.45),
+        right_eye=GazeFeatureVector(0.95, 0.55),
+        combined=GazeFeatureVector(0.90, 0.50),
+    )
+    controller.observe_feature(outlier)
+
+    assert controller.snapshot.accepted_for_target == 4
+    assert "varied too far" in page._feedback.text()

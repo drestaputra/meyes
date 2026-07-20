@@ -176,6 +176,40 @@ def test_duplicate_sequence_and_nonincreasing_time_are_rejected() -> None:
     assert session.snapshot.total_samples == 1
 
 
+def test_statistical_outlier_does_not_satisfy_inlier_quota() -> None:
+    session = CalibrationSession(samples_per_target=5, max_attempts_per_target=9)
+    session.start()
+    session.begin_target()
+    for sequence in range(1, 5):
+        assert session.add_feature(gaze_feature(sequence)).status is (
+            CalibrationCaptureStatus.ACCEPTED
+        )
+
+    rejected = session.add_feature(gaze_feature(5, horizontal=0.9))
+
+    assert rejected.status is CalibrationCaptureStatus.STATISTICAL_OUTLIER
+    assert rejected.snapshot.accepted_for_target == 4
+    assert rejected.snapshot.state is CalibrationSessionState.COLLECTING
+
+    completed = session.add_feature(gaze_feature(6))
+    assert completed.status is CalibrationCaptureStatus.TARGET_COMPLETE
+    assert completed.snapshot.accepted_for_target == 5
+
+
+def test_batch_filter_can_remove_an_earlier_outlier_when_cluster_forms() -> None:
+    session = CalibrationSession(samples_per_target=5, max_attempts_per_target=9)
+    session.start()
+    session.begin_target()
+    session.add_feature(gaze_feature(1, horizontal=0.9))
+    for sequence in range(2, 6):
+        result = session.add_feature(gaze_feature(sequence))
+
+    assert result.status is CalibrationCaptureStatus.ACCEPTED
+    assert result.snapshot.accepted_for_target == 4
+    assert [sample.source_sequence for sample in session.samples] == [2, 3, 4, 5]
+    assert session.add_feature(gaze_feature(6)).status is (CalibrationCaptureStatus.TARGET_COMPLETE)
+
+
 def test_attempt_limit_fails_target_and_retry_discards_partial_target_samples() -> None:
     session = CalibrationSession(samples_per_target=3, max_attempts_per_target=3)
     session.start()

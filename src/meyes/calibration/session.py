@@ -6,6 +6,7 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
+from meyes.calibration.outliers import MINIMUM_OUTLIER_SAMPLES, select_gaze_feature_inliers
 from meyes.domain.observations import GazeFeatureObservation, GazeFeatureVector
 
 
@@ -70,6 +71,7 @@ class CalibrationCaptureStatus(StrEnum):
     OUT_OF_RANGE = "out_of_range"
     EYE_DISAGREEMENT = "eye_disagreement"
     INCONSISTENT_COMBINED = "inconsistent_combined"
+    STATISTICAL_OUTLIER = "statistical_outlier"
     ATTEMPT_LIMIT = "attempt_limit"
 
 
@@ -224,6 +226,7 @@ class CalibrationSession:
                 feature=vector,
             )
             self._samples.append(sample)
+            status, sample = self._filter_current_target(sample)
             if self.snapshot.accepted_for_target >= self._samples_per_target:
                 self._state = CalibrationSessionState.TARGET_COMPLETE
                 return self._result(CalibrationCaptureStatus.TARGET_COMPLETE, sample)
@@ -306,6 +309,23 @@ class CalibrationSession:
         ):
             return CalibrationCaptureStatus.INCONSISTENT_COMBINED, None
         return CalibrationCaptureStatus.ACCEPTED, calculated
+
+    def _filter_current_target(
+        self,
+        newest: CalibrationSample,
+    ) -> tuple[CalibrationCaptureStatus, CalibrationSample | None]:
+        target = CALIBRATION_TARGETS[self._target_index].name
+        current = tuple(sample for sample in self._samples if sample.target == target)
+        if len(current) < MINIMUM_OUTLIER_SAMPLES:
+            return CalibrationCaptureStatus.ACCEPTED, newest
+        inlier_indices = select_gaze_feature_inliers(tuple(sample.feature for sample in current))
+        inliers = tuple(current[index] for index in inlier_indices)
+        retained_sequences = {sample.source_sequence for sample in inliers}
+        previous = [sample for sample in self._samples if sample.target != target]
+        self._samples = [*previous, *inliers]
+        if newest.source_sequence not in retained_sequences:
+            return CalibrationCaptureStatus.STATISTICAL_OUTLIER, None
+        return CalibrationCaptureStatus.ACCEPTED, newest
 
     def _result(
         self,

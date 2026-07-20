@@ -150,7 +150,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   - [x] Implement the bounded ordered sample-collection state machine.
   - [x] Connect collection to an in-shell Calibration UI with safe cancellation.
   - [ ] Promote collection to the distraction-free full-screen presentation.
-- [ ] Reject calibration outliers.
+- [x] Reject per-target calibration outliers with median/MAD filtering and an absolute floor.
 - [ ] Implement a replaceable calibration mapper.
 - [ ] Implement adaptive cursor smoothing.
 - [ ] Map gaze to the primary Windows screen.

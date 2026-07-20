@@ -263,6 +263,9 @@ class CalibrationPage(QWidget):
             CalibrationCaptureStatus.ACCEPTED: "Sample accepted. Keep looking at the target.",
             CalibrationCaptureStatus.TARGET_COMPLETE: "Point complete. Continue when ready.",
             CalibrationCaptureStatus.ATTEMPT_LIMIT: "Too many rejected frames. Adjust and retry.",
+            CalibrationCaptureStatus.STATISTICAL_OUTLIER: (
+                "Sample varied too far from this target's stable cluster; keep looking steadily."
+            ),
         }
         self._feedback.setText(
             messages.get(
