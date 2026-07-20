@@ -79,3 +79,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dormant fail-closed cursor movement gate with tracking suspension, overlapping temple holds, tap pulses, monotonic ordering, configurable resume delay, and no output consumer.
 - Proof-carrying accepted-calibration token and fake-only cursor pipeline composing calibration, smoothing, screen mapping, and movement gating without an input executor.
 - Qt-owned fake cursor diagnostics with separate capture/delivery clocks, freshness expiry, lifecycle/event wiring, candidate display, and an honest unavailable production default.
+- Read-only Windows primary-monitor geometry acquisition using a temporary restored Per-Monitor V2 DPI scope, physical-pixel `GetMonitorInfoW` bounds, fake native-boundary tests, and fail-closed validation.

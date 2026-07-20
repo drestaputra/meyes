@@ -158,7 +158,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Persist and recover an accepted mapper without weakening Live Input startup safety.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
-- [ ] Acquire DPI-aware primary-screen geometry and connect the accepted mapper pipeline safely.
+- [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.
+- [ ] Connect the accepted mapper pipeline safely using validated native geometry.
 - [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
 - [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake-only pipeline.
 - [x] Wire a Qt-owned fake cursor diagnostics controller to lifecycle, freshness, and Diagnostics.

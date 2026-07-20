@@ -15,8 +15,15 @@ from meyes.cursor.screen_mapping import (
     ScreenMappingResult,
 )
 from meyes.cursor.smoothing import OneEuroFilterSettings, OneEuroPointFilter
+from meyes.cursor.windows_geometry import (
+    CtypesWindowsScreenGeometryApi,
+    WindowsPrimaryScreenGeometryProvider,
+    WindowsScreenGeometryApi,
+    WindowsScreenGeometryError,
+)
 
 __all__ = [
+    "CtypesWindowsScreenGeometryApi",
     "CursorGateSettings",
     "CursorGateSnapshot",
     "CursorGateState",
@@ -31,4 +38,7 @@ __all__ = [
     "PrimaryScreenMapper",
     "ScreenCoordinateMapper",
     "ScreenMappingResult",
+    "WindowsPrimaryScreenGeometryProvider",
+    "WindowsScreenGeometryApi",
+    "WindowsScreenGeometryError",
 ]

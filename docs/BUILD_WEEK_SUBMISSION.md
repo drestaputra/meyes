@@ -63,7 +63,9 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - provides a dormant configurable One Euro 2D filter with deterministic jitter, rapid-step,
   timestamp-order, independent-axis, reset, and stale-gap tests, without a pointer consumer;
 - provides a dormant physical-pixel primary-screen mapper with explicit clamping and boundary
-  tests, without acquiring screen geometry or invoking `SendInput`;
+  tests;
+- reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
+  scope, without yet constructing the production pipeline or invoking `SendInput`;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
