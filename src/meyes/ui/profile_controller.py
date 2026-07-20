@@ -163,6 +163,169 @@ class ProfileController(QObject):
             )
         )
 
+    def rename(self, profile_name: str, new_name: str) -> ProfileOperationResult:
+        """Rename one inactive user profile without changing runtime state."""
+        unavailable = self._lifecycle_unavailable()
+        if unavailable is not None:
+            return unavailable
+        selected = self._inactive_user_profile(profile_name, "rename")
+        if isinstance(selected, ProfileOperationResult):
+            return selected
+        try:
+            renamed = validate_profile_name(new_name)
+        except ValueError:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "Use 1-80 characters and avoid Windows-reserved names or symbols.",
+                )
+            )
+        if renamed.casefold() == selected.casefold():
+            return self._finish(
+                ProfileOperationResult(
+                    True,
+                    "The selected profile already uses that case-insensitive name.",
+                    profile_name=selected,
+                )
+            )
+        if renamed.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            return self._finish(
+                ProfileOperationResult(False, "The built-in Default profile is immutable.")
+            )
+
+        assert self._repository is not None
+        try:
+            self._repository.rename(selected, renamed)
+        except FileExistsError:
+            return self._finish(
+                ProfileOperationResult(False, "A profile with that name already exists.")
+            )
+        except FileNotFoundError:
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The selected profile no longer exists. The profile list was refreshed.",
+                    warning=True,
+                )
+            )
+        except (OSError, UnicodeError, ValueError):
+            self._logger.error("profile_rename_failed", exc_info=True)
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The profile could not be renamed safely. Check local storage access "
+                    "and refresh the list.",
+                )
+            )
+        self.synchronize_catalog()
+        return self._finish(
+            ProfileOperationResult(
+                True,
+                f"Renamed the inactive profile to '{renamed}'.",
+                profile_name=renamed,
+            )
+        )
+
+    def delete(self, profile_name: str, confirmation: str) -> ProfileOperationResult:
+        """Retire one inactive user profile after an exact-name confirmation."""
+        unavailable = self._lifecycle_unavailable()
+        if unavailable is not None:
+            return unavailable
+        selected = self._inactive_user_profile(profile_name, "delete")
+        if isinstance(selected, ProfileOperationResult):
+            return selected
+        if confirmation != selected:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "Type the selected profile name exactly to confirm deletion.",
+                )
+            )
+
+        assert self._repository is not None
+        try:
+            self._repository.delete(selected)
+        except FileNotFoundError:
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The selected profile no longer exists. The profile list was refreshed.",
+                    warning=True,
+                )
+            )
+        except (OSError, UnicodeError, ValueError):
+            self._logger.error("profile_delete_failed", exc_info=True)
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The profile could not be deleted safely. Check local storage access "
+                    "and refresh the list.",
+                )
+            )
+        self.synchronize_catalog()
+        return self._finish(
+            ProfileOperationResult(
+                True,
+                "Deleted the inactive profile. A local recovery backup was retained.",
+            )
+        )
+
+    def restore_default(
+        self,
+        profile_name: str,
+        *,
+        confirmed: bool,
+    ) -> ProfileOperationResult:
+        """Restore Default bindings into one confirmed inactive user profile."""
+        unavailable = self._lifecycle_unavailable()
+        if unavailable is not None:
+            return unavailable
+        selected = self._inactive_user_profile(profile_name, "restore")
+        if isinstance(selected, ProfileOperationResult):
+            return selected
+        if confirmed is not True:
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "Confirm that all six bindings may be replaced before restoring Default.",
+                )
+            )
+
+        assert self._repository is not None
+        try:
+            self._repository.restore_default(selected)
+        except FileNotFoundError:
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "The selected profile no longer exists. The profile list was refreshed.",
+                    warning=True,
+                )
+            )
+        except (OSError, UnicodeError, ValueError):
+            self._logger.error("profile_restore_default_failed", exc_info=True)
+            self.synchronize_catalog()
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    "Default bindings could not be restored safely. Check local storage "
+                    "access and refresh the list.",
+                )
+            )
+        return self._finish(
+            ProfileOperationResult(
+                True,
+                "Restored all six bindings from the built-in Default snapshot. The profile "
+                "remains inactive.",
+                profile_name=selected,
+            )
+        )
+
     def activate(self, profile_name: str) -> ProfileOperationResult:
         """Pause, load, activate, and persist one profile transactionally."""
         if not self.can_manage or self._repository is None:
@@ -266,6 +429,40 @@ class ProfileController(QObject):
                 profile_name=candidate.profile_name,
             )
         )
+
+    def _lifecycle_unavailable(self) -> ProfileOperationResult | None:
+        if self.can_manage and self._repository is not None:
+            return None
+        return self._finish(
+            ProfileOperationResult(
+                False,
+                "Profile lifecycle changes are unavailable in this session.",
+            )
+        )
+
+    def _inactive_user_profile(
+        self,
+        profile_name: str,
+        operation: str,
+    ) -> str | ProfileOperationResult:
+        try:
+            normalized = validate_profile_name(profile_name)
+        except ValueError:
+            return self._finish(
+                ProfileOperationResult(False, "The selected profile name is invalid.")
+            )
+        if normalized.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            return self._finish(
+                ProfileOperationResult(False, "The built-in Default profile is immutable.")
+            )
+        if normalized.casefold() == self._active_profile.profile_name.casefold():
+            return self._finish(
+                ProfileOperationResult(
+                    False,
+                    f"Activate another profile before you {operation} this profile.",
+                )
+            )
+        return normalized
 
     def _initial_catalog(self) -> tuple[tuple[str, ...], str | None]:
         if self._repository is None:

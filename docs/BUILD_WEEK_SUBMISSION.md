@@ -46,12 +46,14 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   preference rollback, and a read-only preview of all six simulated bindings;
 - provides an isolated binding draft editor for the complete validated action vocabulary, with
   inline correction, last-valid preview, and save-as-copy that never activates runtime input;
+- protects active and built-in profiles while allowing inactive profile rename,
+  exact-name-confirmed recoverable deletion, and restore from the built-in Default bindings;
 - exposes health, latency, freshness, observations, dispatcher state, and a bounded fake
   primitive trace through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.
 
 The current build does **not** provide gaze cursor control, OS-level clicking or scrolling,
-calibration, profile deletion/rename/import/export, a packaged installer, a medical assessment,
+calibration, profile import/export, a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 

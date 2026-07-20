@@ -263,3 +263,43 @@ def test_binding_draft_save_updates_catalog_without_runtime_activation(
     assert manager.load().config.app.active_profile == "Default"
     assert window._binding_editor_controller.state.source_profile.profile_name == "Quiet Copy"
     assert window._binding_editor_controller.state.active_profile_name == "Default"
+
+
+def test_inactive_profile_lifecycle_does_not_change_runtime_or_config(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    repository = BindingProfileRepository(paths)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        binding_profile=repository.load("Default").profile,
+        profile_repository=repository,
+    )
+    qtbot.addWidget(window)
+    snapshot_before = window._action_simulation.snapshot
+
+    created = window._profile_controller.create_disabled("Work")
+    renamed = window._profile_controller.rename("Work", "Focus")
+    restored = window._profile_controller.restore_default("Focus", confirmed=True)
+    deleted = window._profile_controller.delete("Focus", "Focus")
+
+    assert created.success
+    assert renamed.success and renamed.profile_name == "Focus"
+    assert restored.success and restored.profile_name == "Focus"
+    assert deleted.success
+    assert window._profile_controller.profile_names == ("Default",)
+    assert window._profile_controller.active_profile.profile_name == "Default"
+    assert window._action_simulation.snapshot == snapshot_before
+    assert window._config.app.active_profile == "Default"
+    assert manager.load().config.app.active_profile == "Default"
+    assert window._binding_editor_controller.state.active_profile_name == "Default"
+    assert not (paths.profiles_dir / "Focus.json").exists()
+    assert len(tuple(paths.profiles_dir.glob("Focus.deleted-*.bak"))) == 1

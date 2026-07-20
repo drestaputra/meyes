@@ -1,6 +1,6 @@
 # MEYES Todo List
 
-Last updated: 2026-07-19  
+Last updated: 2026-07-20
 Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Working rules
@@ -130,7 +130,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Preview the active profile's six simulated gesture bindings.
 - [x] Test all actions through a fake executor.
 - [x] Add a safe draft-based binding editor without enabling operating-system input.
-- [ ] Add profile rename, deletion, import/export, and restore-default workflows.
+- [x] Add inactive profile rename, exact-confirmation recoverable deletion, and restore-default
+  workflows with built-in and active-profile protections.
+- [ ] Add profile import/export workflows.
 
 ## Backlog — Phase 5
 
@@ -148,7 +150,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Complete the first-run setup wizard.
 - [ ] Complete Dashboard, Calibration, Bindings, Sensitivity, Camera, Profiles, Diagnostics, and Privacy views.
 - [ ] Add system tray controls.
-- [ ] Add profile import/export and restore defaults.
+- [ ] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.
 - [ ] Verify Windows 100%, 125%, and 150% scaling.
 - [ ] Verify Windows high-contrast behavior.

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSignalBlocker, Qt, Slot
+from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QAbstractScrollArea,
+    QCheckBox,
     QFrame,
     QHBoxLayout,
     QHeaderView,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from meyes.bindings.defaults import DEFAULT_PROFILE_NAME
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.presentation import action_label, gesture_label
 from meyes.ui.profile_controller import (
@@ -48,6 +50,9 @@ class ProfilesPage(QWidget):
             raise TypeError("Expected ProfileController")
         self._controller = controller
         self._build_ui()
+        self._feedback_scroll_timer = QTimer(self)
+        self._feedback_scroll_timer.setSingleShot(True)
+        self._feedback_scroll_timer.timeout.connect(self._ensure_feedback_visible)
         self._connect_signals()
         self._render_names(self._controller.profile_names)
         self._render_active(self._controller.active_profile)
@@ -66,10 +71,11 @@ class ProfilesPage(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
 
         scroll = QScrollArea()
-        scroll.setObjectName("profilesPageScroll")
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll = scroll
+        self._scroll.setObjectName("profilesPageScroll")
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         content = QWidget()
         content.setObjectName("profilesPageContent")
         layout = QVBoxLayout(content)
@@ -97,10 +103,11 @@ class ProfilesPage(QWidget):
         layout.addWidget(safe_banner)
         layout.addWidget(self._feedback)
         layout.addWidget(self._build_catalog_panel())
+        layout.addWidget(self._build_lifecycle_panel())
         layout.addWidget(self._build_binding_preview())
         layout.addStretch(1)
-        scroll.setWidget(content)
-        root.addWidget(scroll)
+        self._scroll.setWidget(content)
+        root.addWidget(self._scroll)
 
     def _build_catalog_panel(self) -> QFrame:
         panel = QFrame()
@@ -172,6 +179,92 @@ class ProfilesPage(QWidget):
         layout.addWidget(self._storage_notice)
         return panel
 
+    def _build_lifecycle_panel(self) -> QFrame:
+        panel = QFrame()
+        panel.setObjectName("statusPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        heading = QLabel("Manage selected inactive profile")
+        heading.setObjectName("panelTitle")
+        helper = QLabel(
+            "Default and the active profile are protected. Activate a different profile "
+            "before renaming, deleting, or restoring the selected profile."
+        )
+        helper.setObjectName("mutedText")
+        helper.setWordWrap(True)
+        self._lifecycle_status = QLabel()
+        self._lifecycle_status.setObjectName("selectedProfileLifecycleStatus")
+        self._lifecycle_status.setAccessibleName("Selected profile lifecycle status")
+        self._lifecycle_status.setWordWrap(True)
+
+        rename_label = QLabel("Rename selected profile")
+        rename_label.setObjectName("fieldLabel")
+        self._rename_input = QLineEdit()
+        self._rename_input.setObjectName("renameProfileName")
+        self._rename_input.setAccessibleName("New name for selected profile")
+        self._rename_input.setPlaceholderText("New profile name")
+        self._rename_button = QPushButton("Rename inactive profile")
+        self._rename_button.setObjectName("renameProfileButton")
+        self._rename_button.setAccessibleName("Rename selected inactive profile")
+
+        restore_label = QLabel("Restore built-in Default bindings")
+        restore_label.setObjectName("fieldLabel")
+        restore_helper = QLabel(
+            "This replaces all six stored bindings in the selected profile. It does not "
+            "activate the profile or dispatch any action."
+        )
+        restore_helper.setObjectName("mutedText")
+        restore_helper.setWordWrap(True)
+        self._restore_confirmation = QCheckBox(
+            "I understand that all six bindings will be replaced"
+        )
+        self._restore_confirmation.setObjectName("restoreDefaultConfirmation")
+        self._restore_confirmation.setAccessibleName("Confirm replacing all bindings with Default")
+        self._restore_button = QPushButton("Restore Default bindings")
+        self._restore_button.setObjectName("restoreDefaultButton")
+        self._restore_button.setAccessibleName(
+            "Restore Default bindings to selected inactive profile"
+        )
+
+        delete_label = QLabel("Delete selected profile")
+        delete_label.setObjectName("fieldLabel")
+        delete_helper = QLabel(
+            "Type the selected profile name exactly. Deletion retains a local recovery "
+            "backup and never changes the active runtime snapshot."
+        )
+        delete_helper.setObjectName("mutedText")
+        delete_helper.setWordWrap(True)
+        self._delete_confirmation = QLineEdit()
+        self._delete_confirmation.setObjectName("deleteProfileConfirmation")
+        self._delete_confirmation.setAccessibleName(
+            "Exact selected profile name to confirm deletion"
+        )
+        self._delete_confirmation.setPlaceholderText("Type selected profile name exactly")
+        self._delete_button = QPushButton("Delete inactive profile")
+        self._delete_button.setObjectName("deleteProfileButton")
+        self._delete_button.setAccessibleName("Delete selected inactive profile")
+        self._delete_button.setProperty("dangerAction", True)
+
+        layout.addWidget(heading)
+        layout.addWidget(helper)
+        layout.addWidget(self._lifecycle_status)
+        layout.addWidget(rename_label)
+        layout.addWidget(self._rename_input)
+        layout.addWidget(self._rename_button)
+        layout.addSpacing(4)
+        layout.addWidget(restore_label)
+        layout.addWidget(restore_helper)
+        layout.addWidget(self._restore_confirmation)
+        layout.addWidget(self._restore_button)
+        layout.addSpacing(4)
+        layout.addWidget(delete_label)
+        layout.addWidget(delete_helper)
+        layout.addWidget(self._delete_confirmation)
+        layout.addWidget(self._delete_button)
+        return panel
+
     def _build_binding_preview(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("statusPanel")
@@ -186,8 +279,8 @@ class ProfilesPage(QWidget):
         self._active_profile_value.setWordWrap(True)
         self._active_profile_value.setAccessibleName("Active profile")
         helper = QLabel(
-            "This preview is read-only in Phase 4D. Binding editing follows in the next "
-            "iteration; no JSON editing is required for profile selection."
+            "This runtime preview remains read-only. Use Bindings to prepare an isolated "
+            "draft, then save it as a new inactive profile."
         )
         helper.setObjectName("mutedText")
         helper.setWordWrap(True)
@@ -221,8 +314,14 @@ class ProfilesPage(QWidget):
         self._controller.operation_finished.connect(self._on_operation_finished)
         self._profile_list.currentItemChanged.connect(self._on_selection_changed)
         self._name_input.textChanged.connect(self._update_controls)
+        self._rename_input.textChanged.connect(self._update_controls)
+        self._delete_confirmation.textChanged.connect(self._update_controls)
+        self._restore_confirmation.stateChanged.connect(self._update_controls)
         self._create_button.clicked.connect(self._create_profile)
         self._activate_button.clicked.connect(self._activate_selected)
+        self._rename_button.clicked.connect(self._rename_selected)
+        self._restore_button.clicked.connect(self._restore_selected)
+        self._delete_button.clicked.connect(self._delete_selected)
         self._refresh_button.clicked.connect(self._controller.refresh)
 
     @Slot(object)
@@ -241,10 +340,13 @@ class ProfilesPage(QWidget):
         if result.success and result.profile_name:
             self._select_profile(result.profile_name)
             self._name_input.clear()
+        if result.success:
+            self._clear_lifecycle_inputs()
         self._update_controls()
 
     @Slot()
     def _on_selection_changed(self) -> None:
+        self._clear_lifecycle_inputs()
         self._update_controls()
 
     @Slot()
@@ -252,12 +354,34 @@ class ProfilesPage(QWidget):
         can_manage = self._controller.can_manage
         selected = self._selected_profile_name()
         active = self._controller.active_profile.profile_name
+        selected_user = (
+            selected is not None and selected.casefold() != DEFAULT_PROFILE_NAME.casefold()
+        )
+        selected_inactive = (
+            selected_user and selected is not None and selected.casefold() != active.casefold()
+        )
+        can_change_selected = can_manage and selected_inactive
         self._refresh_button.setEnabled(self._controller.storage_available)
         self._create_button.setEnabled(can_manage and bool(self._name_input.text().strip()))
         self._name_input.setEnabled(can_manage)
         self._activate_button.setEnabled(
             can_manage and selected is not None and selected.casefold() != active.casefold()
         )
+        self._rename_input.setEnabled(can_change_selected)
+        self._rename_button.setEnabled(
+            can_change_selected and bool(self._rename_input.text().strip())
+        )
+        self._restore_confirmation.setEnabled(can_change_selected)
+        self._restore_button.setEnabled(
+            can_change_selected and self._restore_confirmation.isChecked()
+        )
+        self._delete_confirmation.setEnabled(can_change_selected)
+        self._delete_button.setEnabled(
+            can_change_selected
+            and selected is not None
+            and self._delete_confirmation.text() == selected
+        )
+        self._render_lifecycle_status(selected, active, can_manage)
 
     @Slot()
     def _create_profile(self) -> None:
@@ -268,6 +392,27 @@ class ProfilesPage(QWidget):
         selected = self._selected_profile_name()
         if selected is not None:
             self._controller.activate(selected)
+
+    @Slot()
+    def _rename_selected(self) -> None:
+        selected = self._selected_profile_name()
+        if selected is not None:
+            self._controller.rename(selected, self._rename_input.text())
+
+    @Slot()
+    def _restore_selected(self) -> None:
+        selected = self._selected_profile_name()
+        if selected is not None:
+            self._controller.restore_default(
+                selected,
+                confirmed=self._restore_confirmation.isChecked(),
+            )
+
+    @Slot()
+    def _delete_selected(self) -> None:
+        selected = self._selected_profile_name()
+        if selected is not None:
+            self._controller.delete(selected, self._delete_confirmation.text())
 
     def _render_names(self, names: tuple[str, ...]) -> None:
         selected = self._selected_profile_name()
@@ -285,7 +430,8 @@ class ProfilesPage(QWidget):
                 item.setData(Qt.ItemDataRole.UserRole, name)
                 item.setToolTip(name)
                 self._profile_list.addItem(item)
-        self._select_profile(selected or active)
+        if selected is None or not self._select_profile(selected):
+            self._select_profile(active)
         self._update_controls()
 
     def _render_active(self, profile: BindingProfile) -> None:
@@ -307,13 +453,14 @@ class ProfilesPage(QWidget):
         value = item.data(Qt.ItemDataRole.UserRole)
         return value if isinstance(value, str) else None
 
-    def _select_profile(self, profile_name: str) -> None:
+    def _select_profile(self, profile_name: str) -> bool:
         for row in range(self._profile_list.count()):
             item = self._profile_list.item(row)
             value = item.data(Qt.ItemDataRole.UserRole)
             if isinstance(value, str) and value.casefold() == profile_name.casefold():
                 self._profile_list.setCurrentRow(row)
-                return
+                return True
+        return False
 
     def _show_result(self, result: ProfileOperationResult) -> None:
         status = "error" if not result.success else "warning" if result.warning else "success"
@@ -322,6 +469,35 @@ class ProfilesPage(QWidget):
         self._feedback.style().unpolish(self._feedback)
         self._feedback.style().polish(self._feedback)
         self._feedback.show()
+        self._feedback_scroll_timer.start(0)
+
+    @Slot()
+    def _ensure_feedback_visible(self) -> None:
+        self._scroll.ensureWidgetVisible(self._feedback, 12, 12)
+
+    def _clear_lifecycle_inputs(self) -> None:
+        self._rename_input.clear()
+        self._delete_confirmation.clear()
+        self._restore_confirmation.setChecked(False)
+
+    def _render_lifecycle_status(
+        self,
+        selected: str | None,
+        active: str,
+        can_manage: bool,
+    ) -> None:
+        if not can_manage:
+            message = "Lifecycle changes are unavailable in this session."
+        elif selected is None:
+            message = "Select a profile to review its lifecycle protections."
+        elif selected.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            message = "Default is built in and cannot be renamed, deleted, or overwritten."
+        elif selected.casefold() == active.casefold():
+            message = "This profile is active and protected. Activate another profile first."
+        else:
+            message = f"'{_elide_middle(selected)}' is inactive and may be managed safely."
+        self._lifecycle_status.setText(message)
+        self._lifecycle_status.setToolTip(selected or "")
 
 
 def _elide_middle(value: str) -> str:

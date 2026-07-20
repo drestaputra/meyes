@@ -72,6 +72,9 @@ class BindingsPage(QWidget):
         self._force_row_sync = False
         self._state = controller.state
         self._build_ui()
+        self._feedback_scroll_timer = QTimer(self)
+        self._feedback_scroll_timer.setSingleShot(True)
+        self._feedback_scroll_timer.timeout.connect(self._ensure_feedback_visible)
         self._connect_signals()
         self._render_state(self._state, sync_rows=True)
 
@@ -351,7 +354,7 @@ class BindingsPage(QWidget):
     def _on_operation_finished(self, payload: object) -> None:
         result = binding_save_result(payload)
         self._show_result(result)
-        QTimer.singleShot(0, self._ensure_feedback_visible)
+        self._feedback_scroll_timer.start(0)
         if result.success:
             self._profile_name_input.clear()
         self._update_controls()

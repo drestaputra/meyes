@@ -81,6 +81,16 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             font-size: 12pt;
             font-weight: 650;
         }}
+        QLabel#fieldLabel {{
+            font-weight: 650;
+        }}
+        QLabel#selectedProfileLifecycleStatus {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-weight: 600;
+        }}
         QLabel#statusValue {{
             font-weight: 650;
         }}
@@ -280,6 +290,13 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         }}
         QPushButton#primaryButton:hover, QPushButton[primaryAction="true"]:hover {{
             background: {color.accent_hover};
+        }}
+        QPushButton[dangerAction="true"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+        }}
+        QPushButton[dangerAction="true"]:hover {{
+            background: {color.surface_subtle};
         }}
         QPushButton:disabled,
         QPushButton#primaryButton:disabled {{

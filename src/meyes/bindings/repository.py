@@ -7,6 +7,7 @@ import os
 import stat
 import tempfile
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -80,15 +81,7 @@ class BindingProfileRepository:
             )
 
         try:
-            self._assert_safe_profile_path(path)
-            payload = json.loads(
-                path.read_text(encoding="utf-8"),
-                object_pairs_hook=_reject_duplicate_keys,
-            )
-            profile = BindingProfile.model_validate(payload)
-            if profile.profile_name.casefold() != normalized.casefold():
-                raise ValueError("profile name does not match its filename")
-            return ProfileLoadResult(profile)
+            return ProfileLoadResult(self._read_profile_path(path, normalized))
         except (
             OSError,
             UnicodeError,
@@ -126,26 +119,7 @@ class BindingProfileRepository:
         if existing is not None and existing.stem != validated.profile_name:
             raise ValueError("A profile with the same case-insensitive name already exists")
         self._assert_safe_profile_path(path)
-        serialized = f"{validated.model_dump_json(indent=2)}\n"
-        descriptor, temporary_name = tempfile.mkstemp(
-            prefix=f".{path.stem}-",
-            suffix=".tmp",
-            dir=self._paths.profiles_dir,
-        )
-        temporary_path = Path(temporary_name)
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-                descriptor = -1
-                stream.write(serialized)
-                stream.flush()
-                os.fsync(stream.fileno())
-            self._assert_safe_profile_path(path)
-            os.replace(temporary_path, path)
-        finally:
-            if descriptor >= 0:
-                os.close(descriptor)
-            temporary_path.unlink(missing_ok=True)
-        return path
+        return self._replace_profile_path(validated, path)
 
     def create(self, profile: BindingProfile) -> Path:
         """Create one complete user profile through an exclusive destination."""
@@ -180,6 +154,75 @@ class BindingProfileRepository:
                 path.unlink(missing_ok=True)
             raise
         return path
+
+    def rename(self, profile_name: str, new_name: str) -> Path:
+        """Create the renamed snapshot before retiring its inactive source file."""
+        normalized = self._validate_user_profile_name(profile_name)
+        renamed = self._validate_user_profile_name(new_name)
+        if normalized.casefold() == renamed.casefold():
+            raise ValueError("The new profile name must be different")
+        self._prepare_profile_storage()
+        source = self._find_profile_path(normalized)
+        if source is None:
+            raise FileNotFoundError("The profile was not found")
+        self._assert_safe_profile_path(source)
+        profile = self._read_profile_path(source, normalized)
+        destination = self._profile_path(renamed)
+        self._assert_safe_profile_path(destination)
+        if self._find_profile_path(renamed) is not None:
+            raise FileExistsError("A profile with that name already exists")
+
+        renamed_profile = BindingProfile(
+            profile_name=renamed,
+            bindings=profile.bindings,
+        )
+        serialized = f"{renamed_profile.model_dump_json(indent=2)}\n"
+        try:
+            with destination.open("x", encoding="utf-8", newline="\n") as stream:
+                stream.write(serialized)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except FileExistsError as error:
+            raise FileExistsError("A profile with that name already exists") from error
+        try:
+            self._assert_safe_profile_path(source)
+            source.unlink()
+        except Exception:
+            with suppress(OSError):
+                destination.unlink(missing_ok=True)
+            raise
+        return destination
+
+    def delete(self, profile_name: str) -> Path:
+        """Retire one user profile into a recoverable same-directory backup."""
+        normalized = self._validate_user_profile_name(profile_name)
+        self._prepare_profile_storage()
+        source = self._find_profile_path(normalized)
+        if source is None:
+            raise FileNotFoundError("The profile was not found")
+        self._assert_safe_profile_path(source)
+        self._read_profile_path(source, normalized)
+        stamp = self._clock().astimezone(UTC).strftime("%Y%m%d-%H%M%S-%f")
+        backup = source.with_name(f"{source.stem}.deleted-{stamp}.bak")
+        self._assert_safe_profile_path(backup)
+        if backup.exists():
+            raise FileExistsError("A recovery backup with that name already exists")
+        source.replace(backup)
+        return backup
+
+    def restore_default(self, profile_name: str) -> Path:
+        """Replace one user profile's bindings with the built-in Default bindings."""
+        normalized = self._validate_user_profile_name(profile_name)
+        self._prepare_profile_storage()
+        source = self._find_profile_path(normalized)
+        if source is None:
+            raise FileNotFoundError("The profile was not found")
+        current = self._read_profile_path(source, normalized)
+        restored = BindingProfile(
+            profile_name=current.profile_name,
+            bindings=default_profile().bindings,
+        )
+        return self._replace_profile_path(restored, source)
 
     def catalog(self) -> ProfileCatalogResult:
         """Return valid names and disclose storage or validation problems."""
@@ -244,6 +287,53 @@ class BindingProfileRepository:
     def _profile_path(self, profile_name: str) -> Path:
         normalized = validate_profile_name(profile_name)
         return self._paths.profiles_dir / f"{normalized}.json"
+
+    def _prepare_profile_storage(self) -> None:
+        try:
+            self._paths.ensure_directories()
+        except OSError as error:
+            raise OSError("Profile storage could not be prepared") from error
+        self._assert_safe_profile_directory()
+
+    @staticmethod
+    def _validate_user_profile_name(profile_name: str) -> str:
+        normalized = validate_profile_name(profile_name)
+        if normalized.casefold() == DEFAULT_PROFILE_NAME.casefold():
+            raise ValueError("The built-in Default profile is immutable")
+        return normalized
+
+    def _read_profile_path(self, path: Path, requested_name: str) -> BindingProfile:
+        self._assert_safe_profile_path(path)
+        payload = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+        profile = BindingProfile.model_validate(payload)
+        if profile.profile_name.casefold() != requested_name.casefold():
+            raise ValueError("profile name does not match its filename")
+        return profile
+
+    def _replace_profile_path(self, profile: BindingProfile, path: Path) -> Path:
+        serialized = f"{profile.model_dump_json(indent=2)}\n"
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.stem}-",
+            suffix=".tmp",
+            dir=self._paths.profiles_dir,
+        )
+        temporary_path = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+                descriptor = -1
+                stream.write(serialized)
+                stream.flush()
+                os.fsync(stream.fileno())
+            self._assert_safe_profile_path(path)
+            os.replace(temporary_path, path)
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+            temporary_path.unlink(missing_ok=True)
+        return path
 
     def _find_profile_path(self, profile_name: str) -> Path | None:
         expected = validate_profile_name(profile_name).casefold()

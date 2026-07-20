@@ -10,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from meyes.bindings.defaults import default_profile, disabled_profile
+from meyes.bindings.models import BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
 from meyes.domain.actions import DisabledAction
 from meyes.util.paths import AppPaths
@@ -83,6 +84,110 @@ def test_create_exclusively_rejects_a_collision_after_the_catalog_check(
     assert existing.read_bytes() == original
 
 
+def test_rename_preserves_bindings_and_retires_the_original_file(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    original_profile = BindingProfile(
+        profile_name="Work",
+        bindings=default_profile().bindings,
+    )
+    original_path = repository.create(original_profile)
+
+    renamed_path = repository.rename("Work", "Focus")
+
+    assert renamed_path == paths.profiles_dir / "Focus.json"
+    assert not original_path.exists()
+    assert repository.catalog().names == ("Default", "Focus")
+    loaded = repository.load("Focus")
+    assert loaded.warning is None
+    assert loaded.profile.profile_name == "Focus"
+    assert loaded.profile.bindings == original_profile.bindings
+
+
+def test_rename_collision_does_not_change_either_profile(tmp_path: Path) -> None:
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    work_path = repository.create(disabled_profile("Work"))
+    focus_path = repository.create(disabled_profile("Focus"))
+    work_bytes = work_path.read_bytes()
+    focus_bytes = focus_path.read_bytes()
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        repository.rename("Work", "focus")
+
+    assert work_path.read_bytes() == work_bytes
+    assert focus_path.read_bytes() == focus_bytes
+    assert repository.catalog().names == ("Default", "Focus", "Work")
+
+
+def test_rename_rolls_back_new_file_when_original_cannot_be_retired(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    source = repository.create(disabled_profile("Work"))
+    original_unlink = Path.unlink
+
+    def fail_source_unlink(path: Path, missing_ok: bool = False) -> None:
+        if path == source:
+            raise PermissionError("injected source retirement failure")
+        original_unlink(path, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fail_source_unlink)
+
+    with pytest.raises(PermissionError, match="injected"):
+        repository.rename("Work", "Focus")
+
+    assert source.is_file()
+    assert not (paths.profiles_dir / "Focus.json").exists()
+
+
+def test_delete_moves_profile_to_recoverable_backup(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    fixed_now = datetime(2026, 7, 20, 9, 15, tzinfo=UTC)
+    repository = BindingProfileRepository(paths, clock=lambda: fixed_now)
+    source = repository.create(disabled_profile("Work"))
+    original = source.read_bytes()
+
+    backup = repository.delete("Work")
+
+    assert backup == paths.profiles_dir / "Work.deleted-20260720-091500-000000.bak"
+    assert backup.read_bytes() == original
+    assert not source.exists()
+    assert repository.catalog().names == ("Default",)
+
+
+def test_restore_default_replaces_bindings_but_keeps_user_profile_name(
+    tmp_path: Path,
+) -> None:
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    repository.create(disabled_profile("Work"))
+
+    restored_path = repository.restore_default("Work")
+
+    assert restored_path.name == "Work.json"
+    loaded = repository.load("Work")
+    assert loaded.warning is None
+    assert loaded.profile.profile_name == "Work"
+    assert loaded.profile.bindings == default_profile().bindings
+
+
+@pytest.mark.parametrize("operation", ["rename", "delete", "restore_default"])
+def test_lifecycle_operations_reject_built_in_default(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+
+    with pytest.raises(ValueError, match="immutable"):
+        if operation == "rename":
+            repository.rename("Default", "Other")
+        elif operation == "delete":
+            repository.delete("Default")
+        else:
+            repository.restore_default("Default")
+
+
 def test_profile_load_is_case_insensitive_without_quarantining_valid_data(tmp_path: Path) -> None:
     paths = AppPaths.under(tmp_path)
     repository = BindingProfileRepository(paths)
@@ -106,6 +211,25 @@ def test_case_insensitive_filename_is_still_listed_with_profile_casing(tmp_path:
     intermediate.replace(lowercase)
 
     assert repository.list_profile_names() == ("Default", "Work")
+
+
+def test_restore_default_keeps_a_valid_case_insensitive_filename(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    original = repository.save(disabled_profile("Work"))
+    intermediate = paths.profiles_dir / "restore-case.tmp"
+    lowercase = paths.profiles_dir / "work.json"
+    original.replace(intermediate)
+    intermediate.replace(lowercase)
+
+    restored = repository.restore_default("Work")
+
+    assert restored == lowercase
+    assert [path.name for path in paths.profiles_dir.glob("*.json")] == ["work.json"]
+    loaded = repository.load("Work")
+    assert loaded.warning is None
+    assert loaded.profile.profile_name == "Work"
+    assert loaded.profile.bindings == default_profile().bindings
 
 
 def test_built_in_default_cannot_be_overwritten(tmp_path: Path) -> None:
@@ -232,6 +356,24 @@ def test_unavailable_profile_storage_fails_closed_for_load_and_list(tmp_path: Pa
     assert repository.list_profile_names() == catalog.names
 
 
+@pytest.mark.parametrize("operation", ["rename", "delete", "restore_default"])
+def test_unavailable_storage_blocks_lifecycle_operations(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.config_dir.write_text("not-a-directory", encoding="utf-8")
+    repository = BindingProfileRepository(paths)
+
+    with pytest.raises(OSError, match="could not be prepared"):
+        if operation == "rename":
+            repository.rename("Work", "Focus")
+        elif operation == "delete":
+            repository.delete("Work")
+        else:
+            repository.restore_default("Work")
+
+
 def test_secure_temp_write_does_not_follow_a_precreated_legacy_symlink(tmp_path: Path) -> None:
     paths = AppPaths.under(tmp_path)
     paths.ensure_directories()
@@ -263,6 +405,36 @@ def test_save_rejects_a_symlink_destination_without_touching_target(tmp_path: Pa
 
     assert sentinel.read_text(encoding="utf-8") == "keep"
     assert destination.is_symlink()
+
+
+@pytest.mark.parametrize("operation", ["rename", "delete", "restore_default"])
+def test_lifecycle_operations_do_not_follow_a_symlink_profile(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    sentinel = tmp_path / "outside-profile.json"
+    sentinel.write_text(
+        disabled_profile("Work").model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    source = paths.profiles_dir / "Work.json"
+    _symlink_or_skip(source, sentinel)
+    original = sentinel.read_bytes()
+    repository = BindingProfileRepository(paths)
+
+    with pytest.raises(OSError, match="symlink or reparse"):
+        if operation == "rename":
+            repository.rename("Work", "Focus")
+        elif operation == "delete":
+            repository.delete("Work")
+        else:
+            repository.restore_default("Work")
+
+    assert sentinel.read_bytes() == original
+    assert source.is_symlink()
+    assert not (paths.profiles_dir / "Focus.json").exists()
 
 
 def test_profile_directory_symlink_is_not_followed(tmp_path: Path) -> None:

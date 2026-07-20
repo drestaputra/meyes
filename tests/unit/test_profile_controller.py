@@ -454,6 +454,148 @@ def test_failed_persistence_and_failed_rollback_reconcile_visible_runtime_profil
     assert active_signals == [replacement]
 
 
+def test_rename_inactive_profile_preserves_runtime_and_updates_catalog(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    stored = held_mouse_profile("Work")
+    repository.create(stored)
+    controller, simulation, _, persistence, fake, _ = make_controller(
+        tmp_path,
+        repository=repository,
+    )
+    assert simulation.start().success
+    calls_before = simulation.simulated_calls
+    signals: list[tuple[str, ...]] = []
+    controller.profiles_changed.connect(lambda payload: signals.append(profile_names(payload)))
+
+    result = controller.rename("Work", "Focus")
+
+    assert result.success
+    assert result.profile_name == "Focus"
+    assert controller.profile_names == ("Default", "Focus")
+    assert signals == [("Default", "Focus")]
+    assert repository.load("Work").warning is not None
+    renamed = repository.load("Focus")
+    assert renamed.warning is None
+    assert renamed.profile.bindings == stored.bindings
+    assert controller.active_profile == default_profile()
+    assert simulation.active_profile == default_profile()
+    assert simulation.state is DispatcherState.ACTIVE
+    assert simulation.simulated_calls == calls_before
+    assert fake.release_all_calls == 1
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_delete_requires_exact_name_and_retains_recovery_backup(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    paths = AppPaths.under(tmp_path)
+    repository = BindingProfileRepository(paths)
+    repository.create(disabled_profile("Work"))
+    controller, simulation, _, persistence, fake, _ = make_controller(
+        tmp_path,
+        repository=repository,
+    )
+    calls_before = simulation.simulated_calls
+    release_count_before = fake.release_all_calls
+
+    rejected = controller.delete("Work", "work")
+    deleted = controller.delete("Work", "Work")
+
+    assert not rejected.success
+    assert "exactly" in rejected.message
+    assert deleted.success
+    assert deleted.profile_name is None
+    assert controller.profile_names == ("Default",)
+    assert not (paths.profiles_dir / "Work.json").exists()
+    backups = tuple(paths.profiles_dir.glob("Work.deleted-*.bak"))
+    assert len(backups) == 1
+    assert backups[0].is_file()
+    assert controller.active_profile == default_profile()
+    assert simulation.active_profile == default_profile()
+    assert simulation.simulated_calls == calls_before
+    assert fake.release_all_calls == release_count_before
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+def test_restore_default_requires_confirmation_and_keeps_profile_inactive(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    del qtbot
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    repository.create(disabled_profile("Work"))
+    controller, simulation, _, persistence, fake, _ = make_controller(
+        tmp_path,
+        repository=repository,
+    )
+    calls_before = simulation.simulated_calls
+    release_count_before = fake.release_all_calls
+
+    rejected = controller.restore_default("Work", confirmed=False)
+    restored = controller.restore_default("Work", confirmed=True)
+
+    assert not rejected.success
+    assert "Confirm" in rejected.message
+    assert restored.success
+    assert restored.profile_name == "Work"
+    loaded = repository.load("Work")
+    assert loaded.warning is None
+    assert loaded.profile.profile_name == "Work"
+    assert loaded.profile.bindings == default_profile().bindings
+    assert controller.profile_names == ("Default", "Work")
+    assert controller.active_profile == default_profile()
+    assert simulation.active_profile == default_profile()
+    assert simulation.simulated_calls == calls_before
+    assert fake.release_all_calls == release_count_before
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
+@pytest.mark.parametrize("operation", ["rename", "delete", "restore_default"])
+def test_active_and_default_profiles_are_protected_from_lifecycle_changes(
+    qtbot: QtBot,
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    del qtbot
+    active = disabled_profile("Work")
+    repository = BindingProfileRepository(AppPaths.under(tmp_path))
+    repository.create(active)
+    controller, simulation, _, persistence, _, _ = make_controller(
+        tmp_path,
+        active_profile=active,
+        repository=repository,
+    )
+
+    if operation == "rename":
+        active_result = controller.rename("Work", "Focus")
+        default_result = controller.rename("Default", "Focus")
+    elif operation == "delete":
+        active_result = controller.delete("Work", "Work")
+        default_result = controller.delete("Default", "Default")
+    else:
+        active_result = controller.restore_default("Work", confirmed=True)
+        default_result = controller.restore_default("Default", confirmed=True)
+
+    assert not active_result.success
+    assert "Activate another profile" in active_result.message
+    assert not default_result.success
+    assert "immutable" in default_result.message
+    assert repository.catalog().names == ("Default", "Work")
+    assert controller.active_profile == active
+    assert simulation.active_profile == active
+    assert isinstance(persistence, RecordingPersistence)
+    assert persistence.names == []
+
+
 def test_profile_signal_payload_validators_accept_expected_values_and_reject_others() -> None:
     result = ProfileOperationResult(True, "done", profile_name="Default")
     names = ("Default", "Work")

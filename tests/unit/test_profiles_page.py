@@ -8,6 +8,7 @@ from typing import TypeVar
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -101,6 +102,19 @@ def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
     name_input = _required_child(harness.page, QLineEdit, "newProfileName")
     create_button = _required_child(harness.page, QPushButton, "createProfileButton")
     activate_button = _required_child(harness.page, QPushButton, "activateProfileButton")
+    rename_input = _required_child(harness.page, QLineEdit, "renameProfileName")
+    rename_button = _required_child(harness.page, QPushButton, "renameProfileButton")
+    restore_confirmation = _required_child(
+        harness.page,
+        QCheckBox,
+        "restoreDefaultConfirmation",
+    )
+    delete_confirmation = _required_child(
+        harness.page,
+        QLineEdit,
+        "deleteProfileConfirmation",
+    )
+    delete_button = _required_child(harness.page, QPushButton, "deleteProfileButton")
 
     assert profile_list.count() == 1
     default_item = profile_list.item(0)
@@ -121,6 +135,11 @@ def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
     assert name_input.accessibleName() == "New profile name"
     assert create_button.accessibleName() == "Create all-disabled profile"
     assert activate_button.accessibleName() == "Use selected profile and pause tracking"
+    assert rename_input.accessibleName() == "New name for selected profile"
+    assert rename_button.accessibleName() == "Rename selected inactive profile"
+    assert restore_confirmation.accessibleName() == "Confirm replacing all bindings with Default"
+    assert delete_confirmation.accessibleName() == "Exact selected profile name to confirm deletion"
+    assert delete_button.accessibleName() == "Delete selected inactive profile"
 
 
 def test_profile_mutation_controls_are_disabled_without_persistence(
@@ -286,6 +305,138 @@ def test_activating_created_profile_updates_active_marker_and_binding_preview(
     assert activate_button.isEnabled() is False
 
 
+def test_lifecycle_controls_protect_default_and_active_profiles(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    harness = _profile_page(qtbot, tmp_path)
+    page = harness.page
+    profile_list = _required_child(page, QListWidget, "profileList")
+    name_input = _required_child(page, QLineEdit, "newProfileName")
+    create_button = _required_child(page, QPushButton, "createProfileButton")
+    activate_button = _required_child(page, QPushButton, "activateProfileButton")
+    rename_input = _required_child(page, QLineEdit, "renameProfileName")
+    rename_button = _required_child(page, QPushButton, "renameProfileButton")
+    restore_confirmation = _required_child(page, QCheckBox, "restoreDefaultConfirmation")
+    restore_button = _required_child(page, QPushButton, "restoreDefaultButton")
+    delete_confirmation = _required_child(page, QLineEdit, "deleteProfileConfirmation")
+    delete_button = _required_child(page, QPushButton, "deleteProfileButton")
+    status = _required_child(page, QLabel, "selectedProfileLifecycleStatus")
+
+    assert profile_list.currentItem().data(Qt.ItemDataRole.UserRole) == "Default"
+    assert "built in" in status.text()
+    assert not rename_input.isEnabled()
+    assert not rename_button.isEnabled()
+    assert not restore_confirmation.isEnabled()
+    assert not restore_button.isEnabled()
+    assert not delete_confirmation.isEnabled()
+    assert not delete_button.isEnabled()
+
+    name_input.setText("Work")
+    create_button.click()
+    assert rename_input.isEnabled()
+    assert restore_confirmation.isEnabled()
+    assert delete_confirmation.isEnabled()
+    assert "inactive" in status.text()
+
+    activate_button.click()
+    assert harness.controller.active_profile.profile_name == "Work"
+    assert "active and protected" in status.text()
+    assert not rename_input.isEnabled()
+    assert not restore_confirmation.isEnabled()
+    assert not delete_confirmation.isEnabled()
+
+
+def test_ui_rename_restore_and_exact_confirmation_delete_stay_inactive(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    harness = _profile_page(qtbot, tmp_path)
+    page = harness.page
+    profile_list = _required_child(page, QListWidget, "profileList")
+    name_input = _required_child(page, QLineEdit, "newProfileName")
+    create_button = _required_child(page, QPushButton, "createProfileButton")
+    rename_input = _required_child(page, QLineEdit, "renameProfileName")
+    rename_button = _required_child(page, QPushButton, "renameProfileButton")
+    restore_confirmation = _required_child(page, QCheckBox, "restoreDefaultConfirmation")
+    restore_button = _required_child(page, QPushButton, "restoreDefaultButton")
+    delete_confirmation = _required_child(page, QLineEdit, "deleteProfileConfirmation")
+    delete_button = _required_child(page, QPushButton, "deleteProfileButton")
+    feedback = _required_child(page, QLabel, "profileFeedback")
+
+    name_input.setText("Work")
+    create_button.click()
+    rename_input.setText("Focus")
+    assert rename_button.isEnabled()
+    rename_button.click()
+
+    assert harness.controller.profile_names == ("Default", "Focus")
+    assert profile_list.currentItem().data(Qt.ItemDataRole.UserRole) == "Focus"
+    assert not (harness.paths.profiles_dir / "Work.json").exists()
+    assert (harness.paths.profiles_dir / "Focus.json").is_file()
+    assert harness.controller.active_profile == default_profile()
+    assert harness.persisted_names == []
+    assert "Renamed" in feedback.text()
+
+    restore_confirmation.setChecked(True)
+    assert restore_button.isEnabled()
+    restore_button.click()
+    restored = harness.repository.load("Focus")
+    assert restored.warning is None
+    assert restored.profile.bindings == default_profile().bindings
+    assert harness.controller.active_profile == default_profile()
+    assert "Restored" in feedback.text()
+
+    delete_confirmation.setText("focus")
+    assert not delete_button.isEnabled()
+    delete_confirmation.setText("Focus")
+    assert delete_button.isEnabled()
+    delete_button.click()
+
+    assert list(harness.controller.profile_names) == ["Default"]
+    current_item = profile_list.currentItem()
+    assert current_item is not None
+    assert current_item.data(Qt.ItemDataRole.UserRole) == "Default"
+    assert not (harness.paths.profiles_dir / "Focus.json").exists()
+    assert len(tuple(harness.paths.profiles_dir.glob("Focus.deleted-*.bak"))) == 1
+    assert harness.controller.active_profile == default_profile()
+    assert harness.simulation.active_profile == default_profile()
+    assert harness.persisted_names == []
+    assert "recovery backup" in feedback.text()
+
+
+def test_lifecycle_feedback_scrolls_into_view_after_bottom_action(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    harness = _profile_page(qtbot, tmp_path)
+    page = harness.page
+    scroll = _required_child(page, QScrollArea, "profilesPageScroll")
+    name_input = _required_child(page, QLineEdit, "newProfileName")
+    create_button = _required_child(page, QPushButton, "createProfileButton")
+    delete_confirmation = _required_child(page, QLineEdit, "deleteProfileConfirmation")
+    delete_button = _required_child(page, QPushButton, "deleteProfileButton")
+    feedback = _required_child(page, QLabel, "profileFeedback")
+    page.setFixedSize(690, 640)
+    page.show()
+
+    name_input.setText("Work")
+    create_button.click()
+    delete_confirmation.setText("Work")
+    scroll.ensureWidgetVisible(delete_button, 12, 12)
+    assert scroll.verticalScrollBar().value() > 0
+
+    delete_button.click()
+
+    def feedback_is_visible() -> bool:
+        top = feedback.mapTo(scroll.viewport(), QPoint(0, 0)).y()
+        bottom = top + feedback.height()
+        return top >= 0 and bottom <= scroll.viewport().height()
+
+    qtbot.waitUntil(feedback_is_visible)
+    assert "recovery backup" in feedback.text()
+
+
 def test_profiles_page_has_no_hidden_horizontal_overflow_at_690_px(
     qtbot: QtBot,
     tmp_path: Path,
@@ -298,6 +449,11 @@ def test_profiles_page_has_no_hidden_horizontal_overflow_at_690_px(
     name_input = _required_child(page, QLineEdit, "newProfileName")
     create_button = _required_child(page, QPushButton, "createProfileButton")
     activate_button = _required_child(page, QPushButton, "activateProfileButton")
+    rename_input = _required_child(page, QLineEdit, "renameProfileName")
+    rename_button = _required_child(page, QPushButton, "renameProfileButton")
+    restore_button = _required_child(page, QPushButton, "restoreDefaultButton")
+    delete_confirmation = _required_child(page, QLineEdit, "deleteProfileConfirmation")
+    delete_button = _required_child(page, QPushButton, "deleteProfileButton")
     preview = _required_child(page, QTableWidget, "activeBindingsTable")
 
     page.setFixedSize(690, 640)
@@ -310,7 +466,18 @@ def test_profiles_page_has_no_hidden_horizontal_overflow_at_690_px(
     assert content.width() <= scroll.viewport().width()
     assert scroll.horizontalScrollBar().maximum() == 0
     content_right = content.contentsRect().right()
-    for widget in (profile_list, name_input, create_button, activate_button, preview):
+    for widget in (
+        profile_list,
+        name_input,
+        create_button,
+        activate_button,
+        rename_input,
+        rename_button,
+        restore_button,
+        delete_confirmation,
+        delete_button,
+        preview,
+    ):
         mapped_right = widget.mapTo(content, QPoint(widget.width() - 1, 0)).x()
         assert mapped_right <= content_right, widget.objectName()
 
