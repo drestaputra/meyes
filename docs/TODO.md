@@ -164,6 +164,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Add a safe deleted-backup restore or permanent-cleanup workflow.
 - [x] Add bounded read-only metadata cataloging for recoverably deleted calibration backups.
 - [x] Add guarded repository restore with exact-record, checksum, policy, and exclusive-create gates.
+- [x] Add lifecycle restore with display validation and exact-copy rollback on incompatibility.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Feed validated cursor smoothing and gate configuration into the production fake diagnostics pipeline.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.

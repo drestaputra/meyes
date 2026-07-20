@@ -89,3 +89,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Exact-phrase Forget saved calibration workflow with pipeline-first clearing, recoverable timestamped backup moves, sanitized status/logging, and no Live Input state change.
 - Read-only bounded deleted-calibration backup catalog metadata with strict filename timestamps, newest-first ordering, link/reparse refusal, and no payload reads or mutations.
 - Guarded repository restore for exact deleted-calibration catalog records with full envelope revalidation, exclusive active creation, no active overwrite, and retained backups on success or failure.
+- Calibration restore lifecycle with pipeline-first clearing, current-display reprovision validation, byte-matched active-copy rollback, and retained deleted backups.

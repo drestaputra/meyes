@@ -10,7 +10,12 @@ from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from meyes.calibration.acceptance import AcceptedCalibration, CalibrationAcceptancePolicy
-from meyes.calibration.persistence import CalibrationLoadResult, CalibrationProvenance
+from meyes.calibration.persistence import (
+    CalibrationLoadResult,
+    CalibrationProvenance,
+    DeletedCalibrationBackup,
+    DeletedCalibrationCatalog,
+)
 from meyes.ui.cursor_provisioning import (
     CursorProvisioningResult,
     CursorProvisioningStatus,
@@ -35,6 +40,16 @@ class AcceptedCalibrationStore(Protocol):
 
     def forget(self) -> Path | None: ...
 
+    def deleted_catalog(self) -> DeletedCalibrationCatalog: ...
+
+    def restore(
+        self,
+        backup: DeletedCalibrationBackup,
+        policy: CalibrationAcceptancePolicy | None,
+    ) -> CalibrationLoadResult: ...
+
+    def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool: ...
+
 
 @runtime_checkable
 class CursorProvisioner(Protocol):
@@ -54,6 +69,7 @@ class CalibrationPersistenceStatus(StrEnum):
     VOLATILE = "volatile"
     INCOMPATIBLE = "incompatible"
     FORGOTTEN = "forgotten"
+    RESTORED = "restored"
     FAULTED = "faulted"
 
 
@@ -219,6 +235,68 @@ class CalibrationPersistenceLifecycle:
             "Saved calibration was moved to a recoverable deleted backup.",
             cleared,
             recovered_from=backup,
+        )
+
+    def deleted_catalog(self) -> DeletedCalibrationCatalog:
+        """Expose bounded repository metadata without adding mutation."""
+        if self._store is None:
+            return DeletedCalibrationCatalog((), "Calibration persistence is unavailable.")
+        return self._store.deleted_catalog()
+
+    def restore(self, backup: DeletedCalibrationBackup) -> CalibrationPersistenceResult:
+        """Restore, provision against current geometry, or roll the active copy back."""
+        if not isinstance(backup, DeletedCalibrationBackup):
+            raise TypeError("Expected DeletedCalibrationBackup")
+        cleared = self._provisioner.configure(None)
+        if self._store is None:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.DISABLED,
+                "Calibration persistence is unavailable; fake diagnostics were cleared.",
+                cleared,
+            )
+        try:
+            loaded = self._store.restore(backup, self._policy)
+        except (OSError, TypeError, ValueError):
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.FAULTED,
+                "Deleted calibration backup could not be restored safely.",
+                cleared,
+            )
+        if loaded.calibration is None or loaded.provenance is None:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.FAULTED,
+                loaded.warning or "Deleted calibration backup remains inactive.",
+                cleared,
+            )
+        provisioning = self._provisioner.configure(loaded.calibration)
+        geometry_matches = (
+            provisioning.status is CursorProvisioningStatus.READY
+            and provisioning.geometry == loaded.provenance.primary_screen
+        )
+        if not geometry_matches:
+            self._provisioner.configure(None)
+            try:
+                rolled_back = self._store.rollback_restored(backup)
+            except (OSError, TypeError, ValueError):
+                rolled_back = False
+            if not rolled_back:
+                return CalibrationPersistenceResult(
+                    CalibrationPersistenceStatus.FAULTED,
+                    "Restore validation failed and the active copy needs manual review.",
+                    cleared,
+                    provenance=loaded.provenance,
+                )
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.INCOMPATIBLE,
+                "Deleted calibration display geometry differs; restore was rolled back.",
+                cleared,
+                provenance=loaded.provenance,
+            )
+        return CalibrationPersistenceResult(
+            CalibrationPersistenceStatus.RESTORED,
+            _provenance_message("Restored", loaded.provenance),
+            provisioning,
+            provenance=loaded.provenance,
         )
 
 

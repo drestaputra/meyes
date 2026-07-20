@@ -15,7 +15,12 @@ from meyes.calibration.mapper import (
     CalibrationValidation,
     PolynomialCalibrationMapper,
 )
-from meyes.calibration.persistence import CalibrationLoadResult, CalibrationProvenance
+from meyes.calibration.persistence import (
+    CalibrationLoadResult,
+    CalibrationProvenance,
+    DeletedCalibrationBackup,
+    DeletedCalibrationCatalog,
+)
 from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.ui.calibration_persistence import (
     CalibrationPersistenceLifecycle,
@@ -78,6 +83,13 @@ class _RecordingStore:
     save_error: OSError | None = None
     forget_error: OSError | None = None
     forgotten_path: Path | None = Path("accepted-calibration.deleted.json")
+    catalog: DeletedCalibrationCatalog = field(
+        default_factory=lambda: DeletedCalibrationCatalog(())
+    )
+    restore_loaded: CalibrationLoadResult = field(
+        default_factory=lambda: CalibrationLoadResult(None)
+    )
+    rollback_result: bool = True
 
     def save(
         self,
@@ -102,6 +114,22 @@ class _RecordingStore:
         if self.forget_error is not None:
             raise self.forget_error
         return self.forgotten_path
+
+    def deleted_catalog(self) -> DeletedCalibrationCatalog:
+        self.calls.append("catalog")
+        return self.catalog
+
+    def restore(
+        self,
+        backup: DeletedCalibrationBackup,
+        policy: CalibrationAcceptancePolicy | None,
+    ) -> CalibrationLoadResult:
+        self.calls.append(("restore", backup, policy))
+        return self.restore_loaded
+
+    def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool:
+        self.calls.append(("rollback", backup))
+        return self.rollback_result
 
 
 @dataclass
@@ -273,3 +301,63 @@ def test_forget_storage_fault_keeps_fake_pipeline_cleared() -> None:
 
     assert result.status is CalibrationPersistenceStatus.FAULTED
     assert calls == [("configure", None), "forget"]
+
+
+def test_lifecycle_restore_provisions_valid_matching_backup() -> None:
+    calls: list[object] = []
+    accepted = _accepted()
+    backup = DeletedCalibrationBackup(
+        Path("accepted-calibration.deleted.json"),
+        _CREATED_AT,
+        100,
+    )
+    store = _RecordingStore(
+        calls,
+        catalog=DeletedCalibrationCatalog((backup,)),
+        restore_loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+    )
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        store,
+        _policy(),
+    )
+
+    result = lifecycle.restore(backup)
+
+    assert result.status is CalibrationPersistenceStatus.RESTORED
+    assert calls == [
+        ("configure", None),
+        ("restore", backup, _policy()),
+        ("configure", accepted),
+    ]
+
+
+def test_lifecycle_restore_rolls_back_on_display_mismatch() -> None:
+    calls: list[object] = []
+    accepted = _accepted()
+    backup = DeletedCalibrationBackup(
+        Path("accepted-calibration.deleted.json"),
+        _CREATED_AT,
+        100,
+    )
+    store = _RecordingStore(
+        calls,
+        catalog=DeletedCalibrationCatalog((backup,)),
+        restore_loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+    )
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls, geometry=PhysicalScreenGeometry(0, 0, 2560, 1440)),
+        store,
+        _policy(),
+    )
+
+    result = lifecycle.restore(backup)
+
+    assert result.status is CalibrationPersistenceStatus.INCOMPATIBLE
+    assert calls == [
+        ("configure", None),
+        ("restore", backup, _policy()),
+        ("configure", accepted),
+        ("configure", None),
+        ("rollback", backup),
+    ]

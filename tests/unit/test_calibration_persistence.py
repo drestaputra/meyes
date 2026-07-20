@@ -356,3 +356,34 @@ def test_restore_is_disabled_without_runtime_policy(tmp_path: Path) -> None:
     assert "no policy" in (result.warning or "")
     assert not repository.path.exists()
     assert deleted.exists()
+
+
+def test_rollback_removes_only_unchanged_restored_copy(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    repository.restore(backup, _policy())
+
+    rolled_back = repository.rollback_restored(backup)
+
+    assert rolled_back
+    assert not repository.path.exists()
+    assert deleted.exists()
+
+
+def test_rollback_refuses_changed_active_copy(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    repository.restore(backup, _policy())
+    repository.path.write_bytes(b"changed")
+
+    with pytest.raises(OSError, match="no longer matches"):
+        repository.rollback_restored(backup)
+
+    assert repository.path.read_bytes() == b"changed"
+    assert deleted.exists()

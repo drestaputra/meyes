@@ -331,6 +331,24 @@ class AcceptedCalibrationRepository:
             raise
         return CalibrationLoadResult(calibration, provenance=provenance)
 
+    def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool:
+        """Remove only an active copy that still exactly matches its retained backup."""
+        if not isinstance(backup, DeletedCalibrationBackup):
+            raise TypeError("Expected DeletedCalibrationBackup")
+        if backup not in self.deleted_catalog().backups:
+            raise ValueError("Deleted calibration backup is not an exact current catalog record")
+        try:
+            self.path.lstat()
+        except FileNotFoundError:
+            return False
+        self._assert_safe_path()
+        active = self.path.read_bytes()
+        retained = backup.path.read_bytes()
+        if active != retained:
+            raise OSError("Active calibration no longer matches the restored backup")
+        self.path.unlink()
+        return True
+
     def _assert_safe_path(self) -> None:
         self._assert_safe_data_directory()
         if self.path.parent.resolve(strict=True) != self._paths.data_dir.resolve(strict=True):
