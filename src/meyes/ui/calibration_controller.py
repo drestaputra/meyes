@@ -8,6 +8,7 @@ from enum import StrEnum
 from PySide6.QtCore import QObject, Signal, Slot
 
 from meyes.calibration.acceptance import (
+    AcceptedCalibration,
     CalibrationAcceptance,
     CalibrationAcceptancePolicy,
     CalibrationAcceptanceState,
@@ -91,6 +92,14 @@ class CalibrationController(QObject):
         if acceptance is None or acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
             return None
         return self._fit_result
+
+    @property
+    def accepted_calibration(self) -> AcceptedCalibration | None:
+        fit_result = self.accepted_fit_result
+        acceptance = self._fit_outcome.acceptance
+        if fit_result is None or acceptance is None:
+            return None
+        return AcceptedCalibration(fit_result, acceptance)
 
     def start(self) -> CalibrationSnapshot:
         self._clear_fit()

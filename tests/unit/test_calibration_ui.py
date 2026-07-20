@@ -268,6 +268,7 @@ def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
     assert outcome.acceptance is not None
     assert outcome.acceptance.state is CalibrationAcceptanceState.REVIEW_REQUIRED
     assert controller.accepted_fit_result is None
+    assert controller.accepted_calibration is None
     assert "Review is required" in page._feedback.text()
 
 
@@ -323,6 +324,8 @@ def test_configured_policy_exposes_only_an_accepted_fit(qtbot: QtBot) -> None:
     assert outcome.acceptance is not None
     assert outcome.acceptance.state is CalibrationAcceptanceState.ACCEPTED
     assert controller.accepted_fit_result is controller.fit_result
+    assert controller.accepted_calibration is not None
+    assert controller.accepted_calibration.fit_result is controller.fit_result
     assert page._acceptance_status.text() == "Accepted"
     assert "meets every configured acceptance limit" in page._feedback.text()
 
@@ -343,6 +346,7 @@ def test_configured_policy_rejection_never_exposes_an_accepted_fit(qtbot: QtBot)
     assert outcome.acceptance.state is CalibrationAcceptanceState.REJECTED
     assert controller.fit_result is not None
     assert controller.accepted_fit_result is None
+    assert controller.accepted_calibration is None
     assert page._acceptance_status.text() == "Rejected"
     assert "holdout n=18 is below 19" in page._feedback.text()
     assert "Retry collection" in page._feedback.text()

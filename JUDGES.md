@@ -114,6 +114,8 @@ Working in the submitted source build:
   clamping evidence, signed 32-bit validation, and no executor dependency;
 - a dormant cursor movement gate that starts suspended, handles overlapping temple holds and tap
   pulses, applies a configurable resume delay, and never overrides tracking-loss suspension;
+- a proof-carrying accepted-calibration token and fake-only pipeline that emits pixel candidates
+  only through open freshness/gate boundaries and has no `InputExecutor` dependency;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

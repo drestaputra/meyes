@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
-from meyes.calibration.mapper import CalibrationValidation
+from meyes.calibration.mapper import CalibrationFitResult, CalibrationValidation
 
 
 class CalibrationAcceptanceState(StrEnum):
@@ -48,6 +48,24 @@ class CalibrationAcceptance:
 
     state: CalibrationAcceptanceState
     reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AcceptedCalibration:
+    """Proof-carrying volatile fit for consumers that require policy acceptance."""
+
+    fit_result: CalibrationFitResult
+    acceptance: CalibrationAcceptance
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.fit_result, CalibrationFitResult):
+            raise TypeError("Expected CalibrationFitResult")
+        if not isinstance(self.acceptance, CalibrationAcceptance):
+            raise TypeError("Expected CalibrationAcceptance")
+        if self.acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
+            raise ValueError("Calibration must be accepted before creating an accepted token")
+        if self.acceptance.reasons:
+            raise ValueError("Accepted calibration cannot contain rejection reasons")
 
 
 def review_required_acceptance() -> CalibrationAcceptance:

@@ -66,6 +66,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   tests, without acquiring screen geometry or invoking `SendInput`;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
+- composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
+  pipeline that cannot call an input executor;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,

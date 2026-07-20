@@ -160,7 +160,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [ ] Acquire DPI-aware primary-screen geometry and connect the accepted mapper pipeline safely.
 - [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
-- [ ] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake runtime.
+- [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake-only pipeline.
+- [ ] Wire the fake-only cursor pipeline to Qt lifecycle and Diagnostics without native output.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

@@ -6,6 +6,7 @@ from meyes.cursor.gate import (
     CursorGateState,
     CursorMovementGate,
 )
+from meyes.cursor.pipeline import CursorPipeline, CursorPipelineResult, CursorPipelineStatus
 from meyes.cursor.screen_mapping import (
     PhysicalScreenGeometry,
     PhysicalScreenPoint,
@@ -20,6 +21,9 @@ __all__ = [
     "CursorGateSnapshot",
     "CursorGateState",
     "CursorMovementGate",
+    "CursorPipeline",
+    "CursorPipelineResult",
+    "CursorPipelineStatus",
     "OneEuroFilterSettings",
     "OneEuroPointFilter",
     "PhysicalScreenGeometry",
