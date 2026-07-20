@@ -82,3 +82,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Read-only Windows primary-monitor geometry acquisition using a temporary restored Per-Monitor V2 DPI scope, physical-pixel `GetMonitorInfoW` bounds, fake native-boundary tests, and fail-closed validation.
 - Acceptance-gated production provisioning for the fake-only cursor diagnostics pipeline, with lazy geometry reads, persistent unavailable reasons, automatic calibration-loss teardown, and no executor dependency.
 - Versioned accepted-calibration evidence repository with canonical SHA-256 checksums, exact-policy recovery, bounded strict JSON, atomic replacement, recoverable invalid-file quarantine, and link/reparse refusal; runtime save/load remains disconnected.
+- Disconnected accepted-calibration persistence lifecycle with clear-before-save ordering, volatile fallback after storage failure, one-shot startup recovery, quarantine reporting, and fake-only reprovisioning.

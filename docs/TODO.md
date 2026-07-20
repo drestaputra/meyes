@@ -156,6 +156,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add an opt-in all-or-none acceptance-policy contract with a fail-closed review-required default.
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
 - [x] Define versioned, checksummed, exact-policy persistence and fail-closed recovery for an accepted mapper.
+- [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
 - [ ] Wire explicit accepted-mapper save/recovery lifecycle without weakening Live Input startup safety.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.

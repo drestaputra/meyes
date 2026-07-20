@@ -70,6 +70,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   calibration plus validated geometry, and tears it down on acceptance loss or native failure;
 - provides a disconnected local repository for versioned, checksummed accepted-mapper coefficients,
   exact acceptance policy, and holdout evidence; runtime save and recovery are not yet wired;
+- provides a separately tested persistence lifecycle with clear-before-save ordering, volatile
+  fallback, and one-shot fake-only recovery, still disconnected from application startup;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
