@@ -7,6 +7,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from meyes.domain.actions import KeyName, MouseButton
+from meyes.input.interface import InputReleaseError as InputReleaseError
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,14 +16,6 @@ class InputCall:
 
     operation: str
     arguments: tuple[object, ...] = ()
-
-
-class InputReleaseError(RuntimeError):
-    """Report one or more release failures after every held input was attempted."""
-
-    def __init__(self, errors: tuple[Exception, ...]) -> None:
-        super().__init__(f"Failed to release {len(errors)} held input(s)")
-        self.errors = errors
 
 
 class FakeInputExecutor:

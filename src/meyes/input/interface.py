@@ -7,6 +7,25 @@ from typing import Protocol, runtime_checkable
 from meyes.domain.actions import KeyName, MouseButton
 
 
+class InputReleaseError(RuntimeError):
+    """Report one or more release failures after every held input was attempted."""
+
+    def __init__(self, errors: tuple[Exception, ...]) -> None:
+        super().__init__(f"Failed to release {len(errors)} held input(s)")
+        self.errors = errors
+
+
+class InputCleanupError(RuntimeError):
+    """Report a primary input failure followed by one or more cleanup failures."""
+
+    def __init__(self, primary_error: Exception, release_errors: tuple[Exception, ...]) -> None:
+        super().__init__(
+            f"Input failed and {len(release_errors)} fail-safe release attempt(s) also failed"
+        )
+        self.primary_error = primary_error
+        self.release_errors = release_errors
+
+
 @runtime_checkable
 class InputExecutor(Protocol):
     """Primitive input interface kept separate from gesture and binding code."""

@@ -61,3 +61,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Durable Profiles workflow with all-disabled creation, pause-first activation, preference rollback, canonical active-profile status, and a read-only preview of all six simulated bindings.
 - Isolated Bindings editor covering every validated MVP action with hold-only filtering, inline errors, last-valid preview, dirty-draft preservation, and inactive save-as-copy.
 - Fail-safe inactive profile lifecycle with rename, exact-name-confirmed recoverable deletion, restore-from-Default, and built-in/active-profile protections.
+- Dormant Windows `SendInput` executor for validated mouse and keyboard primitives with ABI-safe ctypes structures, owned held-state tracking, partial-send detection, reverse-order cleanup, and fake native-boundary tests.

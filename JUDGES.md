@@ -90,6 +90,8 @@ Working in the submitted source build:
   retains a local recovery backup without changing the runtime snapshot;
 - a Qt-owned fake-only runtime dispatcher with held-input cleanup, no-catch-up deadline polling,
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
+- a dormant, unit-tested Windows `SendInput` executor boundary with owned-state tracking,
+  reverse-order cleanup, and no connection to the runnable application;
 - watchdog-driven expiry and native Safe Mode diagnostics with OS input explicitly disconnected;
 - deterministic shutdown and race/lifecycle regression coverage.
 
@@ -97,8 +99,8 @@ Intentionally not implemented or not enabled:
 
 - mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- operating-system binding execution, profile import/export, global shortcuts, tray controls,
-  or an installer.
+- armed operating-system binding execution, gaze pointer mapping, profile import/export, global
+  emergency shortcuts, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

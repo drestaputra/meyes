@@ -48,6 +48,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   inline correction, last-valid preview, and save-as-copy that never activates runtime input;
 - protects active and built-in profiles while allowing inactive profile rename,
   exact-name-confirmed recoverable deletion, and restore from the built-in Default bindings;
+- includes a dormant Windows `SendInput` executor with fake-boundary regression coverage but does
+  not construct, arm, or expose it from the submitted Safe Mode application;
 - exposes health, latency, freshness, observations, dispatcher state, and a bounded fake
   primitive trace through a native PySide6 Safe Mode UI;
 - keeps operating-system mouse and keyboard input disconnected.
