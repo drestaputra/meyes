@@ -10,7 +10,13 @@ import pytest
 from pydantic import ValidationError
 
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig, AppSettings, CameraSettings, GestureSettings
+from meyes.config.models import (
+    AppConfig,
+    AppSettings,
+    CameraSettings,
+    GestureSettings,
+    TrackingSettings,
+)
 from meyes.util.paths import AppPaths
 
 
@@ -89,3 +95,11 @@ def test_active_profile_name_uses_repository_safe_validation() -> None:
 
     with pytest.raises(ValidationError, match="profile name"):
         AppSettings(active_profile="../escape")
+
+
+def test_emergency_shortcut_migrates_reserved_f12_and_rejects_other_values() -> None:
+    migrated = TrackingSettings.model_validate({"emergency_shortcut": "CTRL+ALT+F12"})
+
+    assert migrated.emergency_shortcut == "CTRL+ALT+SHIFT+F11"
+    with pytest.raises(ValidationError, match="emergency_shortcut"):
+        TrackingSettings.model_validate({"emergency_shortcut": "CTRL+ALT+DELETE"})

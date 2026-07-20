@@ -43,7 +43,14 @@ class TrackingSettings(StrictConfigModel):
 
     enabled_on_startup: bool = False
     safe_mode: bool = True
-    emergency_shortcut: str = "CTRL+ALT+F12"
+    emergency_shortcut: Literal["CTRL+ALT+SHIFT+F11"] = "CTRL+ALT+SHIFT+F11"
+
+    @field_validator("emergency_shortcut", mode="before")
+    @classmethod
+    def migrate_reserved_emergency_shortcut(cls, value: object) -> object:
+        if value == "CTRL+ALT+F12":
+            return "CTRL+ALT+SHIFT+F11"
+        return value
 
 
 class GestureSettings(StrictConfigModel):
@@ -80,6 +87,7 @@ class UiSettings(StrictConfigModel):
         "Dashboard",
         "Calibration",
         "Bindings",
+        "Live Input",
         "Sensitivity",
         "Camera",
         "Profiles",

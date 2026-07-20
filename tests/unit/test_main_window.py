@@ -7,20 +7,24 @@ import time
 from pathlib import Path
 from typing import NoReturn
 
+from PySide6.QtCore import QCoreApplication, QObject
+from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton
 from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import disabled_profile
 from meyes.bindings.editor import EditableActionKind
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
-from meyes.camera.models import CameraDevice, CameraOptions, FramePacket
+from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig
 from meyes.domain.actions import MouseButton, MouseDownAction
 from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import FaceObservation, HandObservation
-from meyes.input.fake import InputCall
+from meyes.input.fake import FakeInputExecutor, InputCall
+from meyes.input.windows_safety import WindowsEmergencyHotkey
 from meyes.services.action_dispatcher import DispatcherState
+from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputState
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
 from meyes.vision.worker import VisionStatus
@@ -69,6 +73,38 @@ class RecordingHandBackend(EmptyHandBackend):
 
     def close(self) -> None:
         self.closed.set()
+
+
+class MainWindowSafetyApi:
+    def __init__(self) -> None:
+        self.registered = 0
+        self.unregistered = 0
+
+    def register_hotkey(
+        self,
+        window_id: int,
+        hotkey_id: int,
+        modifiers: int,
+        virtual_key: int,
+    ) -> bool:
+        del window_id, hotkey_id, modifiers, virtual_key
+        self.registered += 1
+        return True
+
+    def unregister_hotkey(self, window_id: int, hotkey_id: int) -> bool:
+        del window_id, hotkey_id
+        self.unregistered += 1
+        return True
+
+    def key_is_down(self, virtual_key: int) -> bool:
+        del virtual_key
+        return False
+
+    def hotkey_message_id(self, message: int) -> int | None:
+        return message
+
+    def last_error(self) -> int:
+        return 0
 
 
 def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
@@ -170,6 +206,62 @@ def test_window_wires_fake_dispatch_and_releases_before_close(qtbot: QtBot) -> N
     )
 
 
+def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot) -> None:
+    executor = FakeInputExecutor()
+    safety = MainWindowSafetyApi()
+
+    def hotkey_factory(parent: QObject) -> WindowsEmergencyHotkey:
+        application = QCoreApplication.instance()
+        assert application is not None
+        return WindowsEmergencyHotkey(api=safety, application=application, parent=parent)
+
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_executor_factory=lambda: executor,
+        live_input_hotkey_factory=hotkey_factory,
+        live_input_platform_supported=True,
+    )
+    qtbot.addWidget(window)
+    window.show()
+    window._live_input_page.set_tracking_available(True)
+    consent = window.findChild(QLineEdit, "liveInputConsent")
+    arm = window.findChild(QPushButton, "armLiveInputButton")
+    safety_status = window.findChild(QLabel, "liveSafetyStatus")
+    assert consent is not None and arm is not None and safety_status is not None
+    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
+
+    arm.click()
+    timestamp = time.monotonic()
+    window._vision_controller.event_detected.emit(
+        GestureEvent(
+            GestureEventType.LEFT_WINK,
+            timestamp=timestamp,
+            source_sequence=1,
+            duration_ms=180.0,
+        )
+    )
+
+    assert window._live_input_controller.state is LiveInputState.ARMED
+    assert safety.registered == 1
+    assert InputCall("mouse_click", (MouseButton.LEFT,)) in executor.calls
+    assert "LIVE INPUT" in safety_status.text()
+
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.PAUSED, message="Camera is paused")
+    )
+
+    assert window._live_input_controller.snapshot.state.value == "safe"
+    assert safety.unregistered == 1
+    assert executor.calls[-1] == InputCall("release_all")
+    assert "SAFE MODE" in safety_status.text()
+
+    window.close()
+    assert window._live_input_controller.snapshot.state.value == "closed"
+
+
 def test_profile_activation_updates_runtime_config_and_top_bar(
     qtbot: QtBot,
     tmp_path: Path,
@@ -201,6 +293,8 @@ def test_profile_activation_updates_runtime_config_and_top_bar(
     assert window._profile_label.toolTip() == "Profile: Work"
     assert window._action_simulation.snapshot.profile_name == "Work"
     assert window._action_simulation.state is DispatcherState.PAUSED
+    assert window._live_input_controller.snapshot.profile_name == "Work"
+    assert window._live_input_controller.state is LiveInputState.SAFE
 
 
 def test_maximum_length_profile_name_is_elided_without_expanding_shell(

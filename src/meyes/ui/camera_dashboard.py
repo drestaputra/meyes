@@ -256,6 +256,12 @@ class CameraDashboard(QWidget):
         )
         self._preview.setPixmap(scaled)
 
+    def set_live_input_armed(self, armed: bool) -> None:
+        """Keep the dashboard input-mode label truthful."""
+        if not isinstance(armed, bool):
+            raise TypeError("armed must be a bool")
+        self._safe_mode_value.setText("LIVE · real OS output" if armed else "Simulation only")
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         """Preserve preview aspect ratio after window resizing."""
         super().resizeEvent(event)

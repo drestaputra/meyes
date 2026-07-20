@@ -1,7 +1,9 @@
 # MEYES privacy and safety boundary
 
-This document describes the current source build. MEYES is a local vision diagnostics
-application, is not a medical device, and does not yet send mouse or keyboard input.
+This document describes the current source build. MEYES is a local vision and hands-free input
+application and is not a medical device. It starts in Safe Mode with operating-system input
+disconnected; on Windows, a user may explicitly arm configured mouse and keyboard actions for the
+current session.
 
 ## Data handling
 
@@ -13,6 +15,7 @@ application, is not a medical device, and does not yet send mouse or keyboard in
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
 | Model assets | Loaded from the repository's `resources/models/` directory and verified by size and SHA-256 in tests. |
+| Live Input consent | Held only in widget memory long enough to validate the exact phrase, then cleared. It is not persisted or intentionally logged. |
 
 `diagnostic_recording_enabled` defaults to `false`, and the current build has no frame
 recording implementation or recording UI. Enabling that configuration field does not create
@@ -42,6 +45,9 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
 
 - Camera processing begins only after **Start camera** is selected.
 - Pause, stop, or application close ends the live pipeline and clears current observations.
+- Real OS output requires exact per-session consent and a running camera. Emergency shortcut,
+  disarm, camera pause/stop/fault, profile change, or application close gates output and attempts
+  to release all mouse/keyboard state owned by MEYES.
 - Delete `config.json` and any timestamped corrupt-config backups from `%APPDATA%\Meyes\`
   to remove saved preferences.
 - Delete `meyes.log` and its numbered backups from `%LOCALAPPDATA%\Meyes\Logs\` to remove

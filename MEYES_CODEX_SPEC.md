@@ -4,8 +4,9 @@
 > not a statement that every described feature exists in the current build. Present-tense
 > product copy below describes the intended MVP. For the exact runnable scope, exclusions,
 > and judge path, use [`README.md`](./README.md), [`JUDGES.md`](./JUDGES.md), and the
-> [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md). In particular, the current
-> Safe Mode build does not send mouse or keyboard input.
+> [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md). The current build starts in Safe
+> Mode and can explicitly arm validated mouse/keyboard actions; gaze pointer control remains a
+> target capability rather than a completed feature.
 
 > **Working title:** MEYES  
 > **Product type:** Windows desktop accessibility and productivity application  

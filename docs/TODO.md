@@ -118,17 +118,19 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 - [x] Create validated action and binding models.
 - [x] Create default and user profile repositories.
-- [x] Implement the dormant Windows `SendInput` executor with partial-send and release tests.
+- [x] Implement the Windows `SendInput` executor with partial-send and release tests.
 - [x] Implement mouse click and scroll action dispatch through the fake executor.
 - [x] Implement poll-driven continuous scroll with fail-safe release and no catch-up.
 - [x] Implement validated keyboard shortcut dispatch through the fake executor.
-- [ ] Implement the global emergency pause shortcut.
+- [x] Implement the global emergency pause shortcut.
 - [x] Add the dormant Windows global-hotkey registration, native-event filter, and physical-input
   preflight foundation without registering it in the Safe Mode application.
 - [x] Add a dormant per-session live controller with exact typed consent, hotkey-first physical
   preflight, release-first arming, emergency release, and fail-closed recovery tests.
-- [ ] Add explicit live-mode consent, physical-key preflight, emergency pause, and a release-first
+- [x] Add explicit live-mode consent, physical-key preflight, emergency pause, and a release-first
   arm/disarm UI that constructs the native executor only after the user opts in.
+- [x] Wire semantic events to real `SendInput` only while armed and disarm on camera lifecycle,
+  profile transition, fault, page destruction, and application close.
 - [x] Implement dispatcher no-input safe mode with an explicit arm gate.
 - [x] Wire live semantic events to a Qt-owned fake-only simulation and Diagnostics trace.
 - [x] Add a durable user-facing profile catalog and all-disabled profile creation.

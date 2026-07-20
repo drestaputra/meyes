@@ -59,6 +59,14 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.warning};
             font-weight: 700;
         }}
+        QLabel#liveSafetyStatus {{
+            color: {color.success};
+            font-weight: 700;
+        }}
+        QLabel#liveSafetyStatus[liveInputState="armed"],
+        QLabel#liveSafetyStatus[liveInputState="faulted"] {{
+            color: {color.danger};
+        }}
         QLabel#sectionTitle {{
             font-size: 20pt;
             font-weight: 650;
@@ -250,6 +258,26 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border-radius: 4px;
             padding: 10px 12px;
             font-weight: 650;
+        }}
+        QLabel#liveInputStatus, QLabel#liveInputFeedback {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-weight: 650;
+        }}
+        QLabel#liveInputStatus[liveInputState="safe"] {{
+            color: {color.success};
+            border-color: {color.success};
+        }}
+        QLabel#liveInputStatus[liveInputState="armed"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+            background: {color.surface};
+        }}
+        QLabel#liveInputStatus[liveInputState="faulted"] {{
+            color: {color.danger};
+            border-color: {color.danger};
         }}
         QProgressBar {{
             background: {color.surface_subtle};

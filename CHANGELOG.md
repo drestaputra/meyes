@@ -64,3 +64,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dormant Windows `SendInput` executor for validated mouse and keyboard primitives with ABI-safe ctypes structures, owned held-state tracking, partial-send detection, reverse-order cleanup, and fake native-boundary tests.
 - Dormant Windows live-safety foundation with `Ctrl+Alt+Shift+F11` registration, native Qt hotkey filtering, retryable cleanup, and physical button/modifier preflight.
 - Dormant explicit-consent live session controller with hotkey-first preflight, lazy `SendInput` construction, release-first arming, emergency disarm, profile-transition gating, and terminal cleanup.
+- Application-wired Live Input view with volatile typed consent, real `SendInput` dispatch, persistent Safe/Live/Fault status, native emergency pause, physical-input preflight, camera/profile lifecycle disarm, pending-profile recovery, and terminal release paths.

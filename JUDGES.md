@@ -56,6 +56,19 @@ so no model download is needed. Windows may ask for camera permission on first u
 8. Pause or stop the camera and confirm live observations clear. Close the window and confirm
    the application exits without a hanging worker.
 
+Optional controlled OS-output check on Windows:
+
+1. Use a disposable target window and keep `Ctrl+Alt+Shift+F11` available.
+2. With the camera running, open **Live Input**, release physical mouse/modifier inputs, type
+   `ENABLE LIVE INPUT` exactly, and select **Arm Live Input**.
+3. Confirm the persistent status changes to `LIVE INPUT`. Default left/right winks issue left/right
+   clicks and temple tap/hold gestures issue bounded scroll steps.
+4. Press `Ctrl+Alt+Shift+F11` and confirm MEYES returns to `SAFE MODE`; camera pause/stop, profile
+   change, and application close also disarm and release owned input.
+
+Live Input consent is never persisted. Windows UIPI can block injection into a higher-integrity
+target without a specific error; run MEYES and the disposable target at the same integrity level.
+
 Lighting, camera field of view, occlusion, and landmark confidence affect live detection.
 Do not interpret the diagnostics as a medical or safety assessment.
 
@@ -88,23 +101,21 @@ Working in the submitted source build:
   inline errors, isolated preview, dirty-draft preservation, and inactive save-as-copy;
 - inactive-only profile rename, restore-from-Default, and exact-name-confirmed deletion that
   retains a local recovery backup without changing the runtime snapshot;
-- a Qt-owned fake-only runtime dispatcher with held-input cleanup, no-catch-up deadline polling,
+- a Qt-owned fake runtime dispatcher with held-input cleanup, no-catch-up deadline polling,
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
-- a dormant, unit-tested Windows `SendInput` executor boundary with owned-state tracking,
-  reverse-order cleanup, and no connection to the runnable application;
-- a dormant `Ctrl+Alt+Shift+F11` global-hotkey and physical-input preflight service that is not
-  yet registered by the runnable application;
-- a dormant, fake-boundary-tested live session controller requiring exact typed consent, hotkey
-  registration, clear physical inputs, and release-first arm/disarm before native dispatch;
-- watchdog-driven expiry and native Safe Mode diagnostics with OS input explicitly disconnected;
+- an application-wired Windows `SendInput` executor with owned-state tracking, partial-send
+  containment, and reverse-order cleanup;
+- a volatile Live Input session requiring exact typed consent, successful
+  `Ctrl+Alt+Shift+F11` registration, clear physical inputs, and release-first arming;
+- emergency, camera-lifecycle, profile-transition, executor-fault, page-close, and application-close
+  disarm/release paths, with a persistent non-color status boundary;
+- watchdog-driven expiry and native diagnostics that start with OS input disconnected;
 - deterministic shutdown and race/lifecycle regression coverage.
 
 Intentionally not implemented or not enabled:
 
-- mouse, keyboard, click, or scroll output;
 - gaze calibration and cursor mapping;
-- application-wired operating-system binding execution, gaze pointer mapping, profile
-  import/export, registered global emergency shortcuts, tray controls, or an installer.
+- profile import/export, tray controls, gaze pointer movement, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

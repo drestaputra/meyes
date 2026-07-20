@@ -58,6 +58,13 @@ class FailReleaseExecutor(FakeInputExecutor):
         raise RuntimeError("release unavailable")
 
 
+class FailThirdReleaseExecutor(FakeInputExecutor):
+    def release_all(self) -> None:
+        super().release_all()
+        if self.release_all_calls == 3:
+            raise RuntimeError("one-shot profile transition failure")
+
+
 def _event(sequence: int = 1) -> GestureEvent:
     return GestureEvent(
         GestureEventType.LEFT_WINK,
@@ -231,6 +238,31 @@ def test_profile_change_disarms_and_requires_consent_again(qtbot: QtBot) -> None
     assert changed.success
     assert controller.state is LiveInputState.SAFE
     assert controller.snapshot.profile_name == "Quiet"
+    assert len(safety.unregistrations) == 1
+
+
+def test_failed_profile_transition_stays_faulted_until_pending_profile_is_synced(
+    qtbot: QtBot,
+) -> None:
+    executor = FailThirdReleaseExecutor()
+    controller, _executor, safety, _hotkeys = _controller(qtbot, executor=executor)
+    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 717).success
+
+    changed = controller.activate_profile(disabled_profile("Quiet"))
+
+    assert not changed.success
+    faulted_snapshot = controller.snapshot
+    assert faulted_snapshot.state.value == "faulted"
+    assert faulted_snapshot.profile_name == "Default"
+    assert faulted_snapshot.hotkey_registered
+
+    recovered = controller.disarm("retry profile synchronization")
+
+    assert recovered.success
+    recovered_snapshot = controller.snapshot
+    assert recovered_snapshot.state.value == "safe"
+    assert recovered_snapshot.profile_name == "Quiet"
+    assert not recovered_snapshot.hotkey_registered
     assert len(safety.unregistrations) == 1
 
 

@@ -103,6 +103,7 @@ class LiveInputController(QObject):
         self._clock = clock
         self._state = LiveInputState.SAFE
         self._message = "Safe Mode: Windows input is disconnected."
+        self._pending_profile: BindingProfile | None = None
         self._executor: InputExecutor | None = None
         self._dispatcher: ActionDispatcher | None = None
         self._hotkey: WindowsEmergencyHotkey | None = None
@@ -213,6 +214,15 @@ class LiveInputController(QObject):
                     "Live Input release failed; tracking is paused and recovery is required.",
                     released=released,
                 )
+        synchronized = self._apply_pending_profile()
+        if synchronized is not None and not synchronized.success:
+            self._state = LiveInputState.FAULTED
+            return self._finish(
+                False,
+                "Live Input recovered its held state but could not synchronize the pending "
+                "profile; retry recovery.",
+                released=released,
+            )
         try:
             self._close_hotkey()
         except Exception as error:
@@ -244,22 +254,10 @@ class LiveInputController(QObject):
             raise TypeError("Expected BindingProfile")
         if self._state is LiveInputState.CLOSED:
             return self._finish(False, "Live Input is closed for this application session.")
+        self._pending_profile = BindingManager(profile).active_profile
         stopped = self.disarm("profile transition")
         if not stopped.success:
             return stopped
-        candidate = BindingManager(profile).active_profile
-        dispatcher = self._dispatcher
-        if dispatcher is not None:
-            report = dispatcher.activate_profile(candidate)
-            self._emit_lifecycle(report)
-            if not report.success:
-                self._state = LiveInputState.FAULTED
-                return self._finish(
-                    False,
-                    "The live profile could not be replaced safely.",
-                    released=report.released,
-                )
-        self._profile = candidate
         return self._finish(
             True,
             "Profile synchronized in Safe Mode; explicit consent is required to re-arm.",
@@ -358,6 +356,24 @@ class LiveInputController(QObject):
     def _close_hotkey(self) -> None:
         if self._hotkey is not None:
             self._hotkey.close()
+
+    def _apply_pending_profile(self) -> LifecycleReport | None:
+        candidate = self._pending_profile
+        if candidate is None:
+            return None
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            report = dispatcher.activate_profile(candidate)
+            self._emit_lifecycle(report)
+            if not report.success:
+                return report
+        self._profile = candidate
+        self._pending_profile = None
+        return LifecycleReport(
+            success=True,
+            state=DispatcherState.PAUSED,
+            released=dispatcher is not None,
+        )
 
     def _fail_after_registered_hotkey(self, message: str) -> LiveInputResult:
         try:

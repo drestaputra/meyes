@@ -1,14 +1,14 @@
 # MEYES
 
-MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events in Safe Mode diagnostics. Those events can exercise configured bindings through an in-memory simulation, but the build does **not** send mouse or keyboard input.
+MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events. Safe Mode remains the default and keeps an in-memory action trace. On Windows, the user can explicitly opt in per session to send the configured click, scroll, key, and shortcut actions through `SendInput`.
 
-The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake-only dispatcher now exercise those mappings in tests and in the runnable Diagnostics view. The Profiles view can create and safely activate durable profiles, and can rename, restore, or recoverably delete protected inactive profiles. Bindings provides inline editing for every validated MVP action, an isolated six-row preview, and save-as-copy without runtime activation. A tested Windows `SendInput` executor, emergency-hotkey/preflight service, and explicit-consent live session controller now exist behind unwired platform boundaries, but the runnable application does not construct or arm them.
+The planned product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake dispatcher exercise those mappings in tests and in Diagnostics. The Profiles view can create and safely activate durable profiles, and can rename, restore, or recoverably delete protected inactive profiles. Bindings provides inline editing for every validated MVP action, an isolated six-row preview, and save-as-copy without runtime activation. The Live Input view now owns the deliberate transition to real OS output: exact typed consent, global emergency-hotkey registration, physical-input preflight, release-first arming, visible status, and release on emergency, disarm, camera pause/fault, profile change, or shutdown. Gaze pointer movement is not implemented.
 
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 ## Development status
 
-Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and a synchronous fake-only action dispatcher. A Qt-owned adapter feeds live semantic events into that dispatcher, schedules continuous-action deadlines on the UI thread, and exposes its state and bounded fake primitive trace in Diagnostics. The durable Profiles workflow supports pause-first activation with preference rollback plus inactive-only rename, confirmed recoverable deletion, and restore-from-Default. The Bindings workflow edits an isolated draft, preserves invalid input as inline feedback without mutating the last valid snapshot, and saves only as a new inactive profile. The dormant native executor maps validated clicks, held buttons, wheel steps, keys, and shortcuts to Win32 packets with partial-send cleanup. A dormant safety service reserves `Ctrl+Alt+Shift+F11`, parses native Qt hotkey events, and checks physical buttons/modifiers before arming. A separate live session controller now requires exact per-session consent, successful hotkey registration, a clear physical preflight, and release-first initialization; emergency, disarm, profile transition, fault, and close paths are fake-boundary tested. Profile import/export, application/UI wiring for that live controller, and gaze pointer mapping remain pending, so the runnable application stays in Safe Mode with OS input disconnected.
+Phase 0 through Phase 3 are complete. Phase 4 is in progress with a validated action vocabulary, complete logical binding profiles, exact built-in defaults, fail-closed profile persistence, and parallel fake/live dispatchers on Qt's owning thread. Diagnostics retains a bounded fake primitive trace even when Live Input is armed. The durable Profiles workflow supports pause-first activation with preference rollback plus inactive-only rename, confirmed recoverable deletion, and restore-from-Default. The Bindings workflow edits an isolated draft, preserves invalid input as inline feedback without mutating the last valid snapshot, and saves only as a new inactive profile. The Windows executor maps validated clicks, held buttons, wheel steps, keys, and shortcuts to Win32 packets with partial-send cleanup. The application registers `Ctrl+Alt+Shift+F11` only after explicit consent and releases/unregisters on every safety transition. Profile import/export and calibrated gaze pointer mapping remain pending.
 
 See:
 
@@ -23,7 +23,7 @@ See:
 - Target platform: Windows 10/11 x64, Python 3.11, and an ordinary webcam; live and visual QA is currently recorded on Windows 11 x64.
 - Build-period evidence: Git history begins on July 19, 2026, inside the July 13-21 submission window and remains unsquashed.
 - Runtime boundary: GPT-5.6 and Codex helped build MEYES; neither is an application runtime dependency and no OpenAI API key is required.
-- Safety boundary: the submitted scope is local vision plus in-memory action simulation; operating-system input stays disconnected until the README, demo, and code all truthfully show otherwise.
+- Safety boundary: the application starts with OS input disconnected. Live Input is an explicit, volatile Windows opt-in and must be shown with its consent, emergency, and release behavior in any demo that uses real output.
 
 See the [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md) and [judge quickstart](./JUDGES.md). The public demo URL, final Devpost URL, and `/feedback` Session ID remain explicit pre-submission checklist items.
 
@@ -59,6 +59,21 @@ Or use:
 ```powershell
 .\scripts\run_dev.ps1
 ```
+
+## Live Input safety
+
+1. Start the camera and verify stable gesture events in **Diagnostics**.
+2. Open **Live Input** and read the displayed safety checklist.
+3. Release physical mouse buttons and modifier keys, then type `ENABLE LIVE INPUT` exactly.
+4. Select **Arm Live Input**. Confirm the persistent bar says `LIVE INPUT` before testing in a
+   disposable target window.
+5. Press `Ctrl+Alt+Shift+F11`, select **Return to Safe Mode**, pause/stop the camera, or close MEYES
+   to gate dispatch and release all input owned by MEYES.
+
+Consent is not persisted. A profile change also disarms Live Input and requires new consent.
+Windows may block `SendInput` when the target process runs at a higher integrity level; MEYES
+cannot bypass that operating-system boundary. Automated tests use fake native APIs and never send
+real input.
 
 ## Verify
 
