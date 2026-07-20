@@ -100,8 +100,8 @@ Working in the submitted source build:
 - independent local face and lower-cadence hand inference;
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;
-- a dormant bounded nine-point sample collector with quota, attempt, ordering, replay, range, and
-  binocular-consistency guards; it is not yet exposed as a completed Calibration workflow;
+- a user-facing in-shell nine-point sample collector with explicit capture, progress, retry,
+  cancellation, quota, attempt, ordering, replay, range, and binocular-consistency guards;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
@@ -129,7 +129,7 @@ Working in the submitted source build:
 
 Intentionally not implemented or not enabled:
 
-- gaze calibration and cursor mapping;
+- fitted, validated, or persisted gaze calibration and cursor mapping;
 - tray controls, gaze pointer movement, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any

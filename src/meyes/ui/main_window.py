@@ -29,6 +29,8 @@ from meyes.input.windows_sendinput import WindowsSendInputExecutor
 from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.binding_editor_controller import BindingEditorController
 from meyes.ui.bindings_page import BindingsPage
+from meyes.ui.calibration_controller import CalibrationController
+from meyes.ui.calibration_page import CalibrationPage
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
@@ -117,6 +119,10 @@ class MainWindow(QMainWindow):
             initial_profile,
             repository=profile_repository,
             parent=self,
+        )
+        self._calibration_controller = CalibrationController(parent=self)
+        self._vision_controller.gaze_feature_changed.connect(
+            self._calibration_controller.observe_feature
         )
         self._last_camera_status = CameraStatus.STOPPED
         self._camera_controller.settings_changed.connect(self._save_camera_settings)
@@ -211,12 +217,17 @@ class MainWindow(QMainWindow):
         pages = QStackedWidget()
         pages.setObjectName("mainPages")
         self._camera_dashboard = CameraDashboard(self._camera_controller)
+        self._calibration_page = CalibrationPage(
+            self._calibration_controller,
+            prepare_calibration=self._prepare_calibration,
+        )
         self._live_input_page = LiveInputPage(
             self._live_input_controller,
             lambda: int(self.winId()),
         )
         page_widgets: dict[str, QWidget] = {
             "Dashboard": self._camera_dashboard,
+            "Calibration": self._calibration_page,
             "Bindings": BindingsPage(self._binding_editor_controller),
             "Live Input": self._live_input_page,
             "Diagnostics": DiagnosticsPage(
@@ -237,6 +248,7 @@ class MainWindow(QMainWindow):
             pages.addWidget(page)
         pages.setCurrentIndex(selected_row)
         navigation.currentRowChanged.connect(pages.setCurrentIndex)
+        navigation.currentRowChanged.connect(self._on_navigation_changed)
         layout.addWidget(navigation)
         layout.addWidget(pages, stretch=1)
         return workspace
@@ -300,6 +312,7 @@ class MainWindow(QMainWindow):
         self._live_safety_status.style().unpolish(self._live_safety_status)
         self._live_safety_status.style().polish(self._live_safety_status)
         self._camera_dashboard.set_live_input_armed(armed)
+        self._calibration_page.set_live_input_armed(armed)
 
     def _on_binding_profile_saved(self, payload: object) -> None:
         binding_profile(payload)
@@ -313,6 +326,19 @@ class MainWindow(QMainWindow):
                 extra={"state": result.state.value},
             )
         return result.success
+
+    def _prepare_calibration(self) -> bool:
+        result = self._live_input_controller.disarm("calibration collection")
+        if not result.success:
+            self._logger.error(
+                "calibration_live_release_failed",
+                extra={"state": result.state.value},
+            )
+        return result.success
+
+    def _on_navigation_changed(self, row: int) -> None:
+        calibration_row = NAVIGATION_ITEMS.index("Calibration")
+        self._calibration_page.set_page_active(row == calibration_row)
 
     def _set_profile_label(self, profile_name: str) -> None:
         full_text = f"Profile: {profile_name}"
@@ -330,6 +356,7 @@ class MainWindow(QMainWindow):
             return
         status = payload.status
         self._live_input_page.set_tracking_available(status is CameraStatus.RUNNING)
+        self._calibration_page.set_tracking_available(status is CameraStatus.RUNNING)
         if status is self._last_camera_status:
             return
         self._last_camera_status = status
@@ -347,6 +374,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""
+        self._calibration_controller.cancel()
         self._live_input_controller.close()
         self._action_simulation.close()
         self._vision_controller.stop()

@@ -52,8 +52,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   profiles through exclusive creation or atomically confirmed replacement without runtime change;
 - derives a fail-closed binocular iris-to-eye feature, expires it with the tracking watchdog, and
   labels it in Diagnostics as uncalibrated rather than claiming cursor coordinates;
-- provides a tested, dormant nine-point calibration collector with bounded volatile samples and
-  basic quality/replay rejection, without claiming a completed calibration experience;
+- provides a user-facing in-shell nine-point collection flow with explicit target capture,
+  progress/retry/cancel controls, bounded volatile samples, and basic quality/replay rejection;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
@@ -63,8 +63,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - starts every application session with operating-system input disconnected and never persists
   Live Input consent.
 
-The current build does **not** provide gaze cursor control, calibration, a packaged installer, a
-medical assessment,
+The current build does **not** provide gaze cursor control, fitted/validated/persisted calibration,
+a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 

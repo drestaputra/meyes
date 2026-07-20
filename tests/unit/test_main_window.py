@@ -232,6 +232,9 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
     assert consent is not None and arm is not None and safety_status is not None
     consent.setText(LIVE_INPUT_CONSENT_PHRASE)
+    window._calibration_controller.start()
+    window._calibration_controller.begin_target()
+    assert window._calibration_controller.snapshot.state.value == "collecting"
 
     arm.click()
     timestamp = time.monotonic()
@@ -246,6 +249,7 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
 
     assert window._live_input_controller.state is LiveInputState.ARMED
     assert safety.registered == 1
+    assert window._calibration_controller.snapshot.state.value == "cancelled"
     assert InputCall("mouse_click", (MouseButton.LEFT,)) in executor.calls
     assert "LIVE INPUT" in safety_status.text()
 
@@ -259,13 +263,22 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     assert rearmed_snapshot.state.value == "armed"
     assert safety.registered == 2
 
+    assert window._prepare_calibration()
+    calibration_snapshot = window._live_input_controller.snapshot
+    assert calibration_snapshot.state.value == "safe"
+    assert safety.unregistered == 2
+    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
+    arm.click()
+    assert window._live_input_controller.snapshot.state.value == "armed"
+    assert safety.registered == 3
+
     window._sync_vision_lifecycle(
         CameraHealth(status=CameraStatus.PAUSED, message="Camera is paused")
     )
 
     paused_snapshot = window._live_input_controller.snapshot
     assert paused_snapshot.state.value == "safe"
-    assert safety.unregistered == 2
+    assert safety.unregistered == 3
     assert executor.calls[-1] == InputCall("release_all")
     assert "SAFE MODE" in safety_status.text()
 

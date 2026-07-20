@@ -148,7 +148,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Extract normalized binocular gaze features with explicit invalid states and freshness expiry.
 - [ ] Build the guided nine-point calibration flow.
   - [x] Implement the bounded ordered sample-collection state machine.
-  - [ ] Connect collection to a distraction-free Calibration UI with safe cancellation.
+  - [x] Connect collection to an in-shell Calibration UI with safe cancellation.
+  - [ ] Promote collection to the distraction-free full-screen presentation.
 - [ ] Reject calibration outliers.
 - [ ] Implement a replaceable calibration mapper.
 - [ ] Implement adaptive cursor smoothing.
