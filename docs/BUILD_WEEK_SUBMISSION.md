@@ -74,6 +74,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - recovers accepted calibration once at SAFE startup under the exact stored policy and can configure
   only fake diagnostics when current display geometry also matches; consent and Live Input arming
   are never restored;
+- offers an exact-phrase calibration-forget control that clears fake diagnostics and moves the
+  envelope to a recoverable timestamped backup without changing Live Input state;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic

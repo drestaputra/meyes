@@ -159,7 +159,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
 - [x] Wire accepted-mapper save/recovery without weakening Live Input startup safety.
 - [x] Bind stored calibration to UTC creation time and exact physical primary-display geometry.
-- [ ] Add explicit replace/forget controls and stored-calibration provenance details to Calibration UI.
+- [ ] Add an explicit replace-confirmation control for a saved calibration.
+- [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
+- [ ] Add a safe deleted-backup restore or permanent-cleanup workflow.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Feed validated cursor smoothing and gate configuration into the production fake diagnostics pipeline.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.

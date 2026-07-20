@@ -76,6 +76,8 @@ class _RecordingStore:
     calls: list[object]
     loaded: CalibrationLoadResult = field(default_factory=lambda: CalibrationLoadResult(None))
     save_error: OSError | None = None
+    forget_error: OSError | None = None
+    forgotten_path: Path | None = Path("accepted-calibration.deleted.json")
 
     def save(
         self,
@@ -94,6 +96,12 @@ class _RecordingStore:
     ) -> CalibrationLoadResult:
         self.calls.append(("load", policy))
         return self.loaded
+
+    def forget(self) -> Path | None:
+        self.calls.append("forget")
+        if self.forget_error is not None:
+            raise self.forget_error
+        return self.forgotten_path
 
 
 @dataclass
@@ -236,3 +244,32 @@ def test_recovery_clears_when_current_display_geometry_changed() -> None:
         ("configure", accepted),
         ("configure", None),
     ]
+
+
+def test_forget_clears_before_moving_saved_envelope() -> None:
+    calls: list[object] = []
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        _RecordingStore(calls),
+        _policy(),
+    )
+
+    result = lifecycle.forget()
+
+    assert result.status is CalibrationPersistenceStatus.FORGOTTEN
+    assert result.recovered_from == Path("accepted-calibration.deleted.json")
+    assert calls == [("configure", None), "forget"]
+
+
+def test_forget_storage_fault_keeps_fake_pipeline_cleared() -> None:
+    calls: list[object] = []
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        _RecordingStore(calls, forget_error=OSError("move failed")),
+        _policy(),
+    )
+
+    result = lifecycle.forget()
+
+    assert result.status is CalibrationPersistenceStatus.FAULTED
+    assert calls == [("configure", None), "forget"]

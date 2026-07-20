@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
@@ -30,9 +31,12 @@ from meyes.ui.calibration_controller import (
     calibration_fit_outcome,
     calibration_snapshot,
 )
+from meyes.ui.calibration_persistence import CalibrationPersistenceResult
 from meyes.ui.calibration_presentation import CalibrationPresentation
 
 PrepareCalibration = Callable[[], bool]
+ForgetCalibration = Callable[[], CalibrationPersistenceResult]
+FORGET_CALIBRATION_PHRASE = "FORGET SAVED CALIBRATION"
 
 
 class CalibrationPage(QWidget):
@@ -43,6 +47,7 @@ class CalibrationPage(QWidget):
         controller: CalibrationController,
         *,
         prepare_calibration: PrepareCalibration,
+        forget_calibration: ForgetCalibration | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -50,8 +55,11 @@ class CalibrationPage(QWidget):
             raise TypeError("Expected CalibrationController")
         if not callable(prepare_calibration):
             raise TypeError("prepare_calibration must be callable")
+        if forget_calibration is not None and not callable(forget_calibration):
+            raise TypeError("forget_calibration must be callable or None")
         self._controller = controller
         self._prepare_calibration = prepare_calibration
+        self._forget_calibration = forget_calibration
         self._tracking_available = False
         self._presentation = CalibrationPresentation(controller, parent=self)
         self._build_ui()
@@ -147,6 +155,17 @@ class CalibrationPage(QWidget):
         fit_form.addRow("Acceptance", self._acceptance_status)
         fit_form.addRow("Saved calibration", self._persistence_status)
         panel_layout.addLayout(fit_form)
+        forget_actions = QHBoxLayout()
+        self._forget_confirmation = QLineEdit()
+        self._forget_confirmation.setObjectName("forgetCalibrationConfirmation")
+        self._forget_confirmation.setPlaceholderText(f"Type {FORGET_CALIBRATION_PHRASE}")
+        self._forget_confirmation.setAccessibleName("Forget saved calibration confirmation")
+        self._forget_button = QPushButton("Forget saved calibration")
+        self._forget_button.setObjectName("forgetCalibrationButton")
+        self._forget_button.setEnabled(False)
+        forget_actions.addWidget(self._forget_confirmation, stretch=1)
+        forget_actions.addWidget(self._forget_button)
+        panel_layout.addLayout(forget_actions)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
         layout.addWidget(description)
@@ -159,6 +178,8 @@ class CalibrationPage(QWidget):
         self._capture_button.clicked.connect(self._controller.begin_target)
         self._advance_button.clicked.connect(self._advance_or_retry)
         self._cancel_button.clicked.connect(self._controller.cancel)
+        self._forget_confirmation.textChanged.connect(self._update_forget_button)
+        self._forget_button.clicked.connect(self._forget_saved_calibration)
 
     def set_tracking_available(self, available: bool) -> None:
         """Cancel volatile collection as soon as camera tracking becomes unavailable."""
@@ -183,6 +204,27 @@ class CalibrationPage(QWidget):
         if not isinstance(message, str) or not message.strip():
             raise ValueError("Persistence status must be a non-empty string")
         self._persistence_status.setText(message.strip())
+
+    @Slot(str)
+    def _update_forget_button(self, value: str) -> None:
+        self._forget_button.setEnabled(
+            self._forget_calibration is not None and value == FORGET_CALIBRATION_PHRASE
+        )
+
+    @Slot()
+    def _forget_saved_calibration(self) -> None:
+        if (
+            self._forget_calibration is None
+            or self._forget_confirmation.text() != FORGET_CALIBRATION_PHRASE
+        ):
+            return
+        try:
+            result = self._forget_calibration()
+        except Exception:
+            self.set_persistence_status("Saved calibration could not be forgotten safely.")
+        else:
+            self.set_persistence_status(result.message)
+        self._forget_confirmation.clear()
 
     def set_live_input_armed(self, armed: bool) -> None:
         """Cancel collection if real operating-system output becomes armed."""

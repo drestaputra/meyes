@@ -67,8 +67,13 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
 - Delete `accepted-calibration.json` and any `accepted-calibration.invalid-*.json` backups from
   `%LOCALAPPDATA%\Meyes\` to remove stored mapper coefficients and validation evidence.
 
-MEYES does not currently provide an in-app deletion control, cloud account, telemetry opt-out
-for MediaPipe, or automated data-retention scheduler.
+The Calibration page can also move the active `accepted-calibration.json` envelope to a local
+timestamped `accepted-calibration.deleted-*.json` backup after the exact phrase
+`FORGET SAVED CALIBRATION` is typed. This clears fake cursor provisioning but does not permanently
+erase the backup or change Live Input state.
+
+MEYES does not currently provide in-app permanent backup deletion, a cloud account, telemetry
+opt-out for MediaPipe, or an automated data-retention scheduler.
 
 ## Responsible capture and demo use
 

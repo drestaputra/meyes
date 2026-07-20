@@ -40,6 +40,7 @@ from meyes.ui.calibration_page import CalibrationPage
 from meyes.ui.calibration_persistence import (
     AcceptedCalibrationStore,
     CalibrationPersistenceLifecycle,
+    CalibrationPersistenceResult,
     CalibrationPersistenceStatus,
 )
 from meyes.ui.camera_dashboard import CameraDashboard
@@ -294,6 +295,7 @@ class MainWindow(QMainWindow):
         self._calibration_page = CalibrationPage(
             self._calibration_controller,
             prepare_calibration=self._prepare_calibration,
+            forget_calibration=self._forget_saved_calibration,
         )
         self._live_input_page = LiveInputPage(
             self._live_input_controller,
@@ -410,6 +412,15 @@ class MainWindow(QMainWindow):
                 extra={"state": result.state.value},
             )
         return result.success
+
+    def _forget_saved_calibration(self) -> CalibrationPersistenceResult:
+        result = self._calibration_persistence.forget()
+        self._calibration_persistence_result = result
+        if result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error("calibration_forget_failed")
+        elif result.status is CalibrationPersistenceStatus.FORGOTTEN:
+            self._logger.info("calibration_forgotten")
+        return result
 
     def _on_navigation_changed(self, row: int) -> None:
         calibration_row = NAVIGATION_ITEMS.index("Calibration")

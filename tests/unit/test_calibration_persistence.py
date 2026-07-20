@@ -215,3 +215,21 @@ def test_provenance_requires_utc_creation_time() -> None:
             datetime(2026, 7, 20, 8, 15),
             PhysicalScreenGeometry(0, 0, 1920, 1080),
         )
+
+
+def test_forget_moves_envelope_to_recoverable_timestamped_backup(tmp_path: Path) -> None:
+    fixed_now = datetime(2026, 7, 20, 10, 45, tzinfo=UTC)
+    repository = AcceptedCalibrationRepository(
+        AppPaths.under(tmp_path),
+        clock=lambda: fixed_now,
+    )
+    repository.save(_calibration(), _policy(), _provenance())
+    original = repository.path.read_bytes()
+
+    backup = repository.forget()
+
+    assert backup is not None
+    assert backup.name.startswith("accepted-calibration.deleted-20260720-104500")
+    assert backup.read_bytes() == original
+    assert not repository.path.exists()
+    assert repository.forget() is None

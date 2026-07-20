@@ -196,6 +196,24 @@ class AcceptedCalibrationRepository:
                 backup,
             )
 
+    def forget(self) -> Path | None:
+        """Move the active envelope to a recoverable timestamped backup."""
+        try:
+            self.path.lstat()
+        except FileNotFoundError:
+            return None
+        self._assert_safe_path()
+        stamp = self._clock().astimezone(UTC).strftime("%Y%m%d-%H%M%S-%f")
+        backup = self.path.with_name(f"accepted-calibration.deleted-{stamp}.json")
+        try:
+            backup.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            raise FileExistsError("Calibration deleted backup already exists")
+        self.path.replace(backup)
+        return backup
+
     def _assert_safe_path(self) -> None:
         data_directory = self._paths.data_dir
         directory_metadata = data_directory.lstat()

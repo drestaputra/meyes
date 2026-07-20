@@ -33,6 +33,8 @@ class AcceptedCalibrationStore(Protocol):
         policy: CalibrationAcceptancePolicy | None,
     ) -> CalibrationLoadResult: ...
 
+    def forget(self) -> Path | None: ...
+
 
 @runtime_checkable
 class CursorProvisioner(Protocol):
@@ -51,6 +53,7 @@ class CalibrationPersistenceStatus(StrEnum):
     SAVED = "saved"
     VOLATILE = "volatile"
     INCOMPATIBLE = "incompatible"
+    FORGOTTEN = "forgotten"
     FAULTED = "faulted"
 
 
@@ -186,6 +189,36 @@ class CalibrationPersistenceLifecycle:
             _provenance_message("Saved", provenance),
             provisioning,
             provenance=provenance,
+        )
+
+    def forget(self) -> CalibrationPersistenceResult:
+        """Clear fake provisioning before recoverably moving the stored envelope."""
+        cleared = self._provisioner.configure(None)
+        if self._store is None:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.DISABLED,
+                "Calibration persistence is unavailable; fake diagnostics were cleared.",
+                cleared,
+            )
+        try:
+            backup = self._store.forget()
+        except OSError:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.FAULTED,
+                "Saved calibration could not be forgotten; fake diagnostics remain cleared.",
+                cleared,
+            )
+        if backup is None:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.EMPTY,
+                "No saved calibration existed; fake diagnostics were cleared.",
+                cleared,
+            )
+        return CalibrationPersistenceResult(
+            CalibrationPersistenceStatus.FORGOTTEN,
+            "Saved calibration was moved to a recoverable deleted backup.",
+            cleared,
+            recovered_from=backup,
         )
 
 
