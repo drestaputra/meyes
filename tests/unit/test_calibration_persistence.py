@@ -21,7 +21,9 @@ from meyes.calibration.mapper import (
 from meyes.calibration.persistence import (
     MAXIMUM_CALIBRATION_FILE_BYTES,
     AcceptedCalibrationRepository,
+    CalibrationProvenance,
 )
+from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.util.paths import AppPaths
 
 
@@ -41,19 +43,27 @@ def _calibration() -> AcceptedCalibration:
     )
 
 
+def _provenance() -> CalibrationProvenance:
+    return CalibrationProvenance(
+        datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+        PhysicalScreenGeometry(0, 0, 1920, 1080),
+    )
+
+
 def test_round_trip_recovers_proof_under_exact_policy(tmp_path: Path) -> None:
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
     expected = _calibration()
 
-    path = repository.save(expected, _policy())
+    path = repository.save(expected, _policy(), _provenance())
     result = repository.load(_policy())
 
     assert path == repository.path
     assert result.calibration == expected
+    assert result.provenance == _provenance()
     assert result.warning is None
     document = json.loads(path.read_text(encoding="utf-8"))
     assert set(document) == {"schema_version", "payload", "payload_sha256"}
-    assert set(document["payload"]) == {"mapper", "policy", "validation"}
+    assert set(document["payload"]) == {"mapper", "policy", "provenance", "validation"}
     serialized = path.read_text(encoding="utf-8")
     assert "raw_samples" not in serialized
     assert "capture_timestamp" not in serialized
@@ -62,7 +72,7 @@ def test_round_trip_recovers_proof_under_exact_policy(tmp_path: Path) -> None:
 
 def test_no_runtime_policy_does_not_read_or_move_stored_file(tmp_path: Path) -> None:
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
-    repository.save(_calibration(), _policy())
+    repository.save(_calibration(), _policy(), _provenance())
     original = repository.path.read_bytes()
 
     result = repository.load(None)
@@ -75,7 +85,7 @@ def test_no_runtime_policy_does_not_read_or_move_stored_file(tmp_path: Path) -> 
 
 def test_policy_change_requires_recalibration_without_quarantine(tmp_path: Path) -> None:
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
-    repository.save(_calibration(), _policy())
+    repository.save(_calibration(), _policy(), _provenance())
 
     result = repository.load(_policy(maximum_error=0.09))
 
@@ -91,7 +101,7 @@ def test_checksum_tampering_is_quarantined_and_never_recovers(tmp_path: Path) ->
         AppPaths.under(tmp_path),
         clock=lambda: fixed_now,
     )
-    repository.save(_calibration(), _policy())
+    repository.save(_calibration(), _policy(), _provenance())
     document = json.loads(repository.path.read_text(encoding="utf-8"))
     document["payload"]["mapper"]["horizontal_coefficients"][1] = 9.0
     repository.path.write_text(json.dumps(document), encoding="utf-8")
@@ -141,7 +151,7 @@ def test_save_rejects_evidence_that_does_not_satisfy_policy(tmp_path: Path) -> N
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
 
     with pytest.raises(ValueError, match="does not satisfy"):
-        repository.save(_calibration(), _policy(maximum_error=0.03))
+        repository.save(_calibration(), _policy(maximum_error=0.03), _provenance())
 
     assert not repository.path.exists()
 
@@ -151,7 +161,7 @@ def test_failed_atomic_replace_preserves_previous_envelope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
-    repository.save(_calibration(), _policy())
+    repository.save(_calibration(), _policy(), _provenance())
     original = repository.path.read_bytes()
 
     def fail_replace(source: Path, target: Path) -> None:
@@ -160,7 +170,7 @@ def test_failed_atomic_replace_preserves_previous_envelope(
     monkeypatch.setattr(os, "replace", fail_replace)
 
     with pytest.raises(OSError, match="replace unavailable"):
-        repository.save(_calibration(), _policy())
+        repository.save(_calibration(), _policy(), _provenance())
 
     assert repository.path.read_bytes() == original
     assert list(repository.path.parent.glob(".accepted-calibration-*.tmp")) == []
@@ -183,3 +193,25 @@ def test_load_does_not_follow_or_quarantine_calibration_symlink(tmp_path: Path) 
     assert result.recovered_from is None
     assert paths.calibration_file.is_symlink()
     assert sentinel.read_text(encoding="utf-8") == '{"keep":true}'
+
+
+def test_legacy_schema_is_preserved_but_never_recovered(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    legacy = '{"schema_version":1,"payload":{},"payload_sha256":"' + "0" * 64 + '"}'
+    paths.calibration_file.write_text(legacy, encoding="utf-8")
+
+    result = AcceptedCalibrationRepository(paths).load(_policy())
+
+    assert result.calibration is None
+    assert "legacy schema 1" in (result.warning or "")
+    assert result.recovered_from is None
+    assert paths.calibration_file.read_text(encoding="utf-8") == legacy
+
+
+def test_provenance_requires_utc_creation_time() -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        CalibrationProvenance(
+            datetime(2026, 7, 20, 8, 15),
+            PhysicalScreenGeometry(0, 0, 1920, 1080),
+        )

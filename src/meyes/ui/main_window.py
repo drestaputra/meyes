@@ -207,6 +207,10 @@ class MainWindow(QMainWindow):
         self._calibration_page.set_persistence_status(self._calibration_persistence_result.message)
         if self._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED:
             self._logger.info("calibration_startup_recovered")
+        elif (
+            self._calibration_persistence_result.status is CalibrationPersistenceStatus.INCOMPATIBLE
+        ):
+            self._logger.warning("calibration_startup_display_mismatch")
         elif self._calibration_persistence_result.status is CalibrationPersistenceStatus.FAULTED:
             self._logger.error(
                 "calibration_startup_recovery_failed",

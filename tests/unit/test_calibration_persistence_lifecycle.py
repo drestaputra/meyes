@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 from meyes.calibration.acceptance import (
@@ -14,14 +15,18 @@ from meyes.calibration.mapper import (
     CalibrationValidation,
     PolynomialCalibrationMapper,
 )
-from meyes.calibration.persistence import CalibrationLoadResult
+from meyes.calibration.persistence import CalibrationLoadResult, CalibrationProvenance
 from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.ui.calibration_persistence import (
     CalibrationPersistenceLifecycle,
     CalibrationPersistenceStatus,
 )
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
-from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
+from meyes.ui.cursor_provisioning import (
+    CursorPipelineProvisioner,
+    CursorProvisioningResult,
+    CursorProvisioningStatus,
+)
 
 
 def _accepted() -> AcceptedCalibration:
@@ -40,13 +45,20 @@ def _policy() -> CalibrationAcceptancePolicy:
     return CalibrationAcceptancePolicy(0.05, 0.04, 0.1, 18)
 
 
+_CREATED_AT = datetime(2026, 7, 20, 8, 15, tzinfo=UTC)
+_SCREEN = PhysicalScreenGeometry(0, 0, 1920, 1080)
+
+
+def _provenance(screen: PhysicalScreenGeometry = _SCREEN) -> CalibrationProvenance:
+    return CalibrationProvenance(_CREATED_AT, screen)
+
+
 @dataclass
 class _RecordingProvisioner:
     calls: list[object]
+    geometry: PhysicalScreenGeometry = _SCREEN
 
-    def configure(self, calibration: AcceptedCalibration | None):  # type: ignore[no-untyped-def]
-        from meyes.ui.cursor_provisioning import CursorProvisioningResult
-
+    def configure(self, calibration: AcceptedCalibration | None) -> CursorProvisioningResult:
         self.calls.append(("configure", calibration))
         return CursorProvisioningResult(
             (
@@ -55,6 +67,7 @@ class _RecordingProvisioner:
                 else CursorProvisioningStatus.UNAVAILABLE
             ),
             "configured" if calibration is not None else "cleared",
+            self.geometry if calibration is not None else None,
         )
 
 
@@ -68,8 +81,9 @@ class _RecordingStore:
         self,
         calibration: AcceptedCalibration,
         policy: CalibrationAcceptancePolicy,
+        provenance: CalibrationProvenance,
     ) -> Path:
-        self.calls.append(("save", calibration, policy))
+        self.calls.append(("save", calibration, policy, provenance))
         if self.save_error is not None:
             raise self.save_error
         return Path("accepted-calibration.json")
@@ -96,6 +110,7 @@ def test_replace_clears_before_save_and_reprovisions_afterward() -> None:
         _RecordingProvisioner(calls),
         _RecordingStore(calls),
         policy,
+        clock=lambda: _CREATED_AT,
     )
 
     result = lifecycle.replace(accepted)
@@ -103,8 +118,8 @@ def test_replace_clears_before_save_and_reprovisions_afterward() -> None:
     assert result.status is CalibrationPersistenceStatus.SAVED
     assert calls == [
         ("configure", None),
-        ("save", accepted, policy),
         ("configure", accepted),
+        ("save", accepted, policy, _provenance()),
     ]
 
 
@@ -115,14 +130,15 @@ def test_save_fault_restores_only_volatile_fake_diagnostics() -> None:
         _RecordingProvisioner(calls),
         _RecordingStore(calls, save_error=OSError("disk unavailable")),
         _policy(),
+        clock=lambda: _CREATED_AT,
     )
 
     result = lifecycle.replace(accepted)
 
     assert result.status is CalibrationPersistenceStatus.FAULTED
     assert "volatile" in result.message
-    assert calls[0] == ("configure", None)
-    assert calls[-1] == ("configure", accepted)
+    assert calls[:2] == [("configure", None), ("configure", accepted)]
+    assert calls[-1] == ("save", accepted, _policy(), _provenance())
 
 
 def test_missing_acceptance_clears_without_writing() -> None:
@@ -145,7 +161,10 @@ def test_recovery_is_one_shot_and_configures_recovered_proof() -> None:
     policy = _policy()
     lifecycle = CalibrationPersistenceLifecycle(
         _RecordingProvisioner(calls),
-        _RecordingStore(calls, loaded=CalibrationLoadResult(accepted)),
+        _RecordingStore(
+            calls,
+            loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+        ),
         policy,
     )
 
@@ -181,7 +200,10 @@ def test_real_provisioner_recovery_still_has_no_executor_dependency() -> None:
     provisioner = CursorPipelineProvisioner(diagnostics, _GeometryProvider())
     lifecycle = CalibrationPersistenceLifecycle(
         provisioner,
-        _RecordingStore([], loaded=CalibrationLoadResult(_accepted())),
+        _RecordingStore(
+            [],
+            loaded=CalibrationLoadResult(_accepted(), provenance=_provenance()),
+        ),
         _policy(),
     )
 
@@ -190,3 +212,27 @@ def test_real_provisioner_recovery_still_has_no_executor_dependency() -> None:
     assert result.status is CalibrationPersistenceStatus.RECOVERED
     assert result.provisioning is not None
     assert result.provisioning.status is CursorProvisioningStatus.READY
+
+
+def test_recovery_clears_when_current_display_geometry_changed() -> None:
+    calls: list[object] = []
+    accepted = _accepted()
+    current = PhysicalScreenGeometry(0, 0, 2560, 1440)
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls, geometry=current),
+        _RecordingStore(
+            calls,
+            loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+        ),
+        _policy(),
+    )
+
+    result = lifecycle.recover_once()
+
+    assert result.status is CalibrationPersistenceStatus.INCOMPATIBLE
+    assert "differs" in result.message
+    assert calls == [
+        ("load", _policy()),
+        ("configure", accepted),
+        ("configure", None),
+    ]

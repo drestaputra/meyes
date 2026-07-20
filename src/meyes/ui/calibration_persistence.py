@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from meyes.calibration.acceptance import AcceptedCalibration, CalibrationAcceptancePolicy
-from meyes.calibration.persistence import CalibrationLoadResult
+from meyes.calibration.persistence import CalibrationLoadResult, CalibrationProvenance
 from meyes.ui.cursor_provisioning import (
     CursorProvisioningResult,
     CursorProvisioningStatus,
@@ -23,6 +25,7 @@ class AcceptedCalibrationStore(Protocol):
         self,
         calibration: AcceptedCalibration,
         policy: CalibrationAcceptancePolicy,
+        provenance: CalibrationProvenance,
     ) -> Path: ...
 
     def load(
@@ -47,6 +50,7 @@ class CalibrationPersistenceStatus(StrEnum):
     RECOVERED = "recovered"
     SAVED = "saved"
     VOLATILE = "volatile"
+    INCOMPATIBLE = "incompatible"
     FAULTED = "faulted"
 
 
@@ -56,6 +60,7 @@ class CalibrationPersistenceResult:
     message: str
     provisioning: CursorProvisioningResult | None = None
     recovered_from: Path | None = None
+    provenance: CalibrationProvenance | None = None
 
 
 class CalibrationPersistenceLifecycle:
@@ -66,6 +71,8 @@ class CalibrationPersistenceLifecycle:
         provisioner: CursorProvisioner,
         store: AcceptedCalibrationStore | None,
         policy: CalibrationAcceptancePolicy | None,
+        *,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         if not isinstance(provisioner, CursorProvisioner):
             raise TypeError("Expected CursorProvisioner")
@@ -76,6 +83,7 @@ class CalibrationPersistenceLifecycle:
         self._provisioner = provisioner
         self._store = store
         self._policy = policy
+        self._clock = clock or (lambda: datetime.now(UTC))
         self._recovery_result: CalibrationPersistenceResult | None = None
 
     def recover_once(self) -> CalibrationPersistenceResult:
@@ -105,19 +113,31 @@ class CalibrationPersistenceLifecycle:
                 )
             else:
                 provisioning = self._provisioner.configure(loaded.calibration)
-                result = CalibrationPersistenceResult(
-                    (
-                        CalibrationPersistenceStatus.RECOVERED
-                        if provisioning.status is CursorProvisioningStatus.READY
-                        else CalibrationPersistenceStatus.FAULTED
-                    ),
-                    (
-                        "Stored accepted calibration recovered into fake-only diagnostics."
-                        if provisioning.status is CursorProvisioningStatus.READY
-                        else provisioning.message
-                    ),
-                    provisioning,
-                )
+                if (
+                    provisioning.status is not CursorProvisioningStatus.READY
+                    or provisioning.geometry is None
+                    or loaded.provenance is None
+                ):
+                    result = CalibrationPersistenceResult(
+                        CalibrationPersistenceStatus.FAULTED,
+                        provisioning.message,
+                        provisioning,
+                    )
+                elif provisioning.geometry != loaded.provenance.primary_screen:
+                    cleared = self._provisioner.configure(None)
+                    result = CalibrationPersistenceResult(
+                        CalibrationPersistenceStatus.INCOMPATIBLE,
+                        "Stored calibration display geometry differs; recalibrate.",
+                        cleared,
+                        provenance=loaded.provenance,
+                    )
+                else:
+                    result = CalibrationPersistenceResult(
+                        CalibrationPersistenceStatus.RECOVERED,
+                        _provenance_message("Recovered", loaded.provenance),
+                        provisioning,
+                        provenance=loaded.provenance,
+                    )
         self._recovery_result = result
         return result
 
@@ -125,7 +145,7 @@ class CalibrationPersistenceLifecycle:
         self,
         calibration: AcceptedCalibration | None,
     ) -> CalibrationPersistenceResult:
-        """Clear old provisioning, persist accepted proof, then provision the new fit."""
+        """Clear old provisioning, validate current display, then persist accepted proof."""
         if calibration is not None and not isinstance(calibration, AcceptedCalibration):
             raise TypeError("Expected AcceptedCalibration or None")
         cleared = self._provisioner.configure(None)
@@ -142,24 +162,37 @@ class CalibrationPersistenceLifecycle:
                 "Accepted calibration remains volatile because persistence is unavailable.",
                 provisioning,
             )
-        try:
-            self._store.save(calibration, self._policy)
-        except (OSError, TypeError, ValueError):
-            provisioning = self._provisioner.configure(calibration)
-            return CalibrationPersistenceResult(
-                CalibrationPersistenceStatus.FAULTED,
-                "Accepted calibration could not be saved; the current diagnostics are volatile.",
-                provisioning,
-            )
         provisioning = self._provisioner.configure(calibration)
-        if provisioning.status is not CursorProvisioningStatus.READY:
+        if (
+            provisioning.status is not CursorProvisioningStatus.READY
+            or provisioning.geometry is None
+        ):
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.FAULTED,
                 provisioning.message,
                 provisioning,
             )
+        try:
+            provenance = CalibrationProvenance(self._clock(), provisioning.geometry)
+            self._store.save(calibration, self._policy, provenance)
+        except (OSError, TypeError, ValueError):
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.FAULTED,
+                "Accepted calibration could not be saved; the current diagnostics are volatile.",
+                provisioning,
+            )
         return CalibrationPersistenceResult(
             CalibrationPersistenceStatus.SAVED,
-            "Accepted calibration was saved and fake-only diagnostics were configured.",
+            _provenance_message("Saved", provenance),
             provisioning,
+            provenance=provenance,
         )
+
+
+def _provenance_message(action: str, provenance: CalibrationProvenance) -> str:
+    screen = provenance.primary_screen
+    created = provenance.created_at_utc.strftime("%Y-%m-%d %H:%M UTC")
+    return (
+        f"{action} calibration from {created} for {screen.width}x{screen.height} "
+        f"at ({screen.left}, {screen.top}); fake-only diagnostics configured."
+    )

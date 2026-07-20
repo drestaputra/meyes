@@ -85,3 +85,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Disconnected accepted-calibration persistence lifecycle with clear-before-save ordering, volatile fallback after storage failure, one-shot startup recovery, quarantine reporting, and fake-only reprovisioning.
 - Composition-root accepted-calibration save/recovery using shared application paths, SAFE-only startup invariants, sanitized Calibration status/logging, and conditional fake diagnostics provisioning without consent or executor restoration.
 - Config-driven fake cursor provisioning for One Euro smoothing and temple/tracking gate settings, with behavioral tests for custom resume delay and filter response.
+- Accepted-calibration schema 2 provenance with canonical UTC creation time, physical primary-display geometry, legacy-schema preservation, startup geometry mismatch invalidation, and sanitized provenance UI.

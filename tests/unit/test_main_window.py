@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import NoReturn
 
@@ -25,7 +26,7 @@ from meyes.calibration.mapper import (
     CalibrationValidation,
     PolynomialCalibrationMapper,
 )
-from meyes.calibration.persistence import AcceptedCalibrationRepository
+from meyes.calibration.persistence import AcceptedCalibrationRepository, CalibrationProvenance
 from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CalibrationSettings
@@ -123,8 +124,11 @@ class MainWindowSafetyApi:
 
 
 class FixedGeometryProvider:
+    def __init__(self, geometry: PhysicalScreenGeometry | None = None) -> None:
+        self.geometry = geometry or PhysicalScreenGeometry(0, 0, 1920, 1080)
+
     def read(self) -> PhysicalScreenGeometry:
-        return PhysicalScreenGeometry(0, 0, 1920, 1080)
+        return self.geometry
 
 
 def accepted_calibration() -> AcceptedCalibration:
@@ -168,7 +172,14 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     config = AppConfig(calibration=calibration_settings)
     policy = calibration_settings.acceptance_policy
     assert policy is not None
-    AcceptedCalibrationRepository(paths).save(accepted_calibration(), policy)
+    AcceptedCalibrationRepository(paths).save(
+        accepted_calibration(),
+        policy,
+        CalibrationProvenance(
+            datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+            PhysicalScreenGeometry(0, 0, 1920, 1080),
+        ),
+    )
 
     window = MainWindow(
         config,
@@ -233,7 +244,52 @@ def test_newly_accepted_fit_is_saved_without_arming_live_input(
     assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.SAVED
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert persistence_label is not None
-    assert "was saved" in persistence_label.text()
+    assert "Saved calibration" in persistence_label.text()
+
+
+def test_startup_recovery_rejects_changed_primary_display_geometry(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    calibration_settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.1,
+        minimum_holdout_samples=18,
+    )
+    config = AppConfig(calibration=calibration_settings)
+    policy = calibration_settings.acceptance_policy
+    assert policy is not None
+    AcceptedCalibrationRepository(paths).save(
+        accepted_calibration(),
+        policy,
+        CalibrationProvenance(
+            datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+            PhysicalScreenGeometry(0, 0, 1920, 1080),
+        ),
+    )
+
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        cursor_geometry_provider=FixedGeometryProvider(PhysicalScreenGeometry(0, 0, 2560, 1440)),
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    persistence_label = window.findChild(QLabel, "calibrationPersistenceStatus")
+
+    assert (
+        window._calibration_persistence_result.status is CalibrationPersistenceStatus.INCOMPATIBLE
+    )
+    assert window._cursor_diagnostics.snapshot.status is CursorDiagnosticsStatus.UNAVAILABLE
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert persistence_label is not None
+    assert "differs" in persistence_label.text()
 
 
 def test_discovered_camera_selection_is_persisted(qtbot: QtBot, tmp_path: Path) -> None:

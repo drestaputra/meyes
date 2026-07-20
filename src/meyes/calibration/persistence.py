@@ -26,9 +26,10 @@ from meyes.calibration.mapper import (
     CalibrationValidation,
     PolynomialCalibrationMapper,
 )
+from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.util.paths import AppPaths
 
-CALIBRATION_ENVELOPE_SCHEMA_VERSION = 1
+CALIBRATION_ENVELOPE_SCHEMA_VERSION = 2
 MAXIMUM_CALIBRATION_FILE_BYTES = 64 * 1024
 _DIGEST_HEX_LENGTH = 64
 _WINDOWS_REPARSE_POINT = 0x0400
@@ -40,6 +41,34 @@ class DuplicateCalibrationKeyError(ValueError):
     """Reject ambiguous JSON objects before schema validation."""
 
 
+class LegacyCalibrationSchemaError(ValueError):
+    """Keep a valid old envelope inactive without treating it as corrupt."""
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationProvenance:
+    """Bounded context required before persisted calibration may be reused."""
+
+    created_at_utc: datetime
+    primary_screen: PhysicalScreenGeometry
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.created_at_utc, datetime):
+            raise TypeError("Calibration creation time must be a datetime")
+        offset = self.created_at_utc.utcoffset()
+        if self.created_at_utc.tzinfo is None or offset is None:
+            raise ValueError("Calibration creation time must be timezone-aware")
+        if offset.total_seconds() != 0:
+            raise ValueError("Calibration creation time must use UTC")
+        object.__setattr__(
+            self,
+            "created_at_utc",
+            self.created_at_utc.astimezone(UTC).replace(microsecond=0),
+        )
+        if not isinstance(self.primary_screen, PhysicalScreenGeometry):
+            raise TypeError("Expected PhysicalScreenGeometry")
+
+
 @dataclass(frozen=True, slots=True)
 class CalibrationLoadResult:
     """Recovered proof token or a bounded fail-closed explanation."""
@@ -47,6 +76,7 @@ class CalibrationLoadResult:
     calibration: AcceptedCalibration | None
     warning: str | None = None
     recovered_from: Path | None = None
+    provenance: CalibrationProvenance | None = None
 
 
 class AcceptedCalibrationRepository:
@@ -66,16 +96,19 @@ class AcceptedCalibrationRepository:
         self,
         calibration: AcceptedCalibration,
         policy: CalibrationAcceptancePolicy,
+        provenance: CalibrationProvenance,
     ) -> Path:
         """Atomically persist only evidence accepted by the supplied policy."""
         if not isinstance(calibration, AcceptedCalibration):
             raise TypeError("Expected AcceptedCalibration")
         if not isinstance(policy, CalibrationAcceptancePolicy):
             raise TypeError("Expected CalibrationAcceptancePolicy")
+        if not isinstance(provenance, CalibrationProvenance):
+            raise TypeError("Expected CalibrationProvenance")
         decision = evaluate_calibration_acceptance(policy, calibration.fit_result.validation)
         if decision.state is not CalibrationAcceptanceState.ACCEPTED:
             raise ValueError("Calibration evidence does not satisfy the persistence policy")
-        payload = _payload(calibration.fit_result, policy)
+        payload = _payload(calibration.fit_result, policy, provenance)
         envelope = {
             "schema_version": CALIBRATION_ENVELOPE_SCHEMA_VERSION,
             "payload": payload,
@@ -133,7 +166,7 @@ class AcceptedCalibrationRepository:
                 object_pairs_hook=_reject_duplicate_keys,
                 parse_constant=_reject_json_constant,
             )
-            fit_result, stored_policy = _decode_envelope(document)
+            fit_result, stored_policy, provenance = _decode_envelope(document)
             if stored_policy != policy:
                 return CalibrationLoadResult(
                     None,
@@ -142,7 +175,12 @@ class AcceptedCalibrationRepository:
             acceptance = evaluate_calibration_acceptance(policy, fit_result.validation)
             if acceptance.state is not CalibrationAcceptanceState.ACCEPTED:
                 raise ValueError("Stored calibration evidence no longer satisfies its policy")
-            return CalibrationLoadResult(AcceptedCalibration(fit_result, acceptance))
+            return CalibrationLoadResult(
+                AcceptedCalibration(fit_result, acceptance),
+                provenance=provenance,
+            )
+        except LegacyCalibrationSchemaError as error:
+            return CalibrationLoadResult(None, str(error))
         except (
             OSError,
             UnicodeError,
@@ -200,6 +238,7 @@ class AcceptedCalibrationRepository:
 def _payload(
     fit_result: CalibrationFitResult,
     policy: CalibrationAcceptancePolicy,
+    provenance: CalibrationProvenance,
 ) -> dict[str, object]:
     mapper = fit_result.mapper
     if not isinstance(mapper, PolynomialCalibrationMapper):
@@ -217,6 +256,15 @@ def _payload(
             "maximum_error": policy.maximum_error,
             "minimum_holdout_samples": policy.minimum_holdout_samples,
         },
+        "provenance": {
+            "created_at_utc": _format_utc(provenance.created_at_utc),
+            "primary_screen": {
+                "left": provenance.primary_screen.left,
+                "top": provenance.primary_screen.top,
+                "width": provenance.primary_screen.width,
+                "height": provenance.primary_screen.height,
+            },
+        },
         "validation": {
             "sample_count": validation.sample_count,
             "root_mean_square_error": validation.root_mean_square_error,
@@ -226,10 +274,17 @@ def _payload(
     }
 
 
-def _decode_envelope(document: object) -> tuple[CalibrationFitResult, CalibrationAcceptancePolicy]:
+def _decode_envelope(
+    document: object,
+) -> tuple[CalibrationFitResult, CalibrationAcceptancePolicy, CalibrationProvenance]:
     envelope = _mapping(document, "Calibration envelope")
     _exact_keys(envelope, {"schema_version", "payload", "payload_sha256"}, "envelope")
-    if _integer(envelope["schema_version"], "schema_version") != 1:
+    schema_version = _integer(envelope["schema_version"], "schema_version")
+    if schema_version == 1:
+        raise LegacyCalibrationSchemaError(
+            "Stored calibration uses legacy schema 1 without display provenance; recalibrate."
+        )
+    if schema_version != CALIBRATION_ENVELOPE_SCHEMA_VERSION:
         raise ValueError("Unsupported calibration schema version")
     payload = _mapping(envelope["payload"], "Calibration payload")
     digest = envelope["payload_sha256"]
@@ -241,7 +296,7 @@ def _decode_envelope(document: object) -> tuple[CalibrationFitResult, Calibratio
         raise ValueError("Calibration payload digest is malformed")
     if not hmac.compare_digest(digest, _payload_digest(payload)):
         raise ValueError("Calibration payload checksum does not match")
-    _exact_keys(payload, {"mapper", "policy", "validation"}, "payload")
+    _exact_keys(payload, {"mapper", "policy", "provenance", "validation"}, "payload")
 
     mapper_payload = _mapping(payload["mapper"], "Calibration mapper")
     _exact_keys(
@@ -287,7 +342,37 @@ def _decode_envelope(document: object) -> tuple[CalibrationFitResult, Calibratio
         _number(policy_payload["maximum_error"], "maximum_error"),
         _integer(policy_payload["minimum_holdout_samples"], "minimum_holdout_samples"),
     )
-    return CalibrationFitResult(mapper, validation), policy
+
+    provenance_payload = _mapping(payload["provenance"], "Calibration provenance")
+    _exact_keys(provenance_payload, {"created_at_utc", "primary_screen"}, "provenance")
+    screen_payload = _mapping(provenance_payload["primary_screen"], "Primary screen provenance")
+    _exact_keys(screen_payload, {"left", "top", "width", "height"}, "primary_screen")
+    provenance = CalibrationProvenance(
+        _parse_utc(provenance_payload["created_at_utc"]),
+        PhysicalScreenGeometry(
+            _integer(screen_payload["left"], "screen left"),
+            _integer(screen_payload["top"], "screen top"),
+            _integer(screen_payload["width"], "screen width"),
+            _integer(screen_payload["height"], "screen height"),
+        ),
+    )
+    return CalibrationFitResult(mapper, validation), policy, provenance
+
+
+def _format_utc(value: datetime) -> str:
+    return value.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _parse_utc(value: object) -> datetime:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise ValueError("Calibration creation time must be an ISO-8601 UTC value")
+    try:
+        parsed = datetime.fromisoformat(f"{value[:-1]}+00:00")
+    except ValueError as error:
+        raise ValueError("Calibration creation time is malformed") from error
+    if _format_utc(parsed) != value:
+        raise ValueError("Calibration creation time is not canonical")
+    return parsed
 
 
 def _payload_digest(payload: Mapping[str, object]) -> str:
