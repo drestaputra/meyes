@@ -20,6 +20,7 @@ from meyes.calibration.mapper import (
 )
 from meyes.calibration.persistence import (
     MAXIMUM_CALIBRATION_FILE_BYTES,
+    MAXIMUM_DELETED_CALIBRATION_BACKUPS,
     AcceptedCalibrationRepository,
     CalibrationProvenance,
 )
@@ -233,3 +234,44 @@ def test_forget_moves_envelope_to_recoverable_timestamped_backup(tmp_path: Path)
     assert backup.read_bytes() == original
     assert not repository.path.exists()
     assert repository.forget() is None
+
+
+def test_deleted_catalog_is_bounded_newest_first_and_read_only(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    total = MAXIMUM_DELETED_CALIBRATION_BACKUPS + 2
+    for index in range(total):
+        stamp = f"20260720-1045{index:02d}-000000"
+        (paths.data_dir / f"accepted-calibration.deleted-{stamp}.json").write_bytes(
+            f"backup-{index}".encode()
+        )
+    malformed = paths.data_dir / "accepted-calibration.deleted-unknown.json"
+    malformed.write_text("keep", encoding="utf-8")
+    repository = AcceptedCalibrationRepository(paths)
+
+    catalog = repository.deleted_catalog()
+
+    assert len(catalog.backups) == MAXIMUM_DELETED_CALIBRATION_BACKUPS
+    assert catalog.backups[0].deleted_at_utc > catalog.backups[-1].deleted_at_utc
+    assert catalog.backups[0].size_bytes > 0
+    assert catalog.warning is not None
+    assert malformed.read_text(encoding="utf-8") == "keep"
+
+
+def test_deleted_catalog_does_not_follow_backup_symlink(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    sentinel = tmp_path / "outside.json"
+    sentinel.write_text("keep", encoding="utf-8")
+    link = paths.data_dir / "accepted-calibration.deleted-20260720-104500-000000.json"
+    try:
+        link.symlink_to(sentinel)
+    except OSError as error:
+        pytest.skip(f"Symlinks are unavailable: {error}")
+
+    catalog = AcceptedCalibrationRepository(paths).deleted_catalog()
+
+    assert catalog.backups == ()
+    assert catalog.warning is not None
+    assert link.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "keep"

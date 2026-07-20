@@ -7,6 +7,7 @@ import hmac
 import json
 import math
 import os
+import re
 import stat
 import tempfile
 from collections.abc import Callable, Mapping
@@ -31,8 +32,10 @@ from meyes.util.paths import AppPaths
 
 CALIBRATION_ENVELOPE_SCHEMA_VERSION = 2
 MAXIMUM_CALIBRATION_FILE_BYTES = 64 * 1024
+MAXIMUM_DELETED_CALIBRATION_BACKUPS = 20
 _DIGEST_HEX_LENGTH = 64
 _WINDOWS_REPARSE_POINT = 0x0400
+_DELETED_BACKUP_PATTERN = re.compile(r"^accepted-calibration\.deleted-(\d{8}-\d{6}-\d{6})\.json$")
 
 Clock = Callable[[], datetime]
 
@@ -77,6 +80,23 @@ class CalibrationLoadResult:
     warning: str | None = None
     recovered_from: Path | None = None
     provenance: CalibrationProvenance | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DeletedCalibrationBackup:
+    """Read-only metadata for one recoverably forgotten envelope."""
+
+    path: Path
+    deleted_at_utc: datetime
+    size_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeletedCalibrationCatalog:
+    """Bounded newest-first backup metadata plus a sanitized warning."""
+
+    backups: tuple[DeletedCalibrationBackup, ...]
+    warning: str | None = None
 
 
 class AcceptedCalibrationRepository:
@@ -214,16 +234,56 @@ class AcceptedCalibrationRepository:
         self.path.replace(backup)
         return backup
 
+    def deleted_catalog(self) -> DeletedCalibrationCatalog:
+        """List bounded backup metadata without reading or mutating envelope payloads."""
+        if not self._paths.data_dir.exists():
+            return DeletedCalibrationCatalog(())
+        try:
+            self._assert_safe_data_directory()
+            backups: list[DeletedCalibrationBackup] = []
+            ignored = 0
+            for candidate in self._paths.data_dir.glob("accepted-calibration.deleted-*.json"):
+                match = _DELETED_BACKUP_PATTERN.fullmatch(candidate.name)
+                if match is None:
+                    ignored += 1
+                    continue
+                try:
+                    metadata = candidate.lstat()
+                except OSError:
+                    ignored += 1
+                    continue
+                attributes = int(getattr(metadata, "st_file_attributes", 0))
+                if (
+                    stat.S_ISLNK(metadata.st_mode)
+                    or attributes & _WINDOWS_REPARSE_POINT
+                    or not stat.S_ISREG(metadata.st_mode)
+                ):
+                    ignored += 1
+                    continue
+                try:
+                    deleted_at = datetime.strptime(
+                        match.group(1),
+                        "%Y%m%d-%H%M%S-%f",
+                    ).replace(tzinfo=UTC)
+                except ValueError:
+                    ignored += 1
+                    continue
+                backups.append(
+                    DeletedCalibrationBackup(candidate, deleted_at, int(metadata.st_size))
+                )
+        except OSError:
+            return DeletedCalibrationCatalog((), "Deleted calibration backups are unavailable.")
+        backups.sort(key=lambda item: (item.deleted_at_utc, item.path.name), reverse=True)
+        truncated = len(backups) > MAXIMUM_DELETED_CALIBRATION_BACKUPS
+        visible = tuple(backups[:MAXIMUM_DELETED_CALIBRATION_BACKUPS])
+        warning = None
+        if ignored or truncated:
+            warning = "Some deleted calibration backup metadata was ignored or omitted."
+        return DeletedCalibrationCatalog(visible, warning)
+
     def _assert_safe_path(self) -> None:
-        data_directory = self._paths.data_dir
-        directory_metadata = data_directory.lstat()
-        directory_attributes = int(getattr(directory_metadata, "st_file_attributes", 0))
-        if (
-            stat.S_ISLNK(directory_metadata.st_mode)
-            or directory_attributes & _WINDOWS_REPARSE_POINT
-        ):
-            raise OSError("Calibration directory must not be a link or reparse point")
-        if self.path.parent.resolve(strict=True) != data_directory.resolve(strict=True):
+        self._assert_safe_data_directory()
+        if self.path.parent.resolve(strict=True) != self._paths.data_dir.resolve(strict=True):
             raise OSError("Calibration path escapes the configured data directory")
         if not self.path.exists():
             return
@@ -233,6 +293,18 @@ class AcceptedCalibrationRepository:
             raise OSError("Calibration path must not be a link or reparse point")
         if not stat.S_ISREG(metadata.st_mode):
             raise OSError("Calibration path must be a regular file")
+
+    def _assert_safe_data_directory(self) -> None:
+        data_directory = self._paths.data_dir
+        directory_metadata = data_directory.lstat()
+        directory_attributes = int(getattr(directory_metadata, "st_file_attributes", 0))
+        if (
+            stat.S_ISLNK(directory_metadata.st_mode)
+            or directory_attributes & _WINDOWS_REPARSE_POINT
+        ):
+            raise OSError("Calibration directory must not be a link or reparse point")
+        if not stat.S_ISDIR(directory_metadata.st_mode):
+            raise OSError("Calibration directory must be a directory")
 
     def _backup_invalid_file(self) -> Path | None:
         if not self.path.exists():

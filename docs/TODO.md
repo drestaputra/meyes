@@ -162,6 +162,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Add an explicit replace-confirmation control for a saved calibration.
 - [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
 - [ ] Add a safe deleted-backup restore or permanent-cleanup workflow.
+- [x] Add bounded read-only metadata cataloging for recoverably deleted calibration backups.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Feed validated cursor smoothing and gate configuration into the production fake diagnostics pipeline.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.

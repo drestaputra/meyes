@@ -87,3 +87,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Config-driven fake cursor provisioning for One Euro smoothing and temple/tracking gate settings, with behavioral tests for custom resume delay and filter response.
 - Accepted-calibration schema 2 provenance with canonical UTC creation time, physical primary-display geometry, legacy-schema preservation, startup geometry mismatch invalidation, and sanitized provenance UI.
 - Exact-phrase Forget saved calibration workflow with pipeline-first clearing, recoverable timestamped backup moves, sanitized status/logging, and no Live Input state change.
+- Read-only bounded deleted-calibration backup catalog metadata with strict filename timestamps, newest-first ordering, link/reparse refusal, and no payload reads or mutations.
