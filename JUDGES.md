@@ -112,6 +112,8 @@ Working in the submitted source build:
   cutoff, independent axes, and stale-gap reset, with no pointer-output consumer;
 - a dormant normalized-to-physical-pixel primary-screen mapper with inclusive bounds, explicit
   clamping evidence, signed 32-bit validation, and no executor dependency;
+- a dormant cursor movement gate that starts suspended, handles overlapping temple holds and tap
+  pulses, applies a configurable resume delay, and never overrides tracking-loss suspension;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

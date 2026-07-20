@@ -159,7 +159,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [ ] Acquire DPI-aware primary-screen geometry and connect the accepted mapper pipeline safely.
-- [ ] Freeze and safely resume cursor movement around temple gestures.
+- [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
+- [ ] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake runtime.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

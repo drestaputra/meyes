@@ -76,3 +76,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Distraction-free primary-display calibration presentation with normalized nine-point target placement, keyboard controls, live progress/fit feedback, return-after-completion, and fail-safe close/lifecycle cancellation.
 - Dormant configurable One Euro 2D filter with velocity-adaptive cutoff, strict monotonic timestamps, stale-gap reseeding, independent axes, and deterministic jitter/responsiveness replay tests.
 - Dormant primary-screen coordinate mapper with explicit physical-pixel geometry, inclusive endpoints, per-axis clamping evidence, signed 32-bit bounds, and no executor dependency.
+- Dormant fail-closed cursor movement gate with tracking suspension, overlapping temple holds, tap pulses, monotonic ordering, configurable resume delay, and no output consumer.

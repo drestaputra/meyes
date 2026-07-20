@@ -7,6 +7,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from meyes.calibration.acceptance import CalibrationAcceptancePolicy
+from meyes.cursor.gate import CursorGateSettings
 from meyes.cursor.smoothing import OneEuroFilterSettings
 from meyes.util.profile_names import validate_profile_name
 
@@ -188,6 +189,8 @@ class CursorSettings(StrictConfigModel):
         strict=True,
     )
     maximum_gap_ms: int = Field(default=250, ge=50, le=5000, strict=True)
+    freeze_during_temple_gesture: bool = True
+    resume_delay_ms: int = Field(default=120, ge=0, le=5000, strict=True)
 
     @property
     def filter_settings(self) -> OneEuroFilterSettings:
@@ -196,6 +199,13 @@ class CursorSettings(StrictConfigModel):
             speed_coefficient=self.speed_coefficient,
             derivative_cutoff=self.derivative_cutoff,
             maximum_gap_seconds=self.maximum_gap_ms / 1000.0,
+        )
+
+    @property
+    def gate_settings(self) -> CursorGateSettings:
+        return CursorGateSettings(
+            freeze_during_temple_gesture=self.freeze_during_temple_gesture,
+            resume_delay_seconds=self.resume_delay_ms / 1000.0,
         )
 
 

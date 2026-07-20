@@ -158,9 +158,13 @@ def test_cursor_filter_settings_are_bounded_and_backward_compatible() -> None:
 
     assert config.cursor == CursorSettings()
     assert config.cursor.filter_settings.maximum_gap_seconds == 0.25
+    assert config.cursor.gate_settings.freeze_during_temple_gesture
+    assert config.cursor.gate_settings.resume_delay_seconds == 0.12
     with pytest.raises(ValidationError, match="maximum_gap_ms"):
         CursorSettings(maximum_gap_ms=49)
     with pytest.raises(ValidationError, match="speed_coefficient"):
         CursorSettings(speed_coefficient=float("inf"))
     with pytest.raises(ValidationError, match="maximum_gap_ms"):
         CursorSettings(maximum_gap_ms=True)
+    with pytest.raises(ValidationError, match="resume_delay_ms"):
+        CursorSettings(resume_delay_ms=-1)
