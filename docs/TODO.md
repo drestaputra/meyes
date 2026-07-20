@@ -155,7 +155,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Fit a volatile mapper after complete collection and show guarded holdout metrics in Calibration.
 - [x] Add an opt-in all-or-none acceptance-policy contract with a fail-closed review-required default.
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
-- [ ] Persist and recover an accepted mapper without weakening Live Input startup safety.
+- [x] Define versioned, checksummed, exact-policy persistence and fail-closed recovery for an accepted mapper.
+- [ ] Wire explicit accepted-mapper save/recovery lifecycle without weakening Live Input startup safety.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.

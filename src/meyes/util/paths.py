@@ -47,6 +47,11 @@ class AppPaths:
         return self.config_dir / "profiles"
 
     @property
+    def calibration_file(self) -> Path:
+        """Canonical accepted-calibration evidence envelope path."""
+        return self.data_dir / "accepted-calibration.json"
+
+    @property
     def log_file(self) -> Path:
         """Canonical rotating log path."""
         return self.log_dir / "meyes.log"

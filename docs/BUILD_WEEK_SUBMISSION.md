@@ -56,8 +56,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   placement, Space/Enter/R/Escape controls, bounded volatile samples, quality/replay rejection,
   robust per-target median/MAD filtering, and fail-safe presentation-close cancellation;
 - fits a volatile replaceable quadratic mapper after complete user collection, with fail-closed
-  numerical guards and visible deterministic per-target holdout metrics, without accepting,
-  activating, or persisting its output;
+  numerical guards and visible deterministic per-target holdout metrics, without automatically
+  accepting or activating its output;
 - evaluates a mapper only when a complete four-limit acceptance policy is explicitly configured,
   otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
 - provides a dormant configurable One Euro 2D filter with deterministic jitter, rapid-step,
@@ -68,6 +68,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   scope;
 - constructs the production fake-only diagnostics pipeline only from proof-carrying accepted
   calibration plus validated geometry, and tears it down on acceptance loss or native failure;
+- provides a disconnected local repository for versioned, checksummed accepted-mapper coefficients,
+  exact acceptance policy, and holdout evidence; runtime save and recovery are not yet wired;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
@@ -84,7 +86,7 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   Live Input consent.
 
 The current build does **not** provide gaze cursor control, evidence-backed default calibration
-limits, mapper persistence or activation, a packaged installer, a medical assessment,
+limits, automatic mapper save/recovery or pointer activation, a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 

@@ -12,11 +12,12 @@ current session.
 | Webcam frames | Held in bounded, latest-only memory for preview and local inference, then discarded. MEYES does not intentionally save or upload frames. |
 | Face and hand landmarks | Derived locally and held in memory for diagnostics and gesture state. They are not written as images or recordings. |
 | Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not calibrated screen coordinates and are not persisted in this build. |
-| Calibration samples and mapper | Target/feature pairs and any fitted quadratic mapper remain only in bounded session memory. Escape, closing the full-screen presentation, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them; even a policy-accepted mapper is not activated or persisted. |
-| Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; configuring limits does not persist or activate the mapper. |
+| Calibration samples | Raw target/feature pairs remain only in bounded session memory. Escape, closing the full-screen presentation, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them. Raw samples are not included in the accepted-calibration envelope. |
+| Accepted calibration envelope | A disconnected repository can atomically store only quadratic mapper coefficients, holdout metrics, the exact accepting policy, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. Runtime save/recovery is not wired yet; invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. The checksum is not authentication against a local attacker. |
+| Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; persistence recovery also remains disabled without a complete policy. |
 | Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration only. The current runtime does not feed gaze predictions into the filter or move the pointer. |
 | Cursor gate settings | Temple-freeze and resume-delay values are local configuration. Disabling temple freeze never disables tracking-loss suspension; no gaze pointer runtime consumes the gate yet. |
-| Fake cursor diagnostics | When an accepted pipeline is injected in tests, the latest normalized and physical-pixel candidate is held only in memory and removed on block, expiry, suspension, or fault. Production has no configured candidate pipeline yet. |
+| Fake cursor diagnostics | Production constructs a no-executor candidate pipeline only after volatile policy acceptance plus a validated physical-screen read. The latest normalized and physical-pixel candidate is held only in memory and removed on block, expiry, suspension, acceptance loss, or fault. It is never persisted. |
 | Gesture diagnostics | Displayed in memory. Conservative semantic event metadata may appear in the local application log; frames and landmark arrays are not intentionally logged. |
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
@@ -59,6 +60,8 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
   to remove saved preferences.
 - Delete `meyes.log` and its numbered backups from `%LOCALAPPDATA%\Meyes\Logs\` to remove
   local logs. Close MEYES first so the files are not in use.
+- Delete `accepted-calibration.json` and any `accepted-calibration.invalid-*.json` backups from
+  `%LOCALAPPDATA%\Meyes\` to remove stored mapper coefficients and validation evidence.
 
 MEYES does not currently provide an in-app deletion control, cloud account, telemetry opt-out
 for MediaPipe, or automated data-retention scheduler.
