@@ -110,6 +110,8 @@ Working in the submitted source build:
   to `Review Required` because no benchmark limits are claimed, and never activates its mapper;
 - a dormant configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive
   cutoff, independent axes, and stale-gap reset, with no pointer-output consumer;
+- a dormant normalized-to-physical-pixel primary-screen mapper with inclusive bounds, explicit
+  clamping evidence, signed 32-bit validation, and no executor dependency;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

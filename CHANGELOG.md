@@ -75,3 +75,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Opt-in all-or-none calibration acceptance policy with transparent multi-limit rejection reasons, a fail-closed `Review Required` default, accepted-result isolation, and no mapper activation or persistence.
 - Distraction-free primary-display calibration presentation with normalized nine-point target placement, keyboard controls, live progress/fit feedback, return-after-completion, and fail-safe close/lifecycle cancellation.
 - Dormant configurable One Euro 2D filter with velocity-adaptive cutoff, strict monotonic timestamps, stale-gap reseeding, independent axes, and deterministic jitter/responsiveness replay tests.
+- Dormant primary-screen coordinate mapper with explicit physical-pixel geometry, inclusive endpoints, per-axis clamping evidence, signed 32-bit bounds, and no executor dependency.
