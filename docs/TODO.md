@@ -123,6 +123,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Implement poll-driven continuous scroll with fail-safe release and no catch-up.
 - [x] Implement validated keyboard shortcut dispatch through the fake executor.
 - [ ] Implement the global emergency pause shortcut.
+- [x] Add the dormant Windows global-hotkey registration, native-event filter, and physical-input
+  preflight foundation without registering it in the Safe Mode application.
 - [ ] Add explicit live-mode consent, physical-key preflight, emergency pause, and a release-first
   arm/disarm gate before constructing the native executor in the application.
 - [x] Implement dispatcher no-input safe mode with an explicit arm gate.

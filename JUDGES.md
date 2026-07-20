@@ -92,6 +92,8 @@ Working in the submitted source build:
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
 - a dormant, unit-tested Windows `SendInput` executor boundary with owned-state tracking,
   reverse-order cleanup, and no connection to the runnable application;
+- a dormant `Ctrl+Alt+Shift+F11` global-hotkey and physical-input preflight service that is not
+  yet registered by the runnable application;
 - watchdog-driven expiry and native Safe Mode diagnostics with OS input explicitly disconnected;
 - deterministic shutdown and race/lifecycle regression coverage.
 
