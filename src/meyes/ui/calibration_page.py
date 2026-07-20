@@ -7,6 +7,7 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
+    QFormLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -24,7 +25,9 @@ from meyes.calibration.session import (
 )
 from meyes.ui.calibration_controller import (
     CalibrationController,
+    CalibrationFitState,
     calibration_capture_result,
+    calibration_fit_outcome,
     calibration_snapshot,
 )
 
@@ -52,7 +55,9 @@ class CalibrationPage(QWidget):
         self._build_ui()
         controller.snapshot_changed.connect(self._render_snapshot)
         controller.capture_decided.connect(self._show_capture_result)
+        controller.fit_changed.connect(self._render_fit_outcome)
         self._render_snapshot(controller.snapshot)
+        self._render_fit_outcome(controller.fit_outcome)
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -61,8 +66,8 @@ class CalibrationPage(QWidget):
         title = QLabel("Calibration")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Collect volatile gaze samples at nine points. This step does not yet fit a mapping, "
-            "save calibration, or move the pointer."
+            "Collect volatile gaze samples at nine points and inspect held-out fit metrics. "
+            "The fitted mapper is not saved, activated, or connected to pointer output."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
@@ -122,6 +127,15 @@ class CalibrationPage(QWidget):
         panel_layout.addWidget(self._progress_label)
         panel_layout.addWidget(self._progress)
         panel_layout.addLayout(target_grid)
+        fit_form = QFormLayout()
+        self._fit_status = QLabel("Not fitted")
+        self._fit_status.setObjectName("calibrationFitStatus")
+        self._fit_metrics = QLabel("—")
+        self._fit_metrics.setObjectName("calibrationFitMetrics")
+        self._fit_metrics.setWordWrap(True)
+        fit_form.addRow("Volatile mapper", self._fit_status)
+        fit_form.addRow("Holdout metrics", self._fit_metrics)
+        panel_layout.addLayout(fit_form)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
         layout.addWidget(description)
@@ -273,6 +287,23 @@ class CalibrationPage(QWidget):
                 f"Sample rejected: {result.status.value.replace('_', ' ')}.",
             )
         )
+
+    @Slot(object)
+    def _render_fit_outcome(self, payload: object) -> None:
+        outcome = calibration_fit_outcome(payload)
+        self._fit_status.setText(outcome.state.value.title())
+        validation = outcome.validation
+        self._fit_metrics.setText(
+            "—"
+            if validation is None
+            else (
+                f"RMSE {validation.root_mean_square_error:.4f} · "
+                f"Mean {validation.mean_error:.4f} · Max {validation.maximum_error:.4f} · "
+                f"n={validation.sample_count}"
+            )
+        )
+        if outcome.state is not CalibrationFitState.NONE:
+            self._feedback.setText(outcome.message)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape and self._cancel_button.isEnabled():

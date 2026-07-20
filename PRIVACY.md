@@ -12,7 +12,7 @@ current session.
 | Webcam frames | Held in bounded, latest-only memory for preview and local inference, then discarded. MEYES does not intentionally save or upload frames. |
 | Face and hand landmarks | Derived locally and held in memory for diagnostics and gesture state. They are not written as images or recordings. |
 | Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not calibrated screen coordinates and are not persisted in this build. |
-| Calibration samples | Accepted target/feature pairs remain only in bounded session memory. Escape, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them; this build does not persist a fitted calibration. |
+| Calibration samples and mapper | Accepted target/feature pairs and any fitted quadratic mapper remain only in bounded session memory. Escape, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them; this build does not accept, activate, or persist a fitted calibration. |
 | Gesture diagnostics | Displayed in memory. Conservative semantic event metadata may appear in the local application log; frames and landmark arrays are not intentionally logged. |
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |

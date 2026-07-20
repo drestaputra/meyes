@@ -8,13 +8,22 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton
 from pytestqt.qtbot import QtBot
 
-from meyes.calibration.session import CalibrationSession, CalibrationSessionState
+from meyes.calibration.session import (
+    CALIBRATION_TARGETS,
+    CalibrationSession,
+    CalibrationSessionState,
+    CalibrationTarget,
+)
 from meyes.domain.observations import (
     GazeFeatureObservation,
     GazeFeatureStatus,
     GazeFeatureVector,
 )
-from meyes.ui.calibration_controller import CalibrationController
+from meyes.ui.calibration_controller import (
+    CalibrationController,
+    CalibrationFitState,
+    calibration_fit_outcome,
+)
 from meyes.ui.calibration_page import CalibrationPage
 
 
@@ -28,6 +37,34 @@ def feature(sequence: int) -> GazeFeatureObservation:
         GazeFeatureVector(0.55, 0.55),
         GazeFeatureVector(0.5, 0.5),
     )
+
+
+def target_feature(sequence: int, target: CalibrationTarget) -> GazeFeatureObservation:
+    return GazeFeatureObservation(
+        sequence,
+        sequence / 100,
+        sequence / 100 + 0.001,
+        GazeFeatureStatus.READY,
+        GazeFeatureVector(target.x - 0.05, target.y - 0.05),
+        GazeFeatureVector(target.x + 0.05, target.y + 0.05),
+        GazeFeatureVector(target.x, target.y),
+    )
+
+
+def complete_calibration(
+    controller: CalibrationController,
+    *,
+    stable_geometry: bool,
+) -> None:
+    sequence = 1
+    controller.start()
+    for target in CALIBRATION_TARGETS:
+        controller.begin_target()
+        for _sample in range(3):
+            observation = target_feature(sequence, target) if stable_geometry else feature(sequence)
+            controller.observe_feature(observation)
+            sequence += 1
+        controller.advance()
 
 
 def test_controller_collects_only_while_armed_and_publishes_results(qtbot: QtBot) -> None:
@@ -182,3 +219,60 @@ def test_page_explains_statistical_outlier_without_advancing_progress(qtbot: QtB
 
     assert controller.snapshot.accepted_for_target == 4
     assert "varied too far" in page._feedback.text()
+
+
+def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
+    qtbot: QtBot,
+) -> None:
+    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+
+    complete_calibration(controller, stable_geometry=True)
+
+    outcome = controller.fit_outcome
+    assert controller.snapshot.state is CalibrationSessionState.COMPLETE
+    assert controller.fit_result is not None
+    assert outcome.state is CalibrationFitState.READY
+    assert outcome.validation is not None
+    assert outcome.validation.root_mean_square_error < 1e-10
+    assert page._fit_status.text() == "Ready"
+    assert "RMSE 0.0000" in page._fit_metrics.text()
+    assert "n=18" in page._fit_metrics.text()
+    assert "Pointer output remains off" in page._feedback.text()
+
+
+def test_unstable_complete_collection_reports_fit_failure_without_mapper(
+    qtbot: QtBot,
+) -> None:
+    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+
+    complete_calibration(controller, stable_geometry=False)
+
+    assert controller.snapshot.state is CalibrationSessionState.COMPLETE
+    assert controller.fit_result is None
+    assert controller.fit_outcome.state is CalibrationFitState.FAILED
+    assert controller.fit_outcome.validation is None
+    assert page._fit_status.text() == "Failed"
+    assert page._fit_metrics.text() == "—"
+    assert "Retry collection" in page._feedback.text()
+
+
+def test_new_session_and_cancellation_erase_volatile_fit(qtbot: QtBot) -> None:
+    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    fit_events: list[object] = []
+    controller.fit_changed.connect(fit_events.append)
+    complete_calibration(controller, stable_geometry=True)
+    fitted_result = controller.fit_result
+    assert fitted_result is not None
+
+    controller.start()
+    assert controller.fit_result is None
+    assert controller.fit_outcome.state is CalibrationFitState.NONE
+    assert calibration_fit_outcome(fit_events[-1]).state is CalibrationFitState.NONE
+
+    controller.cancel()
+    assert controller.fit_result is None
+    assert controller.fit_outcome.state is CalibrationFitState.NONE
