@@ -13,7 +13,7 @@ current session.
 | Face and hand landmarks | Derived locally and held in memory for diagnostics and gesture state. They are not written as images or recordings. |
 | Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not calibrated screen coordinates and are not persisted in this build. |
 | Calibration samples | Raw target/feature pairs remain only in bounded session memory. Escape, closing the full-screen presentation, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them. Raw samples are not included in the accepted-calibration envelope. |
-| Accepted calibration envelope | A disconnected repository can atomically store only quadratic mapper coefficients, holdout metrics, the exact accepting policy, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. Runtime save/recovery is not wired yet; invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. The checksum is not authentication against a local attacker. |
+| Accepted calibration envelope | When a newly fitted mapper passes every configured limit, MEYES atomically stores only its quadratic coefficients, holdout metrics, exact accepting policy, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. It is recovered once at startup only under the identical current policy. Invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. The checksum is not authentication against a local attacker. |
 | Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; persistence recovery also remains disabled without a complete policy. |
 | Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration only. The current runtime does not feed gaze predictions into the filter or move the pointer. |
 | Cursor gate settings | Temple-freeze and resume-delay values are local configuration. Disabling temple freeze never disables tracking-loss suspension; no gaze pointer runtime consumes the gate yet. |
@@ -28,6 +28,10 @@ current session.
 `diagnostic_recording_enabled` defaults to `false`, and the current build has no frame
 recording implementation or recording UI. Enabling that configuration field does not create
 a recording pipeline.
+
+Accepted-calibration recovery is isolated from Live Input. It can configure only the fake cursor
+diagnostics pipeline; it never restores the exact consent phrase, registers an emergency hotkey,
+constructs `SendInput`, or changes the startup SAFE state.
 
 ## MediaPipe network boundary
 

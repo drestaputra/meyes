@@ -157,7 +157,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
 - [x] Define versioned, checksummed, exact-policy persistence and fail-closed recovery for an accepted mapper.
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
-- [ ] Wire explicit accepted-mapper save/recovery lifecycle without weakening Live Input startup safety.
+- [x] Wire accepted-mapper save/recovery without weakening Live Input startup safety.
+- [ ] Add explicit replace/forget controls and stored-calibration provenance details to Calibration UI.
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.

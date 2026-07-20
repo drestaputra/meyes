@@ -194,7 +194,7 @@ def calibration_fit_outcome(value: object) -> CalibrationFitOutcome:
 def _acceptance_message(acceptance: CalibrationAcceptance) -> str:
     if acceptance.state is CalibrationAcceptanceState.ACCEPTED:
         return (
-            "Volatile mapper meets every configured acceptance limit. "
+            "Mapper meets every configured acceptance limit. "
             "It remains disconnected from pointer output."
         )
     if acceptance.state is CalibrationAcceptanceState.REJECTED:

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 from meyes.bindings.manager import BindingManager
 from meyes.bindings.models import BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
+from meyes.calibration.persistence import AcceptedCalibrationRepository
 from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
@@ -36,9 +37,14 @@ from meyes.ui.calibration_controller import (
     calibration_fit_outcome,
 )
 from meyes.ui.calibration_page import CalibrationPage
+from meyes.ui.calibration_persistence import (
+    AcceptedCalibrationStore,
+    CalibrationPersistenceLifecycle,
+    CalibrationPersistenceStatus,
+)
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
-from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
+from meyes.ui.cursor_provisioning import CursorPipelineProvisioner
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
     EmergencyHotkeyFactory,
@@ -85,6 +91,7 @@ class MainWindow(QMainWindow):
         live_input_hotkey_factory: EmergencyHotkeyFactory | None = None,
         live_input_platform_supported: bool | None = None,
         cursor_geometry_provider: PhysicalScreenGeometryProvider | None = None,
+        calibration_store: AcceptedCalibrationStore | None = None,
     ) -> None:
         super().__init__()
         self._config = config
@@ -146,6 +153,15 @@ class MainWindow(QMainWindow):
             self._cursor_diagnostics,
             native_geometry,
         )
+        persistence_store = calibration_store
+        if persistence_store is None and config_manager is not None:
+            persistence_store = AcceptedCalibrationRepository(config_manager.paths)
+        self._calibration_persistence = CalibrationPersistenceLifecycle(
+            self._cursor_pipeline_provisioner,
+            persistence_store,
+            config.calibration.acceptance_policy,
+        )
+        self._calibration_persistence_result = self._calibration_persistence.recover_once()
         self._calibration_controller.fit_changed.connect(self._sync_cursor_pipeline)
         self._vision_controller.gaze_feature_changed.connect(
             self._calibration_controller.observe_feature
@@ -186,16 +202,29 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 640)
         self.setStyleSheet(build_stylesheet())
         self.setCentralWidget(self._build_shell())
+        self._calibration_page.set_persistence_status(self._calibration_persistence_result.message)
+        if self._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED:
+            self._logger.info("calibration_startup_recovered")
+        elif self._calibration_persistence_result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error(
+                "calibration_startup_recovery_failed",
+                extra={
+                    "quarantined": self._calibration_persistence_result.recovered_from is not None
+                },
+            )
         self._live_input_controller.snapshot_changed.connect(self._on_live_input_snapshot)
         self._on_live_input_snapshot(self._live_input_controller.snapshot)
 
     def _sync_cursor_pipeline(self, payload: object) -> None:
         calibration_fit_outcome(payload)
-        result = self._cursor_pipeline_provisioner.configure(
+        result = self._calibration_persistence.replace(
             self._calibration_controller.accepted_calibration
         )
-        if result.status is CursorProvisioningStatus.FAULTED:
-            self._logger.error("cursor_pipeline_provisioning_failed")
+        self._calibration_persistence_result = result
+        if hasattr(self, "_calibration_page"):
+            self._calibration_page.set_persistence_status(result.message)
+        if result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error("calibration_persistence_lifecycle_failed")
 
     def _build_shell(self) -> QWidget:
         root = QWidget(self)

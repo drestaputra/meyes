@@ -68,10 +68,10 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   scope;
 - constructs the production fake-only diagnostics pipeline only from proof-carrying accepted
   calibration plus validated geometry, and tears it down on acceptance loss or native failure;
-- provides a disconnected local repository for versioned, checksummed accepted-mapper coefficients,
-  exact acceptance policy, and holdout evidence; runtime save and recovery are not yet wired;
-- provides a separately tested persistence lifecycle with clear-before-save ordering, volatile
-  fallback, and one-shot fake-only recovery, still disconnected from application startup;
+- stores only an accepted mapper's coefficients, exact acceptance policy, and holdout evidence in a
+  versioned, checksummed local envelope using clear-before-save lifecycle ordering;
+- recovers accepted calibration once at SAFE startup under the exact stored policy and can configure
+  only fake diagnostics; consent and Live Input arming are never restored;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
@@ -88,7 +88,7 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   Live Input consent.
 
 The current build does **not** provide gaze cursor control, evidence-backed default calibration
-limits, automatic mapper save/recovery or pointer activation, a packaged installer, a medical assessment,
+limits, stored-calibration user controls, pointer activation, a packaged installer, a medical assessment,
 or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.
 

@@ -37,6 +37,11 @@ class ConfigManager:
         """Return the canonical config path."""
         return self._paths.config_file
 
+    @property
+    def paths(self) -> AppPaths:
+        """Return the immutable application path set used by related repositories."""
+        return self._paths
+
     def load(self) -> ConfigLoadResult:
         """Load config, recovering safely from malformed or invalid data."""
         self._paths.ensure_directories()

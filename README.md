@@ -8,7 +8,7 @@ The planned product controls are gaze-driven pointer movement, wink clicks, and 
 
 ## Development status
 
-Phase 0 through Phase 3 are complete, the bounded Phase 4 workflows are implemented, and Phase 5 now includes fail-closed normalized gaze features plus a distraction-free primary-display nine-point collection flow. Calibration fits a volatile mapper and reports deterministic holdout metrics; acceptance defaults to `Review Required`. A fake-only cursor pipeline composes proof-carrying accepted calibration, adaptive smoothing, physical-pixel mapping, and the tracking/temple gate without an `InputExecutor`. A Qt-owned diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals. When and only when calibration is accepted, a provisioning boundary reads Windows primary-monitor physical pixels through a temporary restored Per-Monitor V2 DPI scope and constructs that no-executor diagnostics pipeline. Missing acceptance, unsupported geometry, or native failure keeps Diagnostics truthfully `Unavailable` and clears any prior candidate. A versioned, checksummed local envelope repository and a separately tested clear/save/reprovision lifecycle can persist accepted mapper coefficients, policy, and holdout evidence, but the lifecycle is deliberately not connected to `MainWindow` yet. Physical-device evidence, scaling-matrix QA, composition-root persistence wiring, and gaze pointer output remain pending.
+Phase 0 through Phase 3 are complete, the bounded Phase 4 workflows are implemented, and Phase 5 now includes fail-closed normalized gaze features plus a distraction-free primary-display nine-point collection flow. Calibration fits a mapper and reports deterministic holdout metrics; acceptance defaults to `Review Required`. A fake-only cursor pipeline composes proof-carrying accepted calibration, adaptive smoothing, physical-pixel mapping, and the tracking/temple gate without an `InputExecutor`. A Qt-owned diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals. When and only when calibration is accepted, a provisioning boundary reads Windows primary-monitor physical pixels through a temporary restored Per-Monitor V2 DPI scope and constructs that no-executor diagnostics pipeline. Missing acceptance, unsupported geometry, or native failure keeps Diagnostics truthfully `Unavailable` and clears any prior candidate. Accepted fits are atomically saved in a versioned, checksummed local evidence envelope and recovered once at safe startup under the exact same configured policy. Recovery can configure fake diagnostics only; it cannot restore consent, arm Live Input, or send pointer output. Physical-device evidence, scaling-matrix QA, stored-calibration user controls, and gaze pointer output remain pending.
 
 See:
 
@@ -94,8 +94,8 @@ Meyes uses Windows-appropriate per-user locations:
 
 - configuration: `%APPDATA%\Meyes\config.json`;
 - logs: `%LOCALAPPDATA%\Meyes\Logs\meyes.log`;
-- optional accepted-calibration evidence envelope: `%LOCALAPPDATA%\Meyes\accepted-calibration.json`
-  (the repository exists, but runtime save/recovery is not connected yet);
+- accepted-calibration evidence envelope: `%LOCALAPPDATA%\Meyes\accepted-calibration.json` when a
+  fitted mapper passes every explicitly configured acceptance limit;
 - other local data: `%LOCALAPPDATA%\Meyes\`.
 
 MEYES does not intentionally persist or transmit camera frames. MediaPipe performs input-media processing on-device, while Google's current MediaPipe terms state that Solution APIs may periodically contact Google and send non-input usage, performance, application, and system metrics. See [PRIVACY.md](./PRIVACY.md) for the precise boundary.

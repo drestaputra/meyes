@@ -69,7 +69,8 @@ class CalibrationPage(QWidget):
         title.setObjectName("sectionTitle")
         description = QLabel(
             "Collect volatile gaze samples at nine points and inspect held-out fit metrics. "
-            "The fitted mapper is not saved, activated, or connected to pointer output."
+            "Only a mapper accepted by every configured limit is stored locally; pointer output "
+            "remains disconnected."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
@@ -138,9 +139,13 @@ class CalibrationPage(QWidget):
         self._acceptance_status = QLabel("Not evaluated")
         self._acceptance_status.setObjectName("calibrationAcceptanceStatus")
         self._acceptance_status.setWordWrap(True)
+        self._persistence_status = QLabel("Not loaded")
+        self._persistence_status.setObjectName("calibrationPersistenceStatus")
+        self._persistence_status.setWordWrap(True)
         fit_form.addRow("Volatile mapper", self._fit_status)
         fit_form.addRow("Holdout metrics", self._fit_metrics)
         fit_form.addRow("Acceptance", self._acceptance_status)
+        fit_form.addRow("Saved calibration", self._persistence_status)
         panel_layout.addLayout(fit_form)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
@@ -172,6 +177,12 @@ class CalibrationPage(QWidget):
             self._feedback.setText("Collection cancelled because tracking became unavailable.")
         self._tracking_available = available
         self._render_snapshot(self._controller.snapshot)
+
+    def set_persistence_status(self, message: str) -> None:
+        """Display one sanitized persistence lifecycle outcome."""
+        if not isinstance(message, str) or not message.strip():
+            raise ValueError("Persistence status must be a non-empty string")
+        self._persistence_status.setText(message.strip())
 
     def set_live_input_armed(self, armed: bool) -> None:
         """Cancel collection if real operating-system output becomes armed."""

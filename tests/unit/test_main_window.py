@@ -15,15 +15,30 @@ from meyes.bindings.defaults import disabled_profile
 from meyes.bindings.editor import EditableActionKind
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
+from meyes.calibration.acceptance import (
+    AcceptedCalibration,
+    CalibrationAcceptance,
+    CalibrationAcceptanceState,
+)
+from meyes.calibration.mapper import (
+    CalibrationFitResult,
+    CalibrationValidation,
+    PolynomialCalibrationMapper,
+)
+from meyes.calibration.persistence import AcceptedCalibrationRepository
 from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig
+from meyes.config.models import AppConfig, CalibrationSettings
+from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.domain.actions import MouseButton, MouseDownAction
 from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import FaceObservation, HandObservation
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
 from meyes.services.action_dispatcher import DispatcherState
+from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
+from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
+from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
 from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputState
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
@@ -107,6 +122,23 @@ class MainWindowSafetyApi:
         return 0
 
 
+class FixedGeometryProvider:
+    def read(self) -> PhysicalScreenGeometry:
+        return PhysicalScreenGeometry(0, 0, 1920, 1080)
+
+
+def accepted_calibration() -> AcceptedCalibration:
+    mapper = PolynomialCalibrationMapper(
+        (0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
+        (0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
+    )
+    fit = CalibrationFitResult(mapper, CalibrationValidation(18, 0.02, 0.015, 0.04))
+    return AcceptedCalibration(
+        fit,
+        CalibrationAcceptance(CalibrationAcceptanceState.ACCEPTED),
+    )
+
+
 def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     window = MainWindow(
         AppConfig(),
@@ -119,6 +151,89 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.windowTitle() == "Meyes"
     assert window.minimumWidth() == 900
     assert window.minimumHeight() == 640
+
+
+def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_safe(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    calibration_settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.1,
+        minimum_holdout_samples=18,
+    )
+    config = AppConfig(calibration=calibration_settings)
+    policy = calibration_settings.acceptance_policy
+    assert policy is not None
+    AcceptedCalibrationRepository(paths).save(accepted_calibration(), policy)
+
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        cursor_geometry_provider=FixedGeometryProvider(),
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    persistence_label = window.findChild(QLabel, "calibrationPersistenceStatus")
+
+    assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED
+    assert window._cursor_diagnostics.snapshot.status is CursorDiagnosticsStatus.SUSPENDED
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert persistence_label is not None
+    assert "fake-only diagnostics" in persistence_label.text()
+    assert paths.calibration_file.exists()
+
+
+def test_newly_accepted_fit_is_saved_without_arming_live_input(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    calibration_settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.1,
+        minimum_holdout_samples=18,
+    )
+    config = AppConfig(calibration=calibration_settings)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        cursor_geometry_provider=FixedGeometryProvider(),
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    accepted = accepted_calibration()
+    outcome = CalibrationFitOutcome(
+        CalibrationFitState.READY,
+        "accepted",
+        accepted.fit_result.validation,
+        accepted.acceptance,
+    )
+    window._calibration_controller._fit_result = accepted.fit_result
+    window._calibration_controller._fit_outcome = outcome
+
+    window._calibration_controller.fit_changed.emit(outcome)
+
+    policy = calibration_settings.acceptance_policy
+    assert policy is not None
+    loaded = AcceptedCalibrationRepository(paths).load(policy)
+    persistence_label = window.findChild(QLabel, "calibrationPersistenceStatus")
+    assert loaded.calibration == accepted
+    assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.SAVED
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert persistence_label is not None
+    assert "was saved" in persistence_label.text()
 
 
 def test_discovered_camera_selection_is_persisted(qtbot: QtBot, tmp_path: Path) -> None:
