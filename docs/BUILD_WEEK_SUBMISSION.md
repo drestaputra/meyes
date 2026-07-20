@@ -65,7 +65,9 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - provides a dormant physical-pixel primary-screen mapper with explicit clamping and boundary
   tests;
 - reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
-  scope, without yet constructing the production pipeline or invoking `SendInput`;
+  scope;
+- constructs the production fake-only diagnostics pipeline only from proof-carrying accepted
+  calibration plus validated geometry, and tears it down on acceptance loss or native failure;
 - provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
   suspension, and delayed resume, without a pointer runtime;
 - composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic

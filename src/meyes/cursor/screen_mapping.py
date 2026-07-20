@@ -72,6 +72,13 @@ class ScreenCoordinateMapper(Protocol):
     def map(self, point: NormalizedScreenPoint) -> ScreenMappingResult: ...
 
 
+@runtime_checkable
+class PhysicalScreenGeometryProvider(Protocol):
+    """Read one validated physical-screen geometry without producing input."""
+
+    def read(self) -> PhysicalScreenGeometry: ...
+
+
 class PrimaryScreenMapper:
     """Clamp normalized predictions and map them to inclusive physical-pixel bounds."""
 

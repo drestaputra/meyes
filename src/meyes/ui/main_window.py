@@ -24,15 +24,21 @@ from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CameraSettings
+from meyes.cursor.screen_mapping import PhysicalScreenGeometryProvider
+from meyes.cursor.windows_geometry import WindowsPrimaryScreenGeometryProvider
 from meyes.input.windows_safety import EMERGENCY_HOTKEY_LABEL
 from meyes.input.windows_sendinput import WindowsSendInputExecutor
 from meyes.ui.action_simulation import ActionSimulationController
 from meyes.ui.binding_editor_controller import BindingEditorController
 from meyes.ui.bindings_page import BindingsPage
-from meyes.ui.calibration_controller import CalibrationController
+from meyes.ui.calibration_controller import (
+    CalibrationController,
+    calibration_fit_outcome,
+)
 from meyes.ui.calibration_page import CalibrationPage
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
+from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
     EmergencyHotkeyFactory,
@@ -78,6 +84,7 @@ class MainWindow(QMainWindow):
         live_input_executor_factory: InputExecutorFactory | None = None,
         live_input_hotkey_factory: EmergencyHotkeyFactory | None = None,
         live_input_platform_supported: bool | None = None,
+        cursor_geometry_provider: PhysicalScreenGeometryProvider | None = None,
     ) -> None:
         super().__init__()
         self._config = config
@@ -129,6 +136,17 @@ class MainWindow(QMainWindow):
             parent=self,
             freshness_timeout=config.gestures.tracking_timeout_ms / 1000.0,
         )
+        native_geometry = cursor_geometry_provider
+        if native_geometry is None:
+            try:
+                native_geometry = WindowsPrimaryScreenGeometryProvider()
+            except OSError:
+                native_geometry = None
+        self._cursor_pipeline_provisioner = CursorPipelineProvisioner(
+            self._cursor_diagnostics,
+            native_geometry,
+        )
+        self._calibration_controller.fit_changed.connect(self._sync_cursor_pipeline)
         self._vision_controller.gaze_feature_changed.connect(
             self._calibration_controller.observe_feature
         )
@@ -170,6 +188,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self._build_shell())
         self._live_input_controller.snapshot_changed.connect(self._on_live_input_snapshot)
         self._on_live_input_snapshot(self._live_input_controller.snapshot)
+
+    def _sync_cursor_pipeline(self, payload: object) -> None:
+        calibration_fit_outcome(payload)
+        result = self._cursor_pipeline_provisioner.configure(
+            self._calibration_controller.accepted_calibration
+        )
+        if result.status is CursorProvisioningStatus.FAULTED:
+            self._logger.error("cursor_pipeline_provisioning_failed")
 
     def _build_shell(self) -> QWidget:
         root = QWidget(self)

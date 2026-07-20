@@ -15,6 +15,8 @@ from meyes.cursor.pipeline import CursorPipeline, CursorPipelineResult, CursorPi
 from meyes.domain.events import GestureEvent
 from meyes.domain.observations import GazeFeatureObservation
 
+_DEFAULT_UNAVAILABLE_MESSAGE = "No accepted calibration and physical-screen pipeline is configured."
+
 
 class CursorDiagnosticsStatus(StrEnum):
     UNAVAILABLE = "unavailable"
@@ -62,8 +64,9 @@ class CursorDiagnosticsController(QObject):
         self._last_received_at: float | None = None
         self._snapshot = CursorDiagnosticsSnapshot(
             CursorDiagnosticsStatus.UNAVAILABLE,
-            "No accepted calibration and physical-screen pipeline is configured.",
+            _DEFAULT_UNAVAILABLE_MESSAGE,
         )
+        self._unavailable_message = _DEFAULT_UNAVAILABLE_MESSAGE
         self._watchdog = QTimer(self)
         self._watchdog.setInterval(max(5, min(25, round(freshness_timeout * 100))))
         self._watchdog.timeout.connect(self.poll)
@@ -72,22 +75,37 @@ class CursorDiagnosticsController(QObject):
     def snapshot(self) -> CursorDiagnosticsSnapshot:
         return self._snapshot
 
-    def set_pipeline(self, pipeline: CursorPipeline | None) -> CursorDiagnosticsSnapshot:
+    def set_pipeline(
+        self,
+        pipeline: CursorPipeline | None,
+        *,
+        unavailable_message: str = _DEFAULT_UNAVAILABLE_MESSAGE,
+    ) -> CursorDiagnosticsSnapshot:
         if pipeline is not None and not isinstance(pipeline, CursorPipeline):
             raise TypeError("Expected CursorPipeline or None")
+        if not isinstance(unavailable_message, str) or not unavailable_message.strip():
+            raise ValueError("Unavailable message must be a non-empty string")
         if self._pipeline is not None:
             self._pipeline.reset()
         self._pipeline = pipeline
+        self._unavailable_message = (
+            unavailable_message.strip() if pipeline is None else _DEFAULT_UNAVAILABLE_MESSAGE
+        )
         self._last_received_at = None
         if pipeline is None:
             return self._publish(
                 CursorDiagnosticsStatus.UNAVAILABLE,
-                "No accepted calibration and physical-screen pipeline is configured.",
+                self._unavailable_message,
             )
         if self._tracking_available:
             pipeline.resume_tracking(self._now())
             return self._publish_result_state("Waiting for a fresh gaze feature.")
         return self._publish(CursorDiagnosticsStatus.SUSPENDED, "Tracking is suspended.")
+
+    def set_unavailable(self, message: str) -> CursorDiagnosticsSnapshot:
+        """Remove any pipeline and retain an honest unavailable reason."""
+
+        return self.set_pipeline(None, unavailable_message=message)
 
     @Slot()
     def start(self) -> None:
@@ -98,7 +116,7 @@ class CursorDiagnosticsController(QObject):
         if self._pipeline is None:
             self._publish(
                 CursorDiagnosticsStatus.UNAVAILABLE,
-                "No accepted calibration and physical-screen pipeline is configured.",
+                self._unavailable_message,
             )
             return
         self._pipeline.resume_tracking(self._now())

@@ -159,11 +159,11 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Implement adaptive cursor smoothing as a dormant timestamp-aware One Euro domain filter.
 - [x] Add dormant normalized-to-physical-pixel mapping for a validated primary-screen geometry.
 - [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.
-- [ ] Connect the accepted mapper pipeline safely using validated native geometry.
+- [x] Connect the accepted mapper pipeline safely using validated native geometry.
 - [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
 - [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake-only pipeline.
 - [x] Wire a Qt-owned fake cursor diagnostics controller to lifecycle, freshness, and Diagnostics.
-- [ ] Construct the production pipeline only after accepted calibration and native screen geometry.
+- [x] Construct the production fake-only pipeline only after accepted calibration and native screen geometry.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

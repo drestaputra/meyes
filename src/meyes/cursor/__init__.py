@@ -9,6 +9,7 @@ from meyes.cursor.gate import (
 from meyes.cursor.pipeline import CursorPipeline, CursorPipelineResult, CursorPipelineStatus
 from meyes.cursor.screen_mapping import (
     PhysicalScreenGeometry,
+    PhysicalScreenGeometryProvider,
     PhysicalScreenPoint,
     PrimaryScreenMapper,
     ScreenCoordinateMapper,
@@ -34,6 +35,7 @@ __all__ = [
     "OneEuroFilterSettings",
     "OneEuroPointFilter",
     "PhysicalScreenGeometry",
+    "PhysicalScreenGeometryProvider",
     "PhysicalScreenPoint",
     "PrimaryScreenMapper",
     "ScreenCoordinateMapper",
