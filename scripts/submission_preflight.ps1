@@ -106,6 +106,14 @@ foreach ($forbiddenText in @("Update this number", "TODO", "TBD", "Untitled")) {
     }
 }
 
+$judgeGuide = Get-Content -LiteralPath JUDGES.md -Raw
+foreach ($forbiddenText in @("tray controls, or an installer", "a first-run setup flow")) {
+    if ($judgeGuide -match [regex]::Escape($forbiddenText) -or
+        $devpostDraft -match [regex]::Escape($forbiddenText)) {
+        $failures.Add("Submission copy contains a stale implemented-feature claim: $forbiddenText")
+    }
+}
+
 if ($RunFullCheck) {
     & "$PSScriptRoot\check.ps1"
     if ($LASTEXITCODE -ne 0) {

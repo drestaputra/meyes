@@ -43,6 +43,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Prepare a bounded English Devpost copy and sub-three-minute demo-script draft for human edit.
 - [x] Add a fail-fast local submission preflight that keeps human/external blockers explicit.
 - [x] Make submission preflight reject unpushed revisions and unresolved Devpost draft markers.
+- [x] Make submission preflight reject stale first-run/tray roadmap claims after implementation.
 - [x] Add a one-command locked judge verification path that cannot arm camera or OS input.
 - [ ] Recheck the Official Rules, Updates, required fields, video visibility, and repository
   access immediately before submission.

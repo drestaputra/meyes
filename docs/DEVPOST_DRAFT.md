@@ -44,6 +44,11 @@ shortcuts, and—when an accepted display-matched calibration exists—gaze poin
 `SendInput`. `Ctrl+Alt+Shift+F11`, camera loss, profile changes, faults, and shutdown gate output and
 release state owned by MEYES. Camera startup never auto-arms real input.
 
+A non-capturing first-run orientation explains the boundary before recording explicit completion.
+Dedicated Sensitivity and Camera views apply validated settings only through disarm-first/stopped
+lifecycle gates, while Privacy exposes the local data boundary and file locations. When supported,
+the system tray mirrors state and offers bounded lifecycle controls without hidden close-to-tray.
+
 Calibration evidence is local, checksummed, policy-bound, and tied to physical display geometry.
 Replacement, recoverable forget, restore, and permanent backup deletion use separate exact phrases.
 Raw frames, landmarks, gaze samples, and Live Input consent are not persisted.
@@ -76,6 +81,8 @@ timeline; commit `57e08f2` is the first explicit post-model-switch GPT-5.6 itera
 - accepted-calibration persistence with checksum, policy, display provenance, recovery, and explicit
   replacement/deletion controls;
 - per-movement display-provenance revalidation before absolute pointer packets;
+- Safe Mode first-run orientation plus validated Camera/Sensitivity, Privacy, keyboard navigation,
+  High Contrast system-theme fallback, and availability-gated tray controls;
 - a deterministic pytest suite plus strict mypy and Ruff gates, reproducible at the exact submitted
   revision through the local submission preflight.
 
@@ -88,8 +95,8 @@ testable and prevented calibration recovery or camera startup from silently enab
 ### What's next
 
 Complete native 125% and 150% scaling evidence, broad physical reach measurement, clean-machine
-testing, accessibility QA, a first-run setup flow, and packaged Windows delivery. No universal
-accuracy threshold is claimed yet.
+testing, enabled High Contrast and end-to-end keyboard QA, and packaged Windows delivery. No
+universal accuracy threshold is claimed yet.
 
 ## Built With
 
