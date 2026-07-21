@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 from meyes.bindings.repository import BindingProfileRepository
 from meyes.camera.opencv_camera import OpenCVCameraBackend
 from meyes.config.manager import ConfigManager
+from meyes.ui.assets import application_icon
 from meyes.ui.main_window import MainWindow
 from meyes.util.logging import get_logger, setup_logging
 from meyes.util.paths import AppPaths
@@ -49,6 +50,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     qt_app.setApplicationName("Meyes")
     qt_app.setOrganizationName("Meyes")
     qt_app.setApplicationVersion("0.1.0")
+    qt_app.setWindowIcon(application_icon())
 
     window = MainWindow(
         config_result.config,

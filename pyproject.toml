@@ -46,6 +46,7 @@ packages = ["src/meyes"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "resources/models" = "meyes/resources/models"
+"resources/icons" = "meyes/resources/icons"
 "LICENSES/Apache-2.0.txt" = "meyes/resources/licenses/Apache-2.0.txt"
 "THIRD_PARTY_NOTICES.md" = "meyes/resources/licenses/THIRD_PARTY_NOTICES.md"
 

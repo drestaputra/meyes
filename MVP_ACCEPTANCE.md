@@ -17,7 +17,7 @@ Status vocabulary:
 
 | Gate | Current evidence | Status |
 |---|---|---|
-| Frozen source quality | Ruff format/lint, strict mypy, and 784 tests passed across 156 source files on the performance-probe iteration. | PASS |
+| Frozen source quality | Ruff format/lint, strict mypy, and 787 tests passed across 158 source files on the packaged-icon iteration. | PASS |
 | Exact remote parity | `scripts/submission_preflight.ps1 -VerifyRemote` passed on `main` after every completed iteration. | PASS |
 | Installed artifact integrity | Isolated wheel installation resolved and verified both packaged models plus licenses/notices. | PASS |
 | Release artifact integrity | Exact-revision wheel, manifest, checksum file, and independent SHA-256/revision assertions are recorded in `docs/evidence/release/2026-07-21.md`. | PASS |

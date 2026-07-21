@@ -31,6 +31,8 @@ try {
                 "meyes/resources/models/face_landmarker.task",
                 "meyes/resources/models/hand_landmarker.task",
                 "meyes/resources/models/README.md",
+                "meyes/resources/icons/meyes.svg",
+                "meyes/resources/icons/README.md",
                 "meyes/resources/licenses/Apache-2.0.txt",
                 "meyes/resources/licenses/THIRD_PARTY_NOTICES.md"
             )
@@ -38,6 +40,24 @@ try {
                 if ($entry -notin $entries) {
                     throw "Wheel is missing required asset: $entry"
                 }
+            }
+            $iconEntry = $archive.GetEntry("meyes/resources/icons/meyes.svg")
+            if ($null -eq $iconEntry -or $iconEntry.Length -ne 524) {
+                throw "Wheel application icon has an unexpected size."
+            }
+            $iconStream = $iconEntry.Open()
+            $sha256 = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $iconDigest = -join (
+                    $sha256.ComputeHash($iconStream) |
+                        ForEach-Object { $_.ToString("x2") }
+                )
+            } finally {
+                $sha256.Dispose()
+                $iconStream.Dispose()
+            }
+            if ($iconDigest -ne "ba44e15e0eacf011dbcbf978364cf8f64d2a8d93d477810de54efa86417508a8") {
+                throw "Wheel application icon SHA-256 does not match the recorded source asset."
             }
         } finally {
             $archive.Dispose()

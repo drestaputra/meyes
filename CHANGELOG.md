@@ -25,6 +25,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   design because the blank-frame profile did not justify an algorithmic optimization.
 - Added an evidence-mapped MVP acceptance matrix that keeps source success separate from pending
   human/hardware, standalone delivery, and external Devpost completion.
+- Added an original token-based SVG app icon with Qt window/tray wiring and exact installed-wheel
+  size/checksum verification.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

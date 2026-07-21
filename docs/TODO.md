@@ -226,6 +226,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Bundle verified MediaPipe models and provenance in the Python wheel.
 - [x] Add installed-wheel version and integrity diagnostics that cannot activate GUI or native input.
 - [ ] Bundle icons and remaining default resources in the selected Windows delivery.
+  - [x] Add an original token-based SVG application icon, Qt window/tray wiring, exact integrity
+    tests, and installed-wheel packaging.
+  - [ ] Derive/verify ICO or MSIX icon sizes after selecting the standalone Windows packager.
 - [ ] Add startup and packaging error recovery.
   - [x] Add a fail-fast, non-overwriting exact-revision wheel/manifest build with full preflight.
   - [ ] Add standalone executable/installer startup recovery after a packager is selected.
