@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>MEYES media probe</title></head>
+<body>
+  <pre id="result">loading</pre>
+  <video id="media" preload="auto" src="../docs/media/demo/meyes-demo-devpost-final.webm"></video>
+  <script>
+    const media = document.querySelector("#media");
+    const result = document.querySelector("#result");
+    media.addEventListener("loadedmetadata", async () => {
+      const context = new AudioContext();
+      const source = context.createMediaElementSource(media);
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      analyser.connect(context.destination);
+      await context.resume();
+      await media.play();
+      setTimeout(() => {
+        const samples = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(samples);
+        const peak = samples.reduce((maximum, value) => Math.max(maximum, Math.abs(value - 128)), 0);
+        result.textContent = JSON.stringify({
+          duration: media.duration,
+          width: media.videoWidth,
+          height: media.videoHeight,
+          currentTime: media.currentTime,
+          audioTracks: media.captureStream().getAudioTracks().length,
+          decodedAudioBytes: media.webkitAudioDecodedByteCount || 0,
+          audioPeak: peak,
+        });
+        document.title = "MEYES_PROBE_COMPLETE";
+      }, 3000);
+    }, { once: true });
+    media.addEventListener("error", () => {
+      result.textContent = JSON.stringify({ error: media.error && media.error.message });
+      document.title = "MEYES_PROBE_FAILED";
+    }, { once: true });
+  </script>
+</body>
+</html>

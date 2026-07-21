@@ -35,6 +35,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added a verified 2:34 Devpost demo export assembled from real MEYES camera, Smooth Pursuit,
+  consent, Live Input, pointer-movement, and Safe Mode footage, with English AI narration,
+  burned-in captions, an external SRT, and reusable capture/render/probe tooling.
 - Added a trademark-neutral 3:2 Devpost gallery hero plus a timed 2:44 English demo voiceover,
   shot list, capture requirements, and ready-to-import subtitle track covering the product,
   Codex collaboration, and GPT-5.6 usage.

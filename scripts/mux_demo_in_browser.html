@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MEYES demo muxer</title>
+  <style>
+    html, body { margin: 0; background: #0a0f1c; color: white; font: 16px system-ui; }
+    canvas { width: 960px; height: 540px; display: block; margin: 24px auto; }
+    #status { width: 960px; margin: 0 auto; }
+    video, audio { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="1280" height="720"></canvas>
+  <p id="status">Loading local media…</p>
+  <video id="video" preload="auto" src="../docs/media/demo/meyes-demo-silent.webm"></video>
+  <audio id="audio" preload="auto" src="../docs/media/demo/meyes-demo-voiceover.wav"></audio>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const maxSeconds = Number(params.get("seconds") || 0);
+    const filename = params.get("filename") || "meyes-demo-final.webm";
+    const video = document.querySelector("#video");
+    const audio = document.querySelector("#audio");
+    const canvas = document.querySelector("#canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    const status = document.querySelector("#status");
+
+    const waitForMedia = element => new Promise((resolve, reject) => {
+      if (element.readyState >= 3) return resolve();
+      element.addEventListener("canplay", resolve, { once: true });
+      element.addEventListener("error", () => reject(element.error || new Error("media load failed")), { once: true });
+    });
+
+    async function render() {
+      await Promise.all([waitForMedia(video), waitForMedia(audio)]);
+      const audioContext = new AudioContext();
+      const audioSource = audioContext.createMediaElementSource(audio);
+      const audioDestination = audioContext.createMediaStreamDestination();
+      audioSource.connect(audioDestination);
+
+      const canvasStream = canvas.captureStream(15);
+      const stream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks(),
+      ]);
+      const preferredType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+        ? "video/webm;codecs=vp9,opus"
+        : "video/webm;codecs=vp8,opus";
+      const chunks = [];
+      const recorder = new MediaRecorder(stream, {
+        mimeType: preferredType,
+        videoBitsPerSecond: 5_000_000,
+        audioBitsPerSecond: 128_000,
+      });
+      recorder.addEventListener("dataavailable", event => {
+        if (event.data.size) chunks.push(event.data);
+      });
+      recorder.addEventListener("stop", () => {
+        const blob = new Blob(chunks, { type: preferredType });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.append(link);
+        link.click();
+        status.textContent = `Complete: ${filename} (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
+        document.title = "MEYES_DEMO_COMPLETE";
+      }, { once: true });
+
+      let stopped = false;
+      const stopAt = maxSeconds > 0
+        ? Math.min(maxSeconds, video.duration)
+        : Math.max(video.duration, audio.duration);
+      function draw() {
+        if (video.readyState >= 2) context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        status.textContent = `Recording ${Math.min(video.currentTime, stopAt).toFixed(1)} / ${stopAt.toFixed(1)} seconds`;
+        if (!stopped && (video.currentTime >= stopAt || video.ended)) {
+          stopped = true;
+          audio.pause();
+          setTimeout(() => recorder.stop(), 250);
+          return;
+        }
+        requestAnimationFrame(draw);
+      }
+
+      await audioContext.resume();
+      recorder.start(1000);
+      video.currentTime = 0;
+      audio.currentTime = 0;
+      await Promise.all([video.play(), audio.play()]);
+      draw();
+    }
+
+    render().catch(error => {
+      status.textContent = error.stack || String(error);
+      document.title = "MEYES_DEMO_FAILED";
+    });
+  </script>
+</body>
+</html>

@@ -35,9 +35,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Make the repository public with its license, or invite `testing@devpost.com` and
   `build-week-event@openai.com` and verify both can access it.
 - [ ] Add every teammate to Devpost and have them accept before the deadline, if applicable.
-- [ ] Record and publish a clear YouTube demo shorter than 3:00 with audio covering what was
-  built and how Codex and GPT-5.6 were used.
-- [ ] Review the demo for consent, private information, trademarks, and copyrighted media.
+- [x] Record and export a clear 2:34 demo with audio covering what was built and how Codex and
+  GPT-5.6 were used; retain real calibration, consent, Live Input, pointer, and Safe Mode evidence.
+- [ ] Publish the verified final demo to YouTube as Public and confirm the URL while logged out.
+- [x] Complete automated full-timeline/contact-sheet review for private information, trademarks,
+  copyrighted media, final Safe Mode framing, video dimensions, and decoded audio presence.
+- [ ] Complete the entrant's final human playback/consent review before public publication.
 - [ ] Human-edit the Devpost description in English and map demonstrated evidence to all four
   judging criteria without claiming roadmap features.
 - [x] Prepare a bounded English Devpost copy and sub-three-minute demo-script draft for human edit.
