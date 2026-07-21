@@ -14,6 +14,7 @@ from meyes.domain.observations import (
     TempleProximity,
 )
 from meyes.gestures.temple_proximity import (
+    ProximitySource,
     ProximityState,
     TempleProximityDetector,
     TempleProximitySettings,
@@ -82,6 +83,40 @@ def test_initial_snapshot_is_unknown_and_unknown_side_fails_closed() -> None:
     assert detector.snapshot.left is ProximityState.UNKNOWN
     assert detector.snapshot.right is ProximityState.UNKNOWN
     assert detector.snapshot.state(HandSide.UNKNOWN) is ProximityState.UNKNOWN
+
+
+def test_cheek_source_uses_only_cheek_anchor_distances() -> None:
+    detector = TempleProximityDetector(
+        TempleProximitySettings(stabilization=0),
+        source=ProximitySource.CHEEK,
+    )
+    first = TempleFeatureObservation(
+        source_sequence=1,
+        capture_timestamp=1.0,
+        processed_timestamp=1.0,
+        status=TempleFeatureStatus.READY,
+        proximities=(TempleProximity(HandSide.RIGHT, 0.01, 0.9),),
+        cheek_proximities=(TempleProximity(HandSide.RIGHT, 0.20, 0.9),),
+    )
+    second = TempleFeatureObservation(
+        source_sequence=2,
+        capture_timestamp=1.01,
+        processed_timestamp=1.01,
+        status=TempleFeatureStatus.READY,
+        proximities=(TempleProximity(HandSide.RIGHT, 0.20, 0.9),),
+        cheek_proximities=(TempleProximity(HandSide.RIGHT, 0.01, 0.9),),
+    )
+    third = TempleFeatureObservation(
+        source_sequence=3,
+        capture_timestamp=1.02,
+        processed_timestamp=1.02,
+        status=TempleFeatureStatus.READY,
+        cheek_proximities=(TempleProximity(HandSide.RIGHT, 0.01, 0.9),),
+    )
+
+    assert detector.update(first).right is ProximityState.FAR
+    assert detector.update(second).right is ProximityState.FAR
+    assert detector.update(third).right is ProximityState.NEAR
 
 
 def test_enter_and_exit_thresholds_are_inclusive_and_stabilized() -> None:

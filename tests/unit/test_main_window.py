@@ -40,11 +40,17 @@ from meyes.calibration.persistence import AcceptedCalibrationRepository, Calibra
 from meyes.calibration.session import CalibrationSessionState
 from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig, CalibrationSettings
+from meyes.config.models import AppConfig, CalibrationSettings, CursorSettings
 from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.domain.actions import MouseButton, MouseDownAction
 from meyes.domain.events import GestureEvent, GestureEventType
-from meyes.domain.observations import FaceObservation, HandObservation
+from meyes.domain.observations import (
+    FaceObservation,
+    GazeFeatureObservation,
+    GazeFeatureStatus,
+    GazeFeatureVector,
+    HandObservation,
+)
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
 from meyes.input.windows_sendinput import WindowsSendInputExecutor
@@ -613,7 +619,7 @@ def test_passed_calibration_prompts_before_activating_live_input(qtbot: QtBot) -
         return WindowsEmergencyHotkey(api=safety, application=application, parent=parent)
 
     window = MainWindow(
-        AppConfig(),
+        AppConfig(cursor=CursorSettings(resume_delay_ms=0)),
         camera_backend=EmptyBackend(),
         face_backend_factory=EmptyFaceBackend,
         hand_backend_factory=EmptyHandBackend,
@@ -624,6 +630,7 @@ def test_passed_calibration_prompts_before_activating_live_input(qtbot: QtBot) -
     )
     qtbot.addWidget(window)
     window.show()
+    window._last_camera_status = CameraStatus.PAUSED
     window._sync_vision_lifecycle(
         CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
     )
@@ -636,6 +643,7 @@ def test_passed_calibration_prompts_before_activating_live_input(qtbot: QtBot) -
     )
     window._calibration_controller._fit_result = accepted.fit_result
     window._calibration_controller._fit_outcome = outcome
+    window._calibration_controller._session._state = CalibrationSessionState.COMPLETE
 
     with patch("meyes.ui.live_input_page.confirm_action", side_effect=[False, True]) as confirm:
         window._calibration_controller.fit_changed.emit(outcome)
@@ -651,6 +659,25 @@ def test_passed_calibration_prompts_before_activating_live_input(qtbot: QtBot) -
     assert armed_state is LiveInputState.ARMED
     assert safety.registered == 1
     assert executor.calls == [InputCall("release_all"), InputCall("release_all")]
+    assert window._calibration_controller.accepted_calibration == accepted
+    assert window._cursor_pipeline_provisioner.active_geometry == PhysicalScreenGeometry(
+        0, 0, 1920, 1080
+    )
+
+    vector = GazeFeatureVector(0.25, 0.75)
+    window._cursor_diagnostics.observe_feature(
+        GazeFeatureObservation(
+            1,
+            1.0,
+            1.01,
+            GazeFeatureStatus.READY,
+            vector,
+            vector,
+            vector,
+        )
+    )
+    assert window._cursor_diagnostics.snapshot.status is CursorDiagnosticsStatus.READY
+    assert any(call.operation == "move_pointer" for call in executor.calls)
     window.close()
 
 

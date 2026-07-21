@@ -22,6 +22,8 @@ from meyes.domain.actions import (
 _GESTURE_LABELS = {
     BindableGesture.LEFT_WINK: "Left wink",
     BindableGesture.RIGHT_WINK: "Right wink",
+    BindableGesture.LEFT_CHEEK_TOUCH: "Left cheek touch",
+    BindableGesture.RIGHT_CHEEK_TOUCH: "Right cheek touch",
     BindableGesture.LEFT_TEMPLE_TAP: "Left temple tap",
     BindableGesture.RIGHT_TEMPLE_TAP: "Right temple tap",
     BindableGesture.LEFT_TEMPLE_HOLD: "Left temple hold",

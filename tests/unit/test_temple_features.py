@@ -37,6 +37,10 @@ def face_observation(
         landmarks[index] = NormalizedPoint(0.2, 0.4)
     for index in (356, 389):
         landmarks[index] = NormalizedPoint(0.8, 0.4)
+    for index in (50, 101, 205):
+        landmarks[index] = NormalizedPoint(0.35, 0.55)
+    for index in (280, 330, 425):
+        landmarks[index] = NormalizedPoint(0.65, 0.55)
     landmarks[234] = NormalizedPoint(0.2, 0.4)
     landmarks[454] = NormalizedPoint(0.8, 0.4)
     return FaceObservation(
@@ -112,6 +116,24 @@ def test_anatomical_hand_is_never_reassigned_to_the_closest_temple() -> None:
     assert result.proximity(HandSide.RIGHT) is None
 
 
+def test_cheek_anchors_are_distinct_and_anatomically_sided() -> None:
+    result = extract_temple_features(
+        face_observation(),
+        hand_observation(
+            detected_hand(HandSide.RIGHT, (0.35, 0.55)),
+            detected_hand(HandSide.LEFT, (0.65, 0.55)),
+        ),
+        processed_timestamp=10.03,
+    )
+
+    left = result.cheek_proximity(HandSide.LEFT)
+    right = result.cheek_proximity(HandSide.RIGHT)
+    assert left is not None and left.distance_ratio == pytest.approx(0.0)
+    assert right is not None and right.distance_ratio == pytest.approx(0.0)
+    assert result.proximity(HandSide.LEFT) is not None
+    assert result.proximity(HandSide.RIGHT) is not None
+
+
 def test_unknown_hand_is_ignored_and_duplicate_side_uses_highest_confidence() -> None:
     result = extract_temple_features(
         face_observation(),
@@ -164,6 +186,10 @@ def test_both_anatomical_sides_have_stable_output_order() -> None:
     )
 
     assert [item.side for item in result.proximities] == [HandSide.LEFT, HandSide.RIGHT]
+    assert [item.side for item in result.cheek_proximities] == [
+        HandSide.LEFT,
+        HandSide.RIGHT,
+    ]
 
 
 @pytest.mark.parametrize(

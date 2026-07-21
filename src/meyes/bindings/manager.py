@@ -35,6 +35,14 @@ class BindingResolution:
 _EVENT_BINDINGS: dict[GestureEventType, tuple[BindableGesture, BindingPhase]] = {
     GestureEventType.LEFT_WINK: (BindableGesture.LEFT_WINK, BindingPhase.TRIGGER),
     GestureEventType.RIGHT_WINK: (BindableGesture.RIGHT_WINK, BindingPhase.TRIGGER),
+    GestureEventType.LEFT_CHEEK_TOUCH: (
+        BindableGesture.LEFT_CHEEK_TOUCH,
+        BindingPhase.TRIGGER,
+    ),
+    GestureEventType.RIGHT_CHEEK_TOUCH: (
+        BindableGesture.RIGHT_CHEEK_TOUCH,
+        BindingPhase.TRIGGER,
+    ),
     GestureEventType.LEFT_TEMPLE_TAP: (
         BindableGesture.LEFT_TEMPLE_TAP,
         BindingPhase.TRIGGER,

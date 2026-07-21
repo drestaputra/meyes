@@ -288,6 +288,31 @@ def test_disabled_action_is_explicit_and_side_effect_free() -> None:
     assert fake.calls == []
 
 
+def test_cheek_touch_bindings_dispatch_on_independent_side_channels() -> None:
+    dispatcher, fake = make_dispatcher(
+        {
+            BindableGesture.LEFT_CHEEK_TOUCH: MouseClickAction(button=MouseButton.LEFT),
+            BindableGesture.RIGHT_CHEEK_TOUCH: MouseClickAction(button=MouseButton.RIGHT),
+        }
+    )
+
+    left = dispatcher.dispatch(
+        event(GestureEventType.LEFT_CHEEK_TOUCH, sequence=1),
+        current_timestamp=1.0,
+    )
+    right = dispatcher.dispatch(
+        event(GestureEventType.RIGHT_CHEEK_TOUCH, sequence=1),
+        current_timestamp=1.0,
+    )
+
+    assert left.status is DispatchStatus.EXECUTED
+    assert right.status is DispatchStatus.EXECUTED
+    assert fake.calls == [
+        InputCall("mouse_click", (MouseButton.LEFT,)),
+        InputCall("mouse_click", (MouseButton.RIGHT,)),
+    ]
+
+
 @pytest.mark.parametrize(
     ("action", "expected_request"),
     [

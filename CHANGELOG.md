@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Expanded complete binding profiles from six to eight gestures. Legacy six-gesture profiles are
+  upgraded in memory with both cheek-touch bindings disabled, preserving existing behavior.
 - Completed Smooth Pursuit calibration now accepts a valid mapper immediately for the current
   session and opens a cancel-default Live Input activation dialog once the cursor pipeline is ready;
   declining keeps Safe Mode, while explicit configured limits still support stricter rejection and
@@ -19,6 +21,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Preserved a completed accepted mapper and cursor pipeline when Live Input becomes armed, the
+  Calibration page is left, or tracking is paused. Previously the arming callback cancelled the
+  completed session, leaving Live Input armed with no cursor pipeline.
 - Replaced the nearly empty completed-calibration screen with a centered result summary, readable
   quality evidence, plain-language acceptance guidance, and one safe return action; default temple
   bindings now label right/up and left/down directions explicitly.
@@ -30,6 +35,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added independently stabilized left/right cheek-touch detection, release-triggered single-shot
+  semantic events, live Diagnostics evidence, and configurable binding/dispatcher support. Both
+  cheek bindings remain disabled in the built-in Default profile.
 - Added start-only calibration onboarding: a successful uncalibrated camera start enters the guided
   full-screen flow, while resume and usable accepted calibration remain uninterrupted.
 - Replaced all four Calibration management phrase inputs with direct action buttons and
@@ -116,7 +124,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Platform-neutral input protocol plus an in-memory fake executor; no Windows input backend is connected.
 - Fake-only, poll-driven action dispatcher with per-producer at-most-once ordering, stable hold snapshots, shared-button ownership, no-catch-up continuous scheduling, lifecycle gating, and retryable release-all fault recovery.
 - Qt-owned action simulation that loads the active profile fail-closed, consumes live semantic events, schedules dispatcher deadlines without a worker loop, releases before camera shutdown, and exposes bounded fake primitive diagnostics in a responsive Safe Mode layout while OS input remains disconnected.
-- Durable Profiles workflow with all-disabled creation, pause-first activation, preference rollback, canonical active-profile status, and a read-only preview of all six simulated bindings.
+- Durable Profiles workflow with all-disabled creation, pause-first activation, preference rollback, canonical active-profile status, and a read-only preview of all eight simulated bindings.
 - Isolated Bindings editor covering every validated MVP action with hold-only filtering, inline errors, last-valid preview, dirty-draft preservation, and inactive save-as-copy.
 - Fail-safe inactive profile lifecycle with rename, modal-confirmed recoverable deletion, restore-from-Default, and built-in/active-profile protections.
 - Dormant Windows `SendInput` executor for validated mouse and keyboard primitives with ABI-safe ctypes structures, owned held-state tracking, partial-send detection, reverse-order cleanup, and fake native-boundary tests.

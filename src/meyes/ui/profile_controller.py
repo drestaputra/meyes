@@ -293,7 +293,7 @@ class ProfileController(QObject):
             return self._finish(
                 ProfileOperationResult(
                     False,
-                    "Confirm that all six bindings may be replaced before restoring Default.",
+                    "Confirm that all eight bindings may be replaced before restoring Default.",
                 )
             )
 
@@ -322,7 +322,7 @@ class ProfileController(QObject):
         return self._finish(
             ProfileOperationResult(
                 True,
-                "Restored all six bindings from the built-in Default snapshot. The profile "
+                "Restored all eight bindings from the built-in Default snapshot. The profile "
                 "remains inactive.",
                 profile_name=selected,
             )

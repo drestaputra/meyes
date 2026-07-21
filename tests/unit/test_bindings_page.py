@@ -80,7 +80,7 @@ def _table_text(table: QTableWidget, row: int, column: int) -> str:
     return item.text()
 
 
-def test_page_renders_six_accessible_rows_and_last_valid_preview(
+def test_page_renders_eight_accessible_rows_and_last_valid_preview(
     qtbot: QtBot,
     tmp_path: Path,
 ) -> None:
@@ -93,10 +93,14 @@ def test_page_renders_six_accessible_rows_and_last_valid_preview(
 
     assert source.text() == "Default"
     assert active.text() == "Default"
-    assert preview.rowCount() == len(BindableGesture) == 6
+    assert preview.rowCount() == len(BindableGesture) == 8
     assert preview.columnCount() == 2
     assert _table_text(preview, 0, 0) == "Left wink"
     assert "Mouse click" in _table_text(preview, 0, 1)
+    assert _table_text(preview, 2, 0) == "Left cheek touch"
+    assert _table_text(preview, 2, 1) == "Disabled"
+    assert _table_text(preview, 3, 0) == "Right cheek touch"
+    assert _table_text(preview, 3, 1) == "Disabled"
     assert preview.accessibleName() == "Isolated draft binding preview"
     assert copy_name.accessibleName() == "New profile name for binding draft"
     assert save.accessibleName() == "Save binding draft as a new inactive profile"
@@ -112,6 +116,7 @@ def test_page_renders_six_accessible_rows_and_last_valid_preview(
         assert not reset.isEnabled()
 
     assert _combo(harness.page, BindableGesture.LEFT_WINK).count() == 10
+    assert _combo(harness.page, BindableGesture.LEFT_CHEEK_TOUCH).count() == 10
     assert _combo(harness.page, BindableGesture.LEFT_TEMPLE_HOLD).count() == 12
 
 

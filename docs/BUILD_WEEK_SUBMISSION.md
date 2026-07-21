@@ -45,17 +45,19 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - runs independent local MediaPipe face and hand landmark pipelines;
 - reports normalized eye openness and semantic left/right wink events;
 - pairs fresh face and hand observations and reports aspect-correct,
-  face-width-normalized fingertip-to-temple distances;
+  face-width-normalized fingertip-to-temple and fingertip-to-cheek distances;
 - stabilizes independent left/right Near/Far/Unknown proximity states with hysteresis and an
   independent tracking-loss timeout;
 - classifies independent semantic temple tap, hold-start, and hold-end events with cooldown,
   capture-time ordering, and lifecycle-safe hold termination;
+- classifies independent release-triggered left/right cheek-touch events, with both Default
+  bindings intentionally disabled until the user chooses an action;
 - validates a closed action vocabulary and complete logical binding profiles, and exercises
   them through a synchronous fake-only dispatcher with fail-safe release behavior;
 - connects semantic events to a Qt-owned fake trace and, only while explicitly armed, a separate
   Windows `SendInput` dispatcher using the same validated binding rules;
 - provides a durable local profile catalog with all-disabled creation, pause-first activation,
-  preference rollback, and a read-only preview of all six simulated bindings;
+  preference rollback, and a read-only preview of all eight simulated bindings;
 - provides an isolated binding draft editor for the complete validated action vocabulary, with
   inline correction, last-valid preview, and save-as-copy that never activates runtime input;
 - protects active and built-in profiles while allowing inactive profile rename,
@@ -209,9 +211,9 @@ description in their own voice rather than submitting AI-generated copy unchange
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
 | Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, capture-time-synchronized Smooth Pursuit collection with spatial coverage and following-correlation evidence, a robust rank/condition-guarded quadratic mapper with region-stratified holdout metrics, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, modal-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
-| Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog, an inline-validating six-binding editor and preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
+| Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog, an inline-validating eight-binding editor and preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
-| Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while real OS output stays behind an explicit, volatile safety boundary. |
+| Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple and cheek states, then converted into deliberate tap/hold or single-shot touch intent while real OS output stays behind an explicit, volatile safety boundary. |
 
 Stage One is pass/fail for theme fit and required-technology use. Stage Two uses the four
 criteria above equally; Technological Implementation is the first tie-breaker.

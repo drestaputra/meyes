@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from meyes.bindings.defaults import default_profile, disabled_profile
-from meyes.bindings.models import BindingProfile
+from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.repository import BindingProfileRepository
 from meyes.domain.actions import DisabledAction
 from meyes.util.paths import AppPaths
@@ -41,6 +41,27 @@ def test_user_profile_round_trip_is_atomic_and_listed(tmp_path: Path) -> None:
     assert repository.list_profile_names() == ("Default", "Work Profile")
     assert not path.with_suffix(".json.tmp").exists()
     assert json.loads(path.read_text(encoding="utf-8"))["profile_name"] == "Work Profile"
+
+
+def test_schema_one_profile_loads_with_new_cheek_bindings_disabled(tmp_path: Path) -> None:
+    paths = AppPaths.under(tmp_path)
+    paths.ensure_directories()
+    payload = default_profile().model_dump(mode="json")
+    payload["schema_version"] = 1
+    payload["profile_name"] = "Legacy"
+    bindings = payload["bindings"]
+    assert isinstance(bindings, dict)
+    bindings.pop(BindableGesture.LEFT_CHEEK_TOUCH.value)
+    bindings.pop(BindableGesture.RIGHT_CHEEK_TOUCH.value)
+    path = paths.profiles_dir / "Legacy.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = BindingProfileRepository(paths).load("Legacy")
+
+    assert loaded.warning is None
+    assert loaded.profile.schema_version == 2
+    assert isinstance(loaded.profile.bindings[BindableGesture.LEFT_CHEEK_TOUCH], DisabledAction)
+    assert isinstance(loaded.profile.bindings[BindableGesture.RIGHT_CHEEK_TOUCH], DisabledAction)
 
 
 def test_strict_read_returns_default_and_user_without_recovery_mutation(tmp_path: Path) -> None:
@@ -261,7 +282,7 @@ def test_repository_revalidates_a_mutated_profile_before_writing(tmp_path: Path)
     profile = disabled_profile("Mutated")
     object.__setattr__(profile, "bindings", {})
 
-    with pytest.raises(ValidationError, match="exactly six"):
+    with pytest.raises(ValidationError, match="exactly eight"):
         repository.save(profile)
 
 

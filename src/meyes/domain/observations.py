@@ -146,7 +146,7 @@ class TempleFeatureStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class TempleProximity:
-    """One same-side fingertip distance normalized by face width."""
+    """One same-side fingertip-to-face-anchor distance normalized by face width."""
 
     side: HandSide
     distance_ratio: float
@@ -155,7 +155,7 @@ class TempleProximity:
 
 @dataclass(frozen=True, slots=True)
 class TempleFeatureObservation:
-    """Result of freshness pairing and anatomical temple feature extraction."""
+    """Result of freshness pairing and anatomical temple/cheek feature extraction."""
 
     source_sequence: int
     capture_timestamp: float
@@ -165,6 +165,7 @@ class TempleFeatureObservation:
     face_capture_timestamp: float | None = None
     pair_skew_ms: float | None = None
     proximities: tuple[TempleProximity, ...] = ()
+    cheek_proximities: tuple[TempleProximity, ...] = ()
 
     @property
     def valid_pair(self) -> bool:
@@ -177,3 +178,7 @@ class TempleFeatureObservation:
     def proximity(self, side: HandSide) -> TempleProximity | None:
         """Return the feature for one anatomical side when available."""
         return next((item for item in self.proximities if item.side is side), None)
+
+    def cheek_proximity(self, side: HandSide) -> TempleProximity | None:
+        """Return the cheek-anchor feature for one anatomical side when available."""
+        return next((item for item in self.cheek_proximities if item.side is side), None)

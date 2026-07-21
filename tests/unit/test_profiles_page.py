@@ -100,7 +100,7 @@ def _profile_row(profile_list: QListWidget, profile_name: str) -> int:
     raise AssertionError(f"profile row not found: {profile_name}")
 
 
-def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
+def test_default_profile_is_marked_active_and_all_eight_bindings_are_previewed(
     qtbot: QtBot,
     tmp_path: Path,
 ) -> None:
@@ -129,10 +129,10 @@ def test_default_profile_is_marked_active_and_all_six_bindings_are_previewed(
     assert default_item.data(Qt.ItemDataRole.UserRole) == "Default"
     assert "Active" in default_item.text()
     assert active_value.text() == "Default"
-    assert preview.rowCount() == len(BindableGesture) == 6
+    assert preview.rowCount() == len(BindableGesture) == 8
     assert preview.columnCount() == 2
     assert _table_text(preview, 0, 0) == "Left wink"
-    assert _table_text(preview, 5, 0) == "Right temple hold"
+    assert _table_text(preview, 7, 0) == "Right temple hold"
     for row, gesture in enumerate(BindableGesture):
         assert _table_text(preview, row, 0) == gesture_label(gesture)
         assert _table_text(preview, row, 1) == action_label(default_profile().bindings[gesture])
@@ -219,7 +219,9 @@ def test_missing_active_profile_is_disclosed_as_a_recovery_snapshot(
     assert active_value.text() == "Missing"
     assert feedback.property("feedbackStatus") == "warning"
     assert "recovery snapshot" in feedback.text()
-    assert [_table_text(preview, row, 1) for row in range(6)] == ["Disabled"] * 6
+    assert [_table_text(preview, row, 1) for row in range(len(BindableGesture))] == [
+        "Disabled"
+    ] * len(BindableGesture)
 
 
 def test_invalid_catalog_file_warning_is_rendered_inline(
@@ -320,7 +322,9 @@ def test_activating_created_profile_updates_active_marker_and_binding_preview(
     assert active_value.text() == "Work"
     assert "Active" in profile_list.item(_profile_row(profile_list, "Work")).text()
     assert "Active" not in profile_list.item(_profile_row(profile_list, "Default")).text()
-    assert [_table_text(preview, row, 1) for row in range(preview.rowCount())] == ["Disabled"] * 6
+    assert [_table_text(preview, row, 1) for row in range(preview.rowCount())] == [
+        "Disabled"
+    ] * len(BindableGesture)
     assert activate_button.isEnabled() is False
 
 

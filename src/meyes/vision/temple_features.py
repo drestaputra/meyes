@@ -22,6 +22,8 @@ from meyes.domain.observations import (
 INDEX_FINGER_TIP = 8
 RIGHT_TEMPLE_INDICES = (127, 162)
 LEFT_TEMPLE_INDICES = (356, 389)
+RIGHT_CHEEK_INDICES = (50, 101, 205)
+LEFT_CHEEK_INDICES = (280, 330, 425)
 FACE_WIDTH_INDICES = (234, 454)
 MINIMUM_FACE_WIDTH_PIXELS = 1.0
 
@@ -245,7 +247,7 @@ def extract_temple_features(
     *,
     processed_timestamp: float,
 ) -> TempleFeatureObservation:
-    """Calculate same-side fingertip distance normalized by pixel-space face width."""
+    """Calculate same-side temple and cheek distances normalized by face width."""
     if not all(
         math.isfinite(value)
         for value in (
@@ -300,6 +302,7 @@ def extract_temple_features(
         )
 
     proximities: list[TempleProximity] = []
+    cheek_proximities: list[TempleProximity] = []
     for side, indices in (
         (HandSide.LEFT, LEFT_TEMPLE_INDICES),
         (HandSide.RIGHT, RIGHT_TEMPLE_INDICES),
@@ -325,7 +328,36 @@ def extract_temple_features(
                 hand_confidence=confidence,
             )
         )
-    status = TempleFeatureStatus.READY if proximities else TempleFeatureStatus.NO_ELIGIBLE_HANDS
+    for side, cheek_indices in (
+        (HandSide.LEFT, LEFT_CHEEK_INDICES),
+        (HandSide.RIGHT, RIGHT_CHEEK_INDICES),
+    ):
+        anchor = _mean_points(face.landmarks, cheek_indices)
+        if anchor is None:
+            continue
+        hand = _best_complete_hand(hands.hands, side, anchor, width, height)
+        if hand is None:
+            continue
+        fingertip = hand.landmark(INDEX_FINGER_TIP)
+        if fingertip is None:
+            continue
+        distance = _pixel_distance(fingertip, anchor, width, height)
+        ratio = distance / face_width
+        confidence = hand.confidence
+        if not math.isfinite(ratio) or confidence is None:
+            continue
+        cheek_proximities.append(
+            TempleProximity(
+                side=side,
+                distance_ratio=ratio,
+                hand_confidence=confidence,
+            )
+        )
+    status = (
+        TempleFeatureStatus.READY
+        if proximities or cheek_proximities
+        else TempleFeatureStatus.NO_ELIGIBLE_HANDS
+    )
     return _paired_observation(
         face,
         hands,
@@ -333,6 +365,7 @@ def extract_temple_features(
         processed_timestamp=processed_timestamp,
         pair_skew=pair_skew,
         proximities=tuple(proximities),
+        cheek_proximities=tuple(cheek_proximities),
     )
 
 
@@ -344,6 +377,7 @@ def _paired_observation(
     processed_timestamp: float,
     pair_skew: float,
     proximities: tuple[TempleProximity, ...] = (),
+    cheek_proximities: tuple[TempleProximity, ...] = (),
 ) -> TempleFeatureObservation:
     return TempleFeatureObservation(
         source_sequence=hands.source_sequence,
@@ -354,6 +388,7 @@ def _paired_observation(
         face_capture_timestamp=face.capture_timestamp,
         pair_skew_ms=pair_skew * 1000.0,
         proximities=proximities,
+        cheek_proximities=cheek_proximities,
     )
 
 
@@ -390,12 +425,24 @@ def _valid_frame_geometry(face: FaceObservation, hands: HandObservation) -> bool
         or hands.frame_width != face.frame_width
         or hands.frame_height != face.frame_height
         or len(face.landmarks)
-        <= max(*FACE_WIDTH_INDICES, *LEFT_TEMPLE_INDICES, *RIGHT_TEMPLE_INDICES)
+        <= max(
+            *FACE_WIDTH_INDICES,
+            *LEFT_TEMPLE_INDICES,
+            *RIGHT_TEMPLE_INDICES,
+            *LEFT_CHEEK_INDICES,
+            *RIGHT_CHEEK_INDICES,
+        )
     ):
         return False
     required = [
         face.landmarks[index]
-        for index in (*FACE_WIDTH_INDICES, *LEFT_TEMPLE_INDICES, *RIGHT_TEMPLE_INDICES)
+        for index in (
+            *FACE_WIDTH_INDICES,
+            *LEFT_TEMPLE_INDICES,
+            *RIGHT_TEMPLE_INDICES,
+            *LEFT_CHEEK_INDICES,
+            *RIGHT_CHEEK_INDICES,
+        )
     ]
     return all(_finite_point(point) for point in required)
 

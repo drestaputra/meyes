@@ -23,6 +23,8 @@ def default_profile() -> BindingProfile:
         bindings={
             BindableGesture.LEFT_WINK: MouseClickAction(button=MouseButton.LEFT),
             BindableGesture.RIGHT_WINK: MouseClickAction(button=MouseButton.RIGHT),
+            BindableGesture.LEFT_CHEEK_TOUCH: DisabledAction(),
+            BindableGesture.RIGHT_CHEEK_TOUCH: DisabledAction(),
             BindableGesture.LEFT_TEMPLE_TAP: MouseScrollAction(amount=-3),
             BindableGesture.RIGHT_TEMPLE_TAP: MouseScrollAction(amount=3),
             BindableGesture.LEFT_TEMPLE_HOLD: ContinuousScrollAction(

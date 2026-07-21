@@ -272,6 +272,22 @@ def test_arming_live_input_cancels_and_erases_live_collection(qtbot: QtBot) -> N
     assert "Live Input was armed" in page._feedback.text()
 
 
+def test_completed_mapper_survives_arming_page_close_and_tracking_pause(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+    page.set_tracking_available(True)
+    complete_calibration(controller, clock, follows_target=True)
+    accepted = controller.accepted_calibration
+
+    page.set_live_input_armed(True)
+    page.set_page_active(False)
+    page.set_tracking_available(False)
+
+    assert controller.snapshot.state is CalibrationSessionState.COMPLETE
+    assert controller.accepted_calibration == accepted
+
+
 def test_leaving_page_cancels_and_erases_live_collection(qtbot: QtBot) -> None:
     controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)

@@ -46,6 +46,14 @@ RestoreCalibration = Callable[[DeletedCalibrationBackup], CalibrationPersistence
 ConfirmCalibrationReplace = Callable[[], CalibrationPersistenceResult]
 DeleteCalibrationBackup = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
 
+_ACTIVE_COLLECTION_STATES = frozenset(
+    {
+        CalibrationSessionState.AWAITING_TARGET,
+        CalibrationSessionState.COLLECTING,
+        CalibrationSessionState.TARGET_FAILED,
+    }
+)
+
 
 class CalibrationPage(QWidget):
     """Guide explicit volatile sampling while real OS output is disconnected."""
@@ -248,11 +256,7 @@ class CalibrationPage(QWidget):
         if (
             self._tracking_available
             and not available
-            and self._controller.snapshot.state
-            not in {
-                CalibrationSessionState.IDLE,
-                CalibrationSessionState.CANCELLED,
-            }
+            and self._controller.snapshot.state in _ACTIVE_COLLECTION_STATES
         ):
             self._controller.cancel()
             self._feedback.setText("Collection cancelled because tracking became unavailable.")
@@ -428,10 +432,7 @@ class CalibrationPage(QWidget):
         """Cancel collection if real operating-system output becomes armed."""
         if not isinstance(armed, bool):
             raise TypeError("armed must be a bool")
-        if armed and self._controller.snapshot.state not in {
-            CalibrationSessionState.IDLE,
-            CalibrationSessionState.CANCELLED,
-        }:
+        if armed and self._controller.snapshot.state in _ACTIVE_COLLECTION_STATES:
             self._controller.cancel()
             self._feedback.setText(
                 "Collection cancelled because Live Input was armed; "
@@ -442,10 +443,7 @@ class CalibrationPage(QWidget):
         """Discard volatile samples rather than collecting while this page is hidden."""
         if not isinstance(active, bool):
             raise TypeError("active must be a bool")
-        if not active and self._controller.snapshot.state not in {
-            CalibrationSessionState.IDLE,
-            CalibrationSessionState.CANCELLED,
-        }:
+        if not active and self._controller.snapshot.state in _ACTIVE_COLLECTION_STATES:
             self._controller.cancel()
             self._feedback.setText(
                 "Collection cancelled because Calibration was closed; "

@@ -100,6 +100,7 @@ class DiagnosticsPage(QWidget):
         self._clear_hand_observation()
         self._clear_temple_feature()
         self._clear_temple_proximity()
+        self._clear_cheek_proximity()
         if self._action_simulation is not None:
             self._on_simulation_snapshot(self._action_simulation.snapshot)
         if self._cursor_diagnostics is not None:
@@ -130,7 +131,7 @@ class DiagnosticsPage(QWidget):
         self._hand_panel = self._build_hand_panel()
         self._event_panel = self._build_event_panel()
         self._face_panel.setMinimumHeight(410)
-        self._hand_panel.setMinimumHeight(330)
+        self._hand_panel.setMinimumHeight(460)
 
         panel_container = QWidget()
         panel_container.setObjectName("diagnosticsPanelContainer")
@@ -257,7 +258,7 @@ class DiagnosticsPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
 
-        heading = QLabel("Hand & temple features")
+        heading = QLabel("Hand & face-touch features")
         heading.setObjectName("panelTitle")
         heading.setWordWrap(True)
         form = QFormLayout()
@@ -278,15 +279,27 @@ class DiagnosticsPage(QWidget):
         self._left_temple_value.setObjectName("leftTempleValue")
         self._right_temple_value = QLabel("—")
         self._right_temple_value.setObjectName("rightTempleValue")
+        self._left_cheek_state_value = QLabel("Unknown")
+        self._left_cheek_state_value.setObjectName("leftCheekStateValue")
+        self._right_cheek_state_value = QLabel("Unknown")
+        self._right_cheek_state_value.setObjectName("rightCheekStateValue")
+        self._left_cheek_value = QLabel("—")
+        self._left_cheek_value.setObjectName("leftCheekValue")
+        self._right_cheek_value = QLabel("—")
+        self._right_cheek_value.setObjectName("rightCheekValue")
         form.addRow("Pipeline", self._hand_pipeline_value)
         form.addRow("Hands", self._hand_count_value)
         form.addRow("Inference FPS", self._hand_fps_value)
         form.addRow("Latency", self._hand_latency_value)
         form.addRow("Feature state", self._temple_status_value)
-        form.addRow("Left state", self._left_temple_state_value)
-        form.addRow("Right state", self._right_temple_state_value)
-        form.addRow("Left ratio", self._left_temple_value)
-        form.addRow("Right ratio", self._right_temple_value)
+        form.addRow("Left temple state", self._left_temple_state_value)
+        form.addRow("Right temple state", self._right_temple_state_value)
+        form.addRow("Left temple ratio", self._left_temple_value)
+        form.addRow("Right temple ratio", self._right_temple_value)
+        form.addRow("Left cheek state", self._left_cheek_state_value)
+        form.addRow("Right cheek state", self._right_cheek_state_value)
+        form.addRow("Left cheek ratio", self._left_cheek_value)
+        form.addRow("Right cheek ratio", self._right_cheek_value)
         note = QLabel("Ratio = fingertip distance ÷ measured face width")
         note.setObjectName("mutedText")
         note.setWordWrap(True)
@@ -375,6 +388,8 @@ class DiagnosticsPage(QWidget):
         self._controller.temple_feature_cleared.connect(self._clear_temple_feature)
         self._controller.temple_proximity_changed.connect(self._on_temple_proximity)
         self._controller.temple_proximity_cleared.connect(self._clear_temple_proximity)
+        self._controller.cheek_proximity_changed.connect(self._on_cheek_proximity)
+        self._controller.cheek_proximity_cleared.connect(self._clear_cheek_proximity)
         self._controller.event_detected.connect(self._on_event)
         if self._action_simulation is not None:
             self._action_simulation.snapshot_changed.connect(self._on_simulation_snapshot)
@@ -462,9 +477,17 @@ class DiagnosticsPage(QWidget):
         self._temple_status_value.setText(observation.status.value.replace("_", " ").title())
         left = observation.proximity(HandSide.LEFT)
         right = observation.proximity(HandSide.RIGHT)
+        left_cheek = observation.cheek_proximity(HandSide.LEFT)
+        right_cheek = observation.cheek_proximity(HandSide.RIGHT)
         self._left_temple_value.setText(f"{left.distance_ratio:.3f}" if left is not None else "—")
         self._right_temple_value.setText(
             f"{right.distance_ratio:.3f}" if right is not None else "—"
+        )
+        self._left_cheek_value.setText(
+            f"{left_cheek.distance_ratio:.3f}" if left_cheek is not None else "—"
+        )
+        self._right_cheek_value.setText(
+            f"{right_cheek.distance_ratio:.3f}" if right_cheek is not None else "—"
         )
 
     @Slot(object)
@@ -472,6 +495,12 @@ class DiagnosticsPage(QWidget):
         snapshot = temple_proximity_snapshot(payload)
         self._left_temple_state_value.setText(snapshot.left.value.capitalize())
         self._right_temple_state_value.setText(snapshot.right.value.capitalize())
+
+    @Slot(object)
+    def _on_cheek_proximity(self, payload: object) -> None:
+        snapshot = temple_proximity_snapshot(payload)
+        self._left_cheek_state_value.setText(snapshot.left.value.capitalize())
+        self._right_cheek_state_value.setText(snapshot.right.value.capitalize())
 
     @Slot(object)
     def _on_event(self, payload: object) -> None:
@@ -546,11 +575,18 @@ class DiagnosticsPage(QWidget):
         self._temple_status_value.setText("Unavailable")
         self._left_temple_value.setText("—")
         self._right_temple_value.setText("—")
+        self._left_cheek_value.setText("—")
+        self._right_cheek_value.setText("—")
 
     @Slot()
     def _clear_temple_proximity(self) -> None:
         self._left_temple_state_value.setText("Unknown")
         self._right_temple_state_value.setText("Unknown")
+
+    @Slot()
+    def _clear_cheek_proximity(self) -> None:
+        self._left_cheek_state_value.setText("Unknown")
+        self._right_cheek_state_value.setText("Unknown")
 
     @Slot()
     def _clear_events(self) -> None:

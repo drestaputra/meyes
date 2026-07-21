@@ -16,8 +16,9 @@ MEYES must become a safe, local-first Windows accessibility application that let
 2. move the pointer with gaze;
 3. trigger independent click actions with left/right winks;
 4. trigger tap/hold actions near the left/right temple;
-5. pause all tracking immediately from the UI, tray, or emergency shortcut;
-6. change gesture bindings without changing vision code.
+5. expose independent left/right cheek-touch gestures as optional bindings;
+6. pause all tracking immediately from the UI, tray, or emergency shortcut;
+7. change gesture bindings without changing vision code.
 
 The first release is an assistive productivity tool, not a medical device. Accuracy claims will be based on measured tests, not marketing assumptions.
 
@@ -133,7 +134,7 @@ Deliverables:
 
 - MediaPipe Hand Landmarker adapter at a lower inference cadence;
 - one canonical handedness/mirroring conversion;
-- temple anchors and face-width-normalized distance;
+- temple and cheek anchors with face-width-normalized distance;
 - hysteresis, stabilization, tap, hold-start, and hold-end states;
 - observation timeout and tracking-loss recovery.
 
@@ -142,7 +143,8 @@ Exit criteria:
 - tap emits only after release;
 - hold start emits once and always receives an end event;
 - tracking loss ends a hold within the configured timeout;
-- wrong-hand/wrong-temple sequences are rejected.
+- wrong-hand/wrong-side face-touch sequences are rejected;
+- stable cheek touches emit once on release and never click on startup or tracking loss.
 
 ### Phase 4 — Bindings and Windows input
 

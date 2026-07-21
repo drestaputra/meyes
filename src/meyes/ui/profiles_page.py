@@ -143,7 +143,7 @@ class ProfilesPage(QWidget):
         heading_row.addWidget(self._refresh_button)
 
         helper = QLabel(
-            "New profiles start with all six gestures disabled. Creating one does not "
+            "New profiles start with all eight gestures disabled. Creating one does not "
             "change the active profile."
         )
         helper.setObjectName("mutedText")
@@ -227,7 +227,7 @@ class ProfilesPage(QWidget):
         restore_label = QLabel("Restore built-in Default bindings")
         restore_label.setObjectName("fieldLabel")
         restore_helper = QLabel(
-            "This replaces all six stored bindings in the selected profile. It does not "
+            "This replaces all eight stored bindings in the selected profile. It does not "
             "activate the profile or dispatch any action. Confirmation is requested in a dialog."
         )
         restore_helper.setObjectName("mutedText")
@@ -277,7 +277,7 @@ class ProfilesPage(QWidget):
         heading = QLabel("Import or export profile JSON")
         heading.setObjectName("panelTitle")
         helper = QLabel(
-            "Imports are limited to 256 KiB, validated as a complete six-binding MEYES "
+            "Imports are limited to 256 KiB, validated as a complete eight-binding MEYES "
             "profile, and always created as inactive. Existing local profiles are never "
             "overwritten by import."
         )
@@ -479,7 +479,7 @@ class ProfilesPage(QWidget):
             self,
             title=f"Restore Default bindings to {selected}?",
             message=(
-                f"Replace all six bindings in the inactive profile '{selected}' with the "
+                f"Replace all eight bindings in the inactive profile '{selected}' with the "
                 "built-in Default bindings? The profile will remain inactive."
             ),
             confirm_label="Restore bindings",

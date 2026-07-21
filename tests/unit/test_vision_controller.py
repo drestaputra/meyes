@@ -758,7 +758,10 @@ def test_suspend_clears_derived_temple_proximity(qtbot: QtBot) -> None:
     )
     snapshots: list[TempleProximitySnapshot] = []
     events: list[GestureEvent] = []
+    clears: list[str] = []
     controller.temple_proximity_changed.connect(snapshots.append)
+    controller.temple_proximity_cleared.connect(lambda: clears.append("temple"))
+    controller.cheek_proximity_cleared.connect(lambda: clears.append("cheek"))
     controller.event_detected.connect(events.append)
     controller.start()
     controller._watchdog.stop()
@@ -773,13 +776,17 @@ def test_suspend_clears_derived_temple_proximity(qtbot: QtBot) -> None:
             controller._hand_worker_serial,
             feature_hand_observation(1, 10.0, fingertip_x=0.5),
         )
-    with qtbot.waitSignal(controller.temple_proximity_cleared, timeout=1000):
+    with qtbot.waitSignal(controller.cheek_proximity_cleared, timeout=1000):
         controller.suspend()
 
     assert snapshots[-1].right is ProximityState.FAR
     assert controller._gesture_engine.temple_proximity_detector.snapshot.right is (
         ProximityState.UNKNOWN
     )
+    assert controller._gesture_engine.cheek_proximity_detector.snapshot.right is (
+        ProximityState.UNKNOWN
+    )
+    assert clears == ["temple", "cheek"]
     assert events == []
     controller.stop()
 

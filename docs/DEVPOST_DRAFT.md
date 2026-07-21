@@ -18,7 +18,8 @@ Local, safety-first hands-free Windows control with an ordinary webcam.
 ## Short description
 
 MEYES is a Windows-first assistive productivity prototype that turns local webcam observations into
-gaze pointer candidates, wink clicks, and temple gestures. It starts with operating-system input
+gaze pointer candidates, wink clicks, temple gestures, and optional cheek-touch bindings. It starts
+with operating-system input
 disconnected, keeps frames on device, and requires explicit per-session modal consent plus an emergency
 shortcut before any real Windows input can be sent.
 
@@ -33,7 +34,8 @@ ordinary webcam. It is an assistive productivity prototype, not a medical device
 ### What it does
 
 MEYES runs local face and hand landmark inference, derives normalized binocular gaze features,
-detects deliberate left/right winks, and classifies fingertip-to-temple taps and holds. A hands-free
+detects deliberate left/right winks, classifies fingertip-to-temple taps and holds, and emits
+single-shot left/right cheek-touch events. Cheek actions remain disabled by default. A hands-free
 Smooth Pursuit calibration target moves across nine broad screen regions while MEYES pairs webcam
 features with its capture-time position, checks target-following correlation, fits a robust
 quadratic gaze mapper, and shows held-out metrics. Only fits accepted by a complete configured

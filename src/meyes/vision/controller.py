@@ -47,6 +47,8 @@ class VisionController(QObject):
     temple_feature_cleared = Signal()
     temple_proximity_changed = Signal(object)
     temple_proximity_cleared = Signal()
+    cheek_proximity_changed = Signal(object)
+    cheek_proximity_cleared = Signal()
     event_detected = Signal(object)
 
     _face_result_queued = Signal(object)
@@ -177,6 +179,7 @@ class VisionController(QObject):
         self.hand_observation_cleared.emit()
         self.temple_feature_cleared.emit()
         self.temple_proximity_cleared.emit()
+        self.cheek_proximity_cleared.emit()
 
     @Slot()
     def stop(self) -> None:
@@ -207,6 +210,8 @@ class VisionController(QObject):
             return
         if result.proximity is not None:
             self.temple_proximity_changed.emit(result.proximity)
+        if result.cheek_proximity is not None:
+            self.cheek_proximity_changed.emit(result.cheek_proximity)
 
     def _start_face_worker(self) -> None:
         worker = self._face_worker
@@ -495,6 +500,10 @@ class VisionController(QObject):
             return
         if result.proximity is not None:
             self.temple_proximity_changed.emit(result.proximity)
+            if not self._delivery_generation_matches(generation):
+                return
+        if result.cheek_proximity is not None:
+            self.cheek_proximity_changed.emit(result.cheek_proximity)
             if not self._delivery_generation_matches(generation):
                 return
         self.temple_feature_changed.emit(feature)

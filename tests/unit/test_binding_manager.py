@@ -35,6 +35,8 @@ def test_default_profile_matches_specification_exactly() -> None:
     assert profile.bindings == {
         BindableGesture.LEFT_WINK: MouseClickAction(button=MouseButton.LEFT),
         BindableGesture.RIGHT_WINK: MouseClickAction(button=MouseButton.RIGHT),
+        BindableGesture.LEFT_CHEEK_TOUCH: DisabledAction(),
+        BindableGesture.RIGHT_CHEEK_TOUCH: DisabledAction(),
         BindableGesture.LEFT_TEMPLE_TAP: MouseScrollAction(amount=-3),
         BindableGesture.RIGHT_TEMPLE_TAP: MouseScrollAction(amount=3),
         BindableGesture.LEFT_TEMPLE_HOLD: ContinuousScrollAction(
@@ -76,12 +78,31 @@ def test_profile_deep_copy_preserves_read_only_bindings() -> None:
         copied.bindings[BindableGesture.LEFT_WINK] = DisabledAction()  # type: ignore[index]
 
 
-def test_profile_requires_all_six_logical_gestures() -> None:
+def test_profile_requires_all_eight_logical_gestures() -> None:
     bindings = dict(default_profile().bindings)
     bindings.pop(BindableGesture.LEFT_WINK)
 
-    with pytest.raises(ValidationError, match="exactly six"):
+    with pytest.raises(ValidationError, match="exactly eight"):
         BindingProfile(profile_name="Incomplete", bindings=bindings)
+
+
+@pytest.mark.parametrize("include_schema", [False, True])
+def test_legacy_profile_migrates_with_cheek_touches_disabled(include_schema: bool) -> None:
+    legacy_bindings = dict(default_profile().bindings)
+    legacy_bindings.pop(BindableGesture.LEFT_CHEEK_TOUCH)
+    legacy_bindings.pop(BindableGesture.RIGHT_CHEEK_TOUCH)
+    payload: dict[str, object] = {
+        "profile_name": "Legacy",
+        "bindings": legacy_bindings,
+    }
+    if include_schema:
+        payload["schema_version"] = 1
+
+    migrated = BindingProfile.model_validate(payload)
+
+    assert migrated.schema_version == 2
+    assert isinstance(migrated.bindings[BindableGesture.LEFT_CHEEK_TOUCH], DisabledAction)
+    assert isinstance(migrated.bindings[BindableGesture.RIGHT_CHEEK_TOUCH], DisabledAction)
 
 
 @pytest.mark.parametrize(
@@ -101,6 +122,8 @@ def test_profile_names_are_windows_safe(profile_name: str) -> None:
     [
         BindableGesture.LEFT_WINK,
         BindableGesture.RIGHT_WINK,
+        BindableGesture.LEFT_CHEEK_TOUCH,
+        BindableGesture.RIGHT_CHEEK_TOUCH,
         BindableGesture.LEFT_TEMPLE_TAP,
         BindableGesture.RIGHT_TEMPLE_TAP,
     ],
@@ -128,6 +151,16 @@ def test_actions_requiring_an_end_event_are_hold_only(
     [
         (GestureEventType.LEFT_WINK, BindableGesture.LEFT_WINK, BindingPhase.TRIGGER),
         (GestureEventType.RIGHT_WINK, BindableGesture.RIGHT_WINK, BindingPhase.TRIGGER),
+        (
+            GestureEventType.LEFT_CHEEK_TOUCH,
+            BindableGesture.LEFT_CHEEK_TOUCH,
+            BindingPhase.TRIGGER,
+        ),
+        (
+            GestureEventType.RIGHT_CHEEK_TOUCH,
+            BindableGesture.RIGHT_CHEEK_TOUCH,
+            BindingPhase.TRIGGER,
+        ),
         (
             GestureEventType.LEFT_TEMPLE_TAP,
             BindableGesture.LEFT_TEMPLE_TAP,

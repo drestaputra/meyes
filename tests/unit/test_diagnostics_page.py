@@ -85,6 +85,7 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
         status=TempleFeatureStatus.READY,
         face_source_sequence=7,
         proximities=(TempleProximity(HandSide.LEFT, 0.125, 0.9),),
+        cheek_proximities=(TempleProximity(HandSide.RIGHT, 0.045, 0.9),),
     )
     proximity = TempleProximitySnapshot(
         source_sequence=7,
@@ -92,12 +93,19 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
         left=ProximityState.NEAR,
         right=ProximityState.FAR,
     )
+    cheek_proximity = TempleProximitySnapshot(
+        source_sequence=7,
+        timestamp=2.02,
+        left=ProximityState.FAR,
+        right=ProximityState.NEAR,
+    )
 
     controller.observation_changed.emit(observation)
     controller.gaze_feature_changed.emit(gaze)
     controller.hand_observation_changed.emit(hands)
     controller.temple_feature_changed.emit(temple)
     controller.temple_proximity_changed.emit(proximity)
+    controller.cheek_proximity_changed.emit(cheek_proximity)
 
     meters = page.findChildren(QProgressBar)
     event_log = page.findChild(QListWidget, "eventLog")
@@ -106,6 +114,10 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
     right_temple = page.findChild(QLabel, "rightTempleValue")
     left_state = page.findChild(QLabel, "leftTempleStateValue")
     right_state = page.findChild(QLabel, "rightTempleStateValue")
+    left_cheek = page.findChild(QLabel, "leftCheekValue")
+    right_cheek = page.findChild(QLabel, "rightCheekValue")
+    left_cheek_state = page.findChild(QLabel, "leftCheekStateValue")
+    right_cheek_state = page.findChild(QLabel, "rightCheekStateValue")
     gaze_status = page.findChild(QLabel, "gazeFeatureStatusValue")
     gaze_horizontal = page.findChild(QLabel, "gazeHorizontalValue")
     gaze_vertical = page.findChild(QLabel, "gazeVerticalValue")
@@ -115,6 +127,10 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
     assert right_temple is not None and right_temple.text() == "—"
     assert left_state is not None and left_state.text() == "Near"
     assert right_state is not None and right_state.text() == "Far"
+    assert left_cheek is not None and left_cheek.text() == "—"
+    assert right_cheek is not None and right_cheek.text() == "0.045"
+    assert left_cheek_state is not None and left_cheek_state.text() == "Far"
+    assert right_cheek_state is not None and right_cheek_state.text() == "Near"
     assert gaze_status is not None and gaze_status.text() == "Ready"
     assert gaze_horizontal is not None and gaze_horizontal.text() == "0.500"
     assert gaze_vertical is not None and gaze_vertical.text() == "0.600"
@@ -129,10 +145,13 @@ def test_diagnostics_renders_face_hand_temple_and_semantic_events(qtbot: QtBot) 
     assert "LEFT WINK" in event_log.item(1).text()
 
     controller.temple_proximity_cleared.emit()
+    controller.cheek_proximity_cleared.emit()
     controller.gaze_feature_cleared.emit()
 
     assert left_state.text() == "Unknown"
     assert right_state.text() == "Unknown"
+    assert left_cheek_state.text() == "Unknown"
+    assert right_cheek_state.text() == "Unknown"
     assert left_temple.text() == "0.125"
     assert right_temple.text() == "—"
     assert gaze_status.text() == "Unavailable"

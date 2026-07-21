@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -17,7 +17,13 @@ from pydantic import (
     model_validator,
 )
 
-from meyes.domain.actions import Action, ActionModel, ContinuousScrollAction, MouseDownAction
+from meyes.domain.actions import (
+    Action,
+    ActionModel,
+    ContinuousScrollAction,
+    DisabledAction,
+    MouseDownAction,
+)
 from meyes.util.profile_names import validate_profile_name
 
 _ACTION_ADAPTER: TypeAdapter[Action] = TypeAdapter(Action)
@@ -28,6 +34,8 @@ class BindableGesture(StrEnum):
 
     LEFT_WINK = "LEFT_WINK"
     RIGHT_WINK = "RIGHT_WINK"
+    LEFT_CHEEK_TOUCH = "LEFT_CHEEK_TOUCH"
+    RIGHT_CHEEK_TOUCH = "RIGHT_CHEEK_TOUCH"
     LEFT_TEMPLE_TAP = "LEFT_TEMPLE_TAP"
     RIGHT_TEMPLE_TAP = "RIGHT_TEMPLE_TAP"
     LEFT_TEMPLE_HOLD = "LEFT_TEMPLE_HOLD"
@@ -62,7 +70,7 @@ class BindingProfile(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     profile_name: str = Field(min_length=1, max_length=80)
     bindings: Mapping[BindableGesture, Action]
 
@@ -70,6 +78,34 @@ class BindingProfile(BaseModel):
     @classmethod
     def validate_name(cls, value: object) -> object:
         return validate_profile_name(value)
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_six_gesture_profile(cls, value: Any) -> Any:
+        """Upgrade complete schema-1 profiles with disabled cheek-touch bindings."""
+        if not isinstance(value, Mapping) or value.get("schema_version", 1) != 1:
+            return value
+        bindings = value.get("bindings")
+        if not isinstance(bindings, Mapping):
+            return value
+        legacy = {
+            BindableGesture.LEFT_WINK.value,
+            BindableGesture.RIGHT_WINK.value,
+            BindableGesture.LEFT_TEMPLE_TAP.value,
+            BindableGesture.RIGHT_TEMPLE_TAP.value,
+            BindableGesture.LEFT_TEMPLE_HOLD.value,
+            BindableGesture.RIGHT_TEMPLE_HOLD.value,
+        }
+        actual = {key.value if isinstance(key, BindableGesture) else str(key) for key in bindings}
+        if actual != legacy:
+            return value
+        migrated_bindings = dict(bindings)
+        migrated_bindings[BindableGesture.LEFT_CHEEK_TOUCH] = DisabledAction()
+        migrated_bindings[BindableGesture.RIGHT_CHEEK_TOUCH] = DisabledAction()
+        migrated = dict(value)
+        migrated["schema_version"] = 2
+        migrated["bindings"] = migrated_bindings
+        return migrated
 
     @model_validator(mode="after")
     def validate_complete_safe_bindings(self) -> Self:
@@ -79,7 +115,7 @@ class BindingProfile(BaseModel):
             missing = sorted(item.value for item in expected - actual)
             extra = sorted(str(item) for item in actual - expected)
             raise ValueError(
-                f"bindings must contain exactly six gestures; missing={missing}, extra={extra}"
+                f"bindings must contain exactly eight gestures; missing={missing}, extra={extra}"
             )
         validated_bindings: dict[BindableGesture, Action] = {}
         for gesture, action in self.bindings.items():

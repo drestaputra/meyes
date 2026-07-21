@@ -56,7 +56,7 @@ class _BindingRow:
 
 
 class BindingsPage(QWidget):
-    """Edit six bindings as a draft and save only as a new profile."""
+    """Edit eight bindings as a draft and save only as a new profile."""
 
     def __init__(
         self,
@@ -189,7 +189,7 @@ class BindingsPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        heading = QLabel("Six gesture bindings")
+        heading = QLabel("Eight gesture bindings")
         heading.setObjectName("panelTitle")
         helper = QLabel(
             "Parameter examples appear inside each field. Invalid text never replaces the last "

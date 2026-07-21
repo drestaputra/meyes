@@ -11,8 +11,10 @@ from meyes.domain.observations import (
     TempleFeatureObservation,
     TempleFeatureStatus,
 )
+from meyes.gestures.cheek_touch import CheekTouchDetector, CheekTouchSettings
 from meyes.gestures.temple_gestures import TempleGestureDetector, TempleGestureSettings
 from meyes.gestures.temple_proximity import (
+    ProximitySource,
     ProximityState,
     TempleProximityDetector,
     TempleProximitySettings,
@@ -23,9 +25,10 @@ from meyes.gestures.wink_detector import WinkDetector, WinkDetectorSettings
 
 @dataclass(frozen=True, slots=True)
 class TempleUpdateResult:
-    """One atomic temple update for controller-side publication."""
+    """One atomic face-touch update for controller-side publication."""
 
     proximity: TempleProximitySnapshot | None = None
+    cheek_proximity: TempleProximitySnapshot | None = None
     events: tuple[GestureEvent, ...] = ()
 
 
@@ -37,10 +40,16 @@ class GestureEngine:
         wink_detector: WinkDetector | None = None,
         temple_proximity_detector: TempleProximityDetector | None = None,
         temple_gesture_detector: TempleGestureDetector | None = None,
+        cheek_proximity_detector: TempleProximityDetector | None = None,
+        cheek_touch_detector: CheekTouchDetector | None = None,
     ) -> None:
         self.wink_detector = wink_detector or WinkDetector()
         self.temple_proximity_detector = temple_proximity_detector or TempleProximityDetector()
         self.temple_gesture_detector = temple_gesture_detector or TempleGestureDetector()
+        self.cheek_proximity_detector = cheek_proximity_detector or TempleProximityDetector(
+            source=ProximitySource.CHEEK
+        )
+        self.cheek_touch_detector = cheek_touch_detector or CheekTouchDetector()
 
     @classmethod
     def from_settings(cls, settings: GestureSettings) -> GestureEngine:
@@ -56,10 +65,13 @@ class GestureEngine:
         )
         temple_settings = TempleProximitySettings.from_settings(settings)
         temple_gesture_settings = TempleGestureSettings.from_settings(settings)
+        cheek_touch_settings = CheekTouchSettings(cooldown=settings.temple_cooldown_ms / 1000.0)
         return cls(
             WinkDetector(wink_settings),
             TempleProximityDetector(temple_settings),
             TempleGestureDetector(temple_gesture_settings),
+            TempleProximityDetector(temple_settings, source=ProximitySource.CHEEK),
+            CheekTouchDetector(cheek_touch_settings),
         )
 
     def update_face(self, observation: FaceObservation) -> tuple[GestureEvent, ...]:
@@ -95,7 +107,19 @@ class GestureEngine:
                 )
             )
         proximity = current if _proximity_states_changed(previous, current) else None
-        return TempleUpdateResult(proximity, tuple(events))
+        cheek_previous = self.cheek_proximity_detector.snapshot
+        cheek_before_evidence = self.cheek_proximity_detector.poll(observation.processed_timestamp)
+        if _became_unknown(cheek_previous, cheek_before_evidence):
+            self.cheek_touch_detector.update(cheek_before_evidence)
+        cheek_current = self.cheek_proximity_detector.update(observation)
+        if _is_accepted_evidence(observation, cheek_current) or _became_unknown(
+            cheek_before_evidence, cheek_current
+        ):
+            events.extend(self.cheek_touch_detector.update(cheek_current))
+        cheek_proximity = (
+            cheek_current if _proximity_states_changed(cheek_previous, cheek_current) else None
+        )
+        return TempleUpdateResult(proximity, cheek_proximity, tuple(events))
 
     def poll_temple(self, timestamp: float) -> TempleUpdateResult:
         """Expire temple state independently of the latest raw feature status."""
@@ -103,7 +127,16 @@ class GestureEngine:
         current = self.temple_proximity_detector.poll(timestamp)
         changed = _proximity_states_changed(previous, current)
         events = self.temple_gesture_detector.expire(timestamp) if changed else ()
-        return TempleUpdateResult(current if changed else None, events)
+        cheek_previous = self.cheek_proximity_detector.snapshot
+        cheek_current = self.cheek_proximity_detector.poll(timestamp)
+        cheek_changed = _proximity_states_changed(cheek_previous, cheek_current)
+        if cheek_changed:
+            self.cheek_touch_detector.update(cheek_current)
+        return TempleUpdateResult(
+            current if changed else None,
+            cheek_current if cheek_changed else None,
+            events,
+        )
 
     def reset_face(self) -> None:
         """Reset only face-derived state after a stale face observation."""
@@ -114,6 +147,8 @@ class GestureEngine:
         self.reset_face()
         events = self.temple_gesture_detector.reset(timestamp)
         self.temple_proximity_detector.reset()
+        self.cheek_proximity_detector.reset()
+        self.cheek_touch_detector.reset()
         return events
 
 

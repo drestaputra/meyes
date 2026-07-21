@@ -124,6 +124,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Expire live temple features after the configured tracking timeout.
 - [x] Implement temple proximity hysteresis.
 - [x] Implement tap, hold-start, and hold-end states.
+- [x] Derive same-side fingertip-to-cheek proximity from symmetric face landmarks.
+- [x] Emit one left/right cheek-touch event on stable release without startup or tracking-loss clicks.
 - [x] End continuous states after tracking timeout.
 - [x] Test wrong-hand, unstable-candidate, release, and tracking-loss sequences.
 
@@ -148,7 +150,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Wire live semantic events to a Qt-owned fake-only simulation and Diagnostics trace.
 - [x] Add a durable user-facing profile catalog and all-disabled profile creation.
 - [x] Activate selected profiles through a release-first paused transition with config rollback.
-- [x] Preview the active profile's six simulated gesture bindings.
+- [x] Preview the active profile's eight simulated gesture bindings.
+- [x] Keep left/right cheek-touch bindings explicitly disabled in the built-in Default profile.
+- [x] Migrate legacy six-gesture profiles without enabling cheek actions.
 - [x] Test all actions through a fake executor.
 - [x] Add a safe draft-based binding editor without enabling operating-system input.
 - [x] Add inactive profile rename, modal-confirmed recoverable deletion, and restore-default
@@ -170,6 +174,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add an optional all-or-none acceptance-policy contract for stricter rejection and persistence.
 - [x] Accept completed Smooth Pursuit fits directly after coverage, correlation, and mapper guards.
 - [x] Prompt with a cancel-default dialog to activate Live Input after calibration passes.
+- [x] Preserve the completed mapper and cursor pipeline through Live Input arming, page navigation,
+  and camera pause/resume.
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
 - [x] Define versioned, checksummed, exact-policy persistence and fail-closed recovery for an accepted mapper.
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
@@ -280,6 +286,6 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Multi-monitor calibration.
 - [ ] Advanced ONNX gaze estimation.
 - [ ] Per-application profiles and automatic switching.
-- [ ] Drag-and-drop, dwell-click, and additional gestures.
+- [ ] Drag-and-drop, dwell-click, and additional gestures beyond cheek touch.
 - [ ] macOS and Linux input backends.
 - [ ] Optional native optimization for measured hot paths.

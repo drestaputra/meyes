@@ -62,6 +62,8 @@ class DispatchStatus(StrEnum):
 class _OrderingChannel(StrEnum):
     LEFT_WINK = "left_wink"
     RIGHT_WINK = "right_wink"
+    LEFT_CHEEK = "left_cheek"
+    RIGHT_CHEEK = "right_cheek"
     LEFT_TEMPLE = "left_temple"
     RIGHT_TEMPLE = "right_temple"
 
@@ -140,6 +142,14 @@ class _ExternalOutcome(StrEnum):
 _EVENT_ORDER: dict[GestureEventType, tuple[BindableGesture, _OrderingChannel]] = {
     GestureEventType.LEFT_WINK: (BindableGesture.LEFT_WINK, _OrderingChannel.LEFT_WINK),
     GestureEventType.RIGHT_WINK: (BindableGesture.RIGHT_WINK, _OrderingChannel.RIGHT_WINK),
+    GestureEventType.LEFT_CHEEK_TOUCH: (
+        BindableGesture.LEFT_CHEEK_TOUCH,
+        _OrderingChannel.LEFT_CHEEK,
+    ),
+    GestureEventType.RIGHT_CHEEK_TOUCH: (
+        BindableGesture.RIGHT_CHEEK_TOUCH,
+        _OrderingChannel.RIGHT_CHEEK,
+    ),
     GestureEventType.LEFT_TEMPLE_TAP: (
         BindableGesture.LEFT_TEMPLE_TAP,
         _OrderingChannel.LEFT_TEMPLE,

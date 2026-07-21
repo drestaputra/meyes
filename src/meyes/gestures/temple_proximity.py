@@ -22,6 +22,13 @@ class ProximityState(StrEnum):
     NEAR = "near"
 
 
+class ProximitySource(StrEnum):
+    """Face anchor set consumed by one independent proximity detector."""
+
+    TEMPLE = "temple"
+    CHEEK = "cheek"
+
+
 @dataclass(frozen=True, slots=True)
 class TempleProximitySettings:
     """Distance thresholds and timing expressed as ratios/seconds."""
@@ -152,10 +159,18 @@ class _SideTracker:
 
 
 class TempleProximityDetector:
-    """Stabilize independent left/right temple distance classifications."""
+    """Stabilize independent left/right face-anchor distance classifications."""
 
-    def __init__(self, settings: TempleProximitySettings | None = None) -> None:
+    def __init__(
+        self,
+        settings: TempleProximitySettings | None = None,
+        *,
+        source: ProximitySource = ProximitySource.TEMPLE,
+    ) -> None:
+        if not isinstance(source, ProximitySource):
+            raise TypeError("Expected ProximitySource")
         self.settings = settings or TempleProximitySettings()
+        self.source = source
         self._left = _SideTracker()
         self._right = _SideTracker()
         self._last_valid_sequence: int | None = None
@@ -261,11 +276,16 @@ class TempleProximityDetector:
             and observation.processed_timestamp >= observation.capture_timestamp
         ):
             return None
-        if observation.status is TempleFeatureStatus.NO_ELIGIBLE_HANDS and observation.proximities:
+        proximities = (
+            observation.proximities
+            if self.source is ProximitySource.TEMPLE
+            else observation.cheek_proximities
+        )
+        if observation.status is TempleFeatureStatus.NO_ELIGIBLE_HANDS and proximities:
             return None
 
         ratios: dict[HandSide, float] = {}
-        for proximity in observation.proximities:
+        for proximity in proximities:
             if (
                 proximity.side not in {HandSide.LEFT, HandSide.RIGHT}
                 or proximity.side in ratios
