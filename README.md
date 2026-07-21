@@ -153,6 +153,9 @@ The current evidence matrix is documented in
 A fresh-clone, isolated-environment source check is recorded in
 [`docs/evidence/clean-source/2026-07-21.md`](./docs/evidence/clean-source/2026-07-21.md).
 
+The evidence-mapped release decision, including every remaining human/hardware and delivery blocker,
+is maintained in [MVP_ACCEPTANCE.md](./MVP_ACCEPTANCE.md).
+
 The main navigation supports arrow keys and Ctrl+1 through Ctrl+9 in the displayed page order;
 shortcut activation returns focus to the navigation list.
 

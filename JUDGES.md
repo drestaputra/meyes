@@ -231,6 +231,8 @@ Intentionally not implemented or not enabled:
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.
+The consolidated pass/partial/blocked matrix is in `MVP_ACCEPTANCE.md`; it explicitly does not claim
+a standalone MVP release or completed Devpost submission.
 
 ## Local files and troubleshooting
 

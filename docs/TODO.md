@@ -239,6 +239,10 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Collect representative live detected-face/hand, end-to-end preview, and sustained performance
   evidence before making live-performance claims or changing model/cadence settings.
 - [ ] Complete the MVP acceptance checklist.
+  - [x] Publish an evidence-mapped PASS/PARTIAL/BLOCKED matrix without converting human/hardware,
+    delivery, or Devpost blockers into passing claims.
+  - [ ] Complete the pending rows in [`../MVP_ACCEPTANCE.md`](../MVP_ACCEPTANCE.md) before declaring a
+    standalone MVP release.
 
 ## Deferred after MVP
 
