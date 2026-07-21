@@ -1,5 +1,6 @@
 param(
     [switch]$RunFullCheck,
+    [switch]$VerifyRemote,
     [switch]$AllowDirty
 )
 
@@ -52,9 +53,31 @@ if ($branch -ne "main") {
     $failures.Add("Expected submission branch main; found '$branch'.")
 }
 
+$head = Invoke-GitText rev-parse HEAD
+$upstream = Invoke-GitText rev-parse --abbrev-ref --symbolic-full-name "@{upstream}"
+if ($upstream -ne "origin/main") {
+    $failures.Add("Expected upstream origin/main; found '$upstream'.")
+}
+$upstreamHead = Invoke-GitText rev-parse "@{upstream}"
+if ($head -ne $upstreamHead) {
+    $failures.Add("Local HEAD does not match the locally recorded upstream revision.")
+}
+
 $remote = Invoke-GitText remote get-url origin
 if ($remote -notmatch "github\.com[/:]drestaputra/meyes(?:\.git)?$") {
     $failures.Add("Unexpected origin remote: $remote")
+}
+
+if ($VerifyRemote) {
+    try {
+        $remoteLine = Invoke-GitText ls-remote --exit-code origin refs/heads/main
+        $remoteHead = ($remoteLine -split "\s+")[0]
+        if ($head -ne $remoteHead) {
+            $failures.Add("Local HEAD does not match origin/main on the remote server.")
+        }
+    } catch {
+        $failures.Add("Could not verify origin/main on the remote server: $($_.Exception.Message)")
+    }
 }
 
 $status = Invoke-GitText status --porcelain
@@ -64,13 +87,20 @@ if (-not $AllowDirty -and $status) {
 
 $license = Get-Content -LiteralPath LICENSE -Raw
 if ($license -notmatch "MIT License" -or $license -notmatch "drestaputra") {
-    $failures.Add("LICENSE does not contain the expected MIT grant and owner placeholder.")
+    $failures.Add("LICENSE does not contain the expected MIT grant and recorded owner.")
 }
 
 $readme = Get-Content -LiteralPath README.md -Raw
 foreach ($requiredText in @("uv sync --frozen", "Codex", "GPT-5.6", "ENABLE LIVE INPUT")) {
     if ($readme -notmatch [regex]::Escape($requiredText)) {
         $failures.Add("README is missing required evidence text: $requiredText")
+    }
+}
+
+$devpostDraft = Get-Content -LiteralPath docs/DEVPOST_DRAFT.md -Raw
+foreach ($forbiddenText in @("Update this number", "TODO", "TBD", "Untitled")) {
+    if ($devpostDraft -match [regex]::Escape($forbiddenText)) {
+        $failures.Add("Devpost draft still contains unresolved text: $forbiddenText")
     }
 }
 
@@ -91,7 +121,13 @@ if ($failures.Count -gt 0) {
 
 Write-Host "LOCAL SUBMISSION PREFLIGHT: PASSED" -ForegroundColor Green
 Write-Host "Branch: $branch"
+Write-Host "Revision: $head"
 Write-Host "Origin: $remote"
+if ($VerifyRemote) {
+    Write-Host "Remote revision parity: passed"
+} else {
+    Write-Host "Remote revision parity: skipped (use -VerifyRemote)"
+}
 Write-Host "Required tracked files: $($requiredFiles.Count)"
 if ($AllowDirty) {
     Write-Host "Worktree cleanliness: intentionally skipped for development validation"

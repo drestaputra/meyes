@@ -74,6 +74,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Fresh-clone locked dependency, package entry-point, static-analysis, and 740-test verification in an isolated CPython 3.11 environment on the same Windows 11 host, with second-machine/live limitations recorded.
 - Shared fail-fast PowerShell uv resolver with direct-launcher and `python -m uv` support, frozen-lock execution across all scripts, and native Qt testing unless callers explicitly request another platform.
 - Non-mutating local submission preflight for branch, origin, clean worktree, required tracked evidence files, MIT/readme invariants, and optional full gate, with human/external blockers always reported separately.
+- Optional live remote-revision parity and unresolved-draft-marker checks in submission preflight, with revision-stable Devpost verification copy.
 - Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.
 - Fail-closed binocular gaze feature extraction using pixel-aspect-correct eye-local axes, explicit invalid states, Qt lifecycle expiry, and uncalibrated Diagnostics values without pointer output.
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.

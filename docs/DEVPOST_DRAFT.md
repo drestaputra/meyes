@@ -76,8 +76,8 @@ timeline; commit `57e08f2` is the first explicit post-model-switch GPT-5.6 itera
 - accepted-calibration persistence with checksum, policy, display provenance, recovery, and explicit
   replacement/deletion controls;
 - per-movement display-provenance revalidation before absolute pointer packets;
-- a deterministic suite of 740 tests at the `750b637` evidence-probe revision, plus strict mypy and
-  Ruff gates. Update this number and revision before submission if later commits are used.
+- a deterministic pytest suite plus strict mypy and Ruff gates, reproducible at the exact submitted
+  revision through the local submission preflight.
 
 ### What we learned
 

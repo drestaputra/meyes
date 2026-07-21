@@ -92,11 +92,12 @@ available. Qt tests use the native Windows platform unless the caller explicitly
 Run the non-mutating local submission audit with:
 
 ```powershell
-.\scripts\submission_preflight.ps1 -RunFullCheck
+.\scripts\submission_preflight.ps1 -VerifyRemote -RunFullCheck
 ```
 
-It checks local Git/file/evidence invariants and then prints the human/external blockers it cannot
-verify. It never submits to Devpost or changes repository visibility.
+It checks local Git/file/evidence invariants, confirms the exact revision is present on
+`origin/main`, and then prints the human/external blockers it cannot verify. It never submits to
+Devpost or changes repository visibility.
 
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 

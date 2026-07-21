@@ -42,6 +42,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   judging criteria without claiming roadmap features.
 - [x] Prepare a bounded English Devpost copy and sub-three-minute demo-script draft for human edit.
 - [x] Add a fail-fast local submission preflight that keeps human/external blockers explicit.
+- [x] Make submission preflight reject unpushed revisions and unresolved Devpost draft markers.
 - [ ] Recheck the Official Rules, Updates, required fields, video visibility, and repository
   access immediately before submission.
 - [ ] Keep the repository, video, and testing path free and accessible through the official
