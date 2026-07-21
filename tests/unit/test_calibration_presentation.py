@@ -72,8 +72,8 @@ def test_target_uses_normalized_screen_position_and_keyboard_progression(
     qtbot.waitExposed(widget)
 
     target_center = widget._target.geometry().center()
-    assert abs(target_center.x() - 100) <= 1
-    assert abs(target_center.y() - 80) <= 1
+    assert abs(target_center.x() - round(widget.width() * 0.1)) <= 1
+    assert abs(target_center.y() - round(widget.height() * 0.1)) <= 1
     assert widget._capture_button.isEnabled()
     assert "press Space" in widget._feedback.text()
 
@@ -92,8 +92,8 @@ def test_target_uses_normalized_screen_position_and_keyboard_progression(
     assert awaiting_snapshot.state is CalibrationSessionState.AWAITING_TARGET
     assert awaiting_snapshot.target_index == 1
     second_center = widget._target.geometry().center()
-    assert abs(second_center.x() - 500) <= 1
-    assert abs(second_center.y() - 80) <= 1
+    assert abs(second_center.x() - round(widget.width() * 0.5)) <= 1
+    assert abs(second_center.y() - round(widget.height() * 0.1)) <= 1
 
 
 def test_escape_cancels_erases_and_closes_presentation(qtbot: QtBot) -> None:

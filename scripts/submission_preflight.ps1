@@ -9,6 +9,7 @@ Set-StrictMode -Version Latest
 
 $failures = [System.Collections.Generic.List[string]]::new()
 $requiredFiles = @(
+    ".gitattributes",
     ".github/workflows/windows-quality.yml",
     "README.md",
     "JUDGES.md",
