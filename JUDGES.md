@@ -116,9 +116,10 @@ Do not interpret the diagnostics as a medical or safety assessment.
 .\scripts\judge_verify.ps1
 ```
 
-This performs a frozen dependency sync, verifies the configured package entry point, then runs
-Ruff format verification, Ruff lint, strict mypy, and pytest. Tests use fake camera and model
-backends plus normalized observation sequences under
+This performs a frozen dependency sync, verifies the configured package entry point, runs Ruff
+format verification, Ruff lint, strict mypy, and pytest, then builds and checks an isolated wheel
+install for the exact bundled model assets. Tests use fake camera and model backends plus normalized
+observation sequences under
 `tests/fixtures/observation_sequences/`; they do not activate a webcam, save frames, or send
 operating-system input.
 

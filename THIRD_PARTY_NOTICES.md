@@ -1,6 +1,10 @@
 # Third-party notices
 
-This file records the primary third-party components relevant to the MEYES source build. Exact resolved Python versions and hashes are locked in [`uv.lock`](./uv.lock). A future packaged executable must repeat the license audit for every bundled transitive component.
+This file records the primary third-party components relevant to the MEYES source build and Python
+wheel. Exact resolved Python versions and hashes are locked in [`uv.lock`](./uv.lock). The wheel
+bundles this notice, the Apache-2.0 text, model provenance, and the two verified MediaPipe task
+bundles. A future standalone executable must repeat the license audit for every bundled transitive
+component.
 
 ## Hallmark design methodology
 
@@ -15,7 +19,7 @@ MEYES does not copy Hallmark source code, generated pages, screenshots, or asset
 - Project: [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe)
 - Python package license: Apache License 2.0
 - MediaPipe Solution API terms: [Google MediaPipe Terms of Service](https://developers.google.com/edge/mediapipe/legal/tos)
-- License text supplied with this repository: [`licenses/Apache-2.0.txt`](./licenses/Apache-2.0.txt)
+- License text supplied with this repository: [`LICENSES/Apache-2.0.txt`](./LICENSES/Apache-2.0.txt)
 
 MEYES uses the MediaPipe Tasks API locally. Google states that input media is processed on-device and is not sent to Google servers. The same terms state that the Solution APIs may periodically contact Google for fixes, updated models, and accelerator compatibility information and may send usage, performance, application, and system metrics. This boundary is also disclosed in [`PRIVACY.md`](./PRIVACY.md).
 

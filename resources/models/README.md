@@ -1,8 +1,8 @@
 # Vision model assets
 
-The source submission includes the official task bundles below. Their official component
-model cards identify Apache License 2.0, the repository supplies the Apache-2.0 text, and
-automated tests verify the exact local sizes and SHA-256 digests. See
+The source submission and Python wheel include the official task bundles below. Their official
+component model cards identify Apache License 2.0; the repository and wheel supply the Apache-2.0
+text and third-party notice; and automated tests verify the exact local sizes and SHA-256 digests. See
 [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) for the documented source-build
 provenance and license review.
 
@@ -20,8 +20,9 @@ provenance and license review.
   - [Face Blendshape V2](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf)
 - License identified in each component model card: Apache License 2.0.
 
-The source-submission redistribution review was recorded on 2026-07-19. A future packaged
-binary must repeat the audit for every bundled runtime and transitive component.
+The source-submission redistribution review was recorded on 2026-07-19 and its model-specific
+notices are included in the Python wheel. A future standalone executable must repeat the audit for
+every bundled runtime and transitive component.
 
 ## `hand_landmarker.task`
 

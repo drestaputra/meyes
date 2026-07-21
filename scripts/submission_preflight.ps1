@@ -19,7 +19,8 @@ $requiredFiles = @(
     "docs/BUILD_WEEK_SUBMISSION.md",
     "docs/DEVPOST_DRAFT.md",
     "resources/models/README.md",
-    "scripts/judge_verify.ps1"
+    "scripts/judge_verify.ps1",
+    "scripts/verify_wheel.ps1"
 )
 
 $gitCommand = Get-Command git -ErrorAction SilentlyContinue

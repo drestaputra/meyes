@@ -211,7 +211,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 ## Backlog — Phase 7
 
 - [ ] Select Nuitka or `pyside6-deploy` using measured build results.
-- [ ] Bundle models, icons, and default resources.
+- [x] Bundle verified MediaPipe models and provenance in the Python wheel.
+- [ ] Bundle icons and remaining default resources in the selected Windows delivery.
 - [ ] Add startup and packaging error recovery.
 - [ ] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
