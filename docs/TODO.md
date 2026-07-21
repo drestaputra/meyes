@@ -197,7 +197,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Backlog — Phase 6
 
-- [ ] Complete the first-run setup wizard.
+- [x] Complete the non-capturing, Safe Mode first-run orientation wizard.
 - [x] Complete the Dashboard, Calibration, Bindings, Profiles, Diagnostics, and Privacy views.
 - [x] Complete the validated, disarm-first Sensitivity view.
 - [x] Complete the stopped-only, disarm-first dedicated Camera settings/health view.

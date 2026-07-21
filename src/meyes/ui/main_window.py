@@ -52,6 +52,7 @@ from meyes.ui.camera_page import CameraPage, CameraSettingsSaveResult
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
 from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
 from meyes.ui.diagnostics_page import DiagnosticsPage
+from meyes.ui.first_run_wizard import FirstRunWizard
 from meyes.ui.live_input import (
     EmergencyHotkeyFactory,
     InputExecutorFactory,
@@ -106,6 +107,7 @@ class MainWindow(QMainWindow):
         self._config = config
         self._config_manager = config_manager
         self._camera_settings_pre_persisted = False
+        self._first_run_wizard: FirstRunWizard | None = None
         self._logger = get_logger("APP")
         self._camera_controller = CameraController(camera_backend, config.camera, parent=self)
         self._vision_controller = VisionController(
@@ -633,6 +635,32 @@ class MainWindow(QMainWindow):
         )
         self._profile_label.setText(display_text)
         self._profile_label.setToolTip(full_text)
+
+    def show_first_run_if_needed(self) -> FirstRunWizard | None:
+        """Open one safe orientation dialog only when durable setup is still pending."""
+
+        if (
+            not self._config.app.first_run
+            or self._config_manager is None
+            or self._first_run_wizard is not None
+        ):
+            return self._first_run_wizard
+        self._first_run_wizard = FirstRunWizard(self._complete_first_run, self)
+        self._first_run_wizard.open()
+        return self._first_run_wizard
+
+    def _complete_first_run(self) -> bool:
+        if self._config_manager is None:
+            return False
+        app_settings = self._config.app.model_copy(update={"first_run": False})
+        candidate = self._config.model_copy(update={"app": app_settings})
+        try:
+            self._config_manager.save(candidate)
+        except OSError:
+            self._logger.error("first_run_completion_save_failed")
+            return False
+        self._config = candidate
+        return True
 
     def _sync_vision_lifecycle(self, payload: object) -> None:
         if not isinstance(payload, CameraHealth):

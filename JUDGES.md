@@ -56,6 +56,10 @@ uv run --frozen meyes --diagnose-install
 
 ## Live evaluation path
 
+On a fresh configuration, review the three-step first-run orientation. It opens no camera and sends
+no OS input; select Not now to leave it pending, or acknowledge the final Safe Mode summary to record
+completion locally.
+
 1. Open **Dashboard**.
 2. Select **Refresh** to enumerate cameras.
 3. Choose a camera and select **Start camera**.

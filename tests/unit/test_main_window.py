@@ -12,6 +12,7 @@ from unittest.mock import patch
 from PySide6.QtCore import QCoreApplication, QObject, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDoubleSpinBox,
     QLabel,
     QLineEdit,
@@ -57,6 +58,7 @@ from meyes.ui.calibration_page import (
 )
 from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
+from meyes.ui.first_run_wizard import FirstRunWizard
 from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputResult, LiveInputState
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
@@ -215,6 +217,46 @@ def test_keyboard_navigation_switches_pages_and_persists_selection(
     assert pages.currentIndex() == 8
     assert navigation.hasFocus()
     assert manager.load().config.ui.selected_page == "Privacy"
+
+
+def test_first_run_completion_is_explicit_safe_and_persisted(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+
+    wizard = window.show_first_run_if_needed()
+
+    assert isinstance(wizard, FirstRunWizard)
+    assert window._camera_controller.status is CameraStatus.STOPPED
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert manager.load().config.app.first_run is True
+    next_button = wizard.findChild(QPushButton, "firstRunNextButton")
+    acknowledgement = wizard.findChild(QCheckBox, "firstRunSafetyAcknowledgement")
+    finish = wizard.findChild(QPushButton, "firstRunFinishButton")
+    assert next_button is not None
+    assert acknowledgement is not None
+    assert finish is not None
+    next_button.click()
+    next_button.click()
+    acknowledgement.click()
+    finish.click()
+
+    assert manager.load().config.app.first_run is False
+    assert window._camera_controller.status is CameraStatus.STOPPED
+    assert window._live_input_controller.state is LiveInputState.SAFE
 
 
 def test_sensitivity_save_persists_config_and_requests_live_release(

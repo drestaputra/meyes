@@ -61,6 +61,9 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#cameraPageContent {{
             background: {color.canvas};
         }}
+        QDialog#firstRunWizard {{
+            background: {color.canvas};
+        }}
         QWidget#calibrationPresentation {{
             background: {color.canvas};
         }}
@@ -179,6 +182,13 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QLabel#cameraSettingsFeedback {{
             background: {color.surface};
             border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QLabel#firstRunFeedback {{
+            background: {color.surface};
+            color: {color.danger};
+            border: 1px solid {color.danger};
             border-radius: 4px;
             padding: 10px 12px;
         }}
