@@ -77,6 +77,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Optional live remote-revision parity and unresolved-draft-marker checks in submission preflight, with revision-stable Devpost verification copy.
 - One-command judge source verification for frozen dependency sync, package entry-point import, and the full deterministic gate without camera or OS-input activation.
 - Wheel-safe MediaPipe asset bundling with packaged-first/source-fallback resolution and isolated installed-artifact integrity verification.
+- Standard-library-only `--version` and JSON `--diagnose-install` commands for installed Python/platform/model verification without importing Qt or activating hardware/native input.
 - Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.
 - Fail-closed binocular gaze feature extraction using pixel-aspect-correct eye-local axes, explicit invalid states, Qt lifecycle expiry, and uncalibrated Diagnostics values without pointer output.
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.

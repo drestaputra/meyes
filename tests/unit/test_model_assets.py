@@ -7,11 +7,12 @@ from pathlib import Path
 
 import pytest
 
+from meyes.install_diagnostics import (
+    EXPECTED_FACE_LANDMARKER_SHA256,
+    EXPECTED_HAND_LANDMARKER_SHA256,
+)
 from meyes.vision import model_paths
 from meyes.vision.model_paths import face_landmarker_model_path, hand_landmarker_model_path
-
-EXPECTED_FACE_LANDMARKER_SHA256 = "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
-EXPECTED_HAND_LANDMARKER_SHA256 = "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 
 
 def test_face_landmarker_model_is_present_and_verified() -> None:

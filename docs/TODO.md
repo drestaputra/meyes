@@ -212,6 +212,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 - [ ] Select Nuitka or `pyside6-deploy` using measured build results.
 - [x] Bundle verified MediaPipe models and provenance in the Python wheel.
+- [x] Add installed-wheel version and integrity diagnostics that cannot activate GUI or native input.
 - [ ] Bundle icons and remaining default resources in the selected Windows delivery.
 - [ ] Add startup and packaging error recovery.
 - [ ] Document application signing requirements.

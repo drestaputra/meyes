@@ -47,21 +47,13 @@ try {
         Invoke-Uv venv --python 3.11 $environment
         $isolatedPython = Join-Path $environment "Scripts\python.exe"
         Invoke-Uv pip install --python $isolatedPython --no-deps $wheel
-        & $isolatedPython -c @"
-import hashlib
-from meyes.vision.model_paths import face_landmarker_model_path, hand_landmarker_model_path
-face = face_landmarker_model_path()
-hand = hand_landmarker_model_path()
-assert face.stat().st_size == 3_758_596
-assert hand.stat().st_size == 7_819_105
-assert hashlib.sha256(face.read_bytes()).hexdigest() == '64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff'
-assert hashlib.sha256(hand.read_bytes()).hexdigest() == 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1'
-assert 'site-packages' in str(face)
-assert 'site-packages' in str(hand)
-print('Installed wheel model integrity: passed')
-"@
+        & $isolatedPython -m meyes --version
         if ($LASTEXITCODE -ne 0) {
-            throw "Installed wheel model integrity verification failed."
+            throw "Installed wheel version command failed."
+        }
+        & $isolatedPython -m meyes --diagnose-install
+        if ($LASTEXITCODE -ne 0) {
+            throw "Installed wheel diagnostics failed."
         }
 
         Write-Host "WHEEL VERIFICATION: PASSED" -ForegroundColor Green

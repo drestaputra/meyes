@@ -48,6 +48,12 @@ For a one-command locked setup, entry-point smoke test, and deterministic qualit
 This verification command does not open a camera or arm operating-system input. Start the app
 separately with `.\scripts\run_dev.ps1` when you are ready for the live evaluation path.
 
+For a machine-readable installed-package check without importing Qt or opening hardware, run:
+
+```powershell
+uv run --frozen meyes --diagnose-install
+```
+
 ## Live evaluation path
 
 1. Open **Dashboard**.

@@ -106,6 +106,12 @@ gate without opening a camera or arming OS input:
 .\scripts\judge_verify.ps1
 ```
 
+For a JSON install/model-integrity check that does not import Qt or activate hardware/native input:
+
+```powershell
+uv run --frozen meyes --diagnose-install
+```
+
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 
 ```powershell
