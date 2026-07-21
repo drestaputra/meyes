@@ -21,6 +21,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   minimum-size Dashboard overlap found by a native nine-page design review.
 - Added a bounded synthetic JSON performance probe for real Face/Hand Landmarker initialization and
   inference without activating camera, Qt, hotkeys, or operating-system input.
+- Recorded exact-revision synthetic Face/Hand timings and retained the existing worker/cadence
+  design because the blank-frame profile did not justify an algorithmic optimization.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

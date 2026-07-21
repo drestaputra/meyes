@@ -27,7 +27,9 @@ without opening a camera, importing Qt, registering a hotkey, or constructing na
   blank-frame inference. Production already performs initialization in a worker thread, so no
   unmeasured architectural optimization was introduced.
 
-## Next evidence step
+## Exact-revision evidence
 
-Run the probe again from a clean pushed revision, record the exact host-specific result, then keep
-live-camera and real detected-face/hand performance explicitly pending.
+Clean pushed revision `2cbfc092555f4c737911ef0cbbe6b843fa979d8b` matched live `origin/main`
+and passed the real probe. The exact host-specific results and no-optimization decision are recorded
+in [`docs/evidence/performance/2026-07-21.md`](../evidence/performance/2026-07-21.md). Live-camera
+and real detected-face/hand performance remain explicitly pending human/hardware evidence.

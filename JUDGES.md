@@ -151,7 +151,8 @@ message instead of continuing through multiple failed commands.
 
 `.\scripts\profile_safe.ps1` separately measures the real local model adapters on a bounded
 all-zero in-memory frame and prints limitation-labeled JSON. It activates no camera, GUI, hotkey, or
-OS input and is not evidence of live accuracy or throughput.
+OS input and is not evidence of live accuracy or throughput. Exact clean-revision results are in
+`docs/evidence/performance/2026-07-21.md`.
 
 Maintainers can build an exact-revision wheel plus `BUILD-MANIFEST.json` and `SHA256SUMS.txt` with
 `.\scripts\build_release.ps1`. The script requires clean live-remote parity and repeats this judge

@@ -125,6 +125,8 @@ Qt, an emergency hotkey, or OS input:
 
 The JSON timings are specific to the current host/load/runtime and are not evidence of live camera
 accuracy, detected-face/hand latency, or end-to-end throughput.
+The latest clean-revision synthetic result and no-optimization decision are recorded in
+[`docs/evidence/performance/2026-07-21.md`](./docs/evidence/performance/2026-07-21.md).
 
 Build a non-overwriting, exact-revision Python wheel handoff with SHA-256 and an honest unsigned
 artifact manifest only after clean remote parity and the full judge gate pass:

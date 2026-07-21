@@ -232,11 +232,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
 - [x] Complete privacy and troubleshooting documentation.
-- [ ] Profile performance and optimize only measured bottlenecks.
+- [x] Profile safe synthetic performance and optimize only measured bottlenecks.
   - [x] Add a bounded JSON synthetic profile for real local model initialization/inference that
     cannot activate camera, GUI, hotkey, or operating-system input.
-  - [ ] Record the probe from a clean pushed revision and retain live detected-face/hand performance
-    as a separate human/hardware check.
+  - [x] Record the probe from a clean pushed revision and retain the no-optimization decision.
+- [ ] Collect representative live detected-face/hand, end-to-end preview, and sustained performance
+  evidence before making live-performance claims or changing model/cadence settings.
 - [ ] Complete the MVP acceptance checklist.
 
 ## Deferred after MVP
