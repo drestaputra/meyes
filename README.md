@@ -88,6 +88,8 @@ real input.
 ```
 
 The check script runs formatting verification, linting, type checking, and tests.
+It also checks every local link in tracked Markdown and rejects missing targets or paths that escape
+the repository. Run that documentation guard independently with `./scripts/verify_docs.ps1`.
 PowerShell entry points resolve a direct `uv` launcher first, fall back to `python -m uv`, use the
 committed lockfile in frozen mode, and report one actionable prerequisite error if neither is
 available. Qt tests use the native Windows platform unless the caller explicitly sets

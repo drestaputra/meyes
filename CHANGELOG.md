@@ -29,6 +29,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   size/checksum verification.
 - Recorded a non-mutating Windows packager prerequisite spike and kept selection blocked until an
   isolated compiler/Nuitka environment can produce comparable measured builds.
+- Added repository-wide verification for local links in tracked Markdown to the deterministic
+  quality and submission gates.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

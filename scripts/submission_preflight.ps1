@@ -26,6 +26,7 @@ $requiredFiles = @(
     "scripts/judge_verify.ps1",
     "scripts/diagnose_install.ps1",
     "scripts/profile_safe.ps1",
+    "scripts/verify_docs.ps1",
     "scripts/build_release.ps1",
     "scripts/verify_wheel.ps1"
 )
@@ -119,6 +120,11 @@ foreach ($forbiddenText in @("tray controls, or an installer", "a first-run setu
         $devpostDraft -match [regex]::Escape($forbiddenText)) {
         $failures.Add("Submission copy contains a stale implemented-feature claim: $forbiddenText")
     }
+}
+
+& "$PSScriptRoot\verify_docs.ps1"
+if ($LASTEXITCODE -ne 0) {
+    $failures.Add("Documentation verification failed.")
 }
 
 if ($RunFullCheck) {

@@ -241,6 +241,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
 - [x] Complete privacy and troubleshooting documentation.
+- [x] Add a repository-wide tracked-Markdown local-link guard to the quality and submission gates.
 - [x] Profile safe synthetic performance and optimize only measured bottlenecks.
   - [x] Add a bounded JSON synthetic profile for real local model initialization/inference that
     cannot activate camera, GUI, hotkey, or operating-system input.
