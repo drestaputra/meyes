@@ -31,6 +31,8 @@ See:
 - Safety boundary: the application opens and starts its camera with OS input disconnected. Live Input requires volatile exact-phrase consent; its emergency shortcut, preflight, armed state, and release behavior must be shown in any demo that uses real output.
 
 See the [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md) and [judge quickstart](./JUDGES.md). The public demo URL, final Devpost URL, and `/feedback` Session ID remain explicit pre-submission checklist items.
+Use the [demo recording runbook](./docs/DEMO_RUNBOOK.md) for the bounded 2:35 safety/evidence story,
+fallback paths, privacy review, and final human handoff.
 
 ## How Codex and GPT-5.6 were used
 

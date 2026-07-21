@@ -10,6 +10,9 @@ Use the exact repository revision linked from Devpost. Commit `57e08f2` is the f
 GPT-5.6 implementation evidence baseline; later unsquashed commits add the complete calibration,
 cursor-candidate, guarded persistence, and explicitly armed Windows pointer path.
 
+The human recording operator has a separate safety and evidence checklist in
+[`docs/DEMO_RUNBOOK.md`](./docs/DEMO_RUNBOOK.md); its completion is not asserted by this guide.
+
 ## Supported and tested path
 
 - Target compatibility: Windows 10/11 x64.

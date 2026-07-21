@@ -38,6 +38,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   runner and non-live limitations.
 - Added a deterministic 10-size Windows ICO derived from the original SVG, with byte-for-byte
   regeneration, container/frame tests, and installed-wheel integrity verification.
+- Added an operator-ready sub-three-minute demo runbook with explicit Safe Mode, calibration,
+  fallback, privacy/rights, evidence-claim, and final human submission gates.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

@@ -22,6 +22,7 @@ $requiredFiles = @(
     "pyproject.toml",
     "uv.lock",
     "docs/BUILD_WEEK_SUBMISSION.md",
+    "docs/DEMO_RUNBOOK.md",
     "docs/DEVPOST_DRAFT.md",
     "docs/evidence/performance/2026-07-21.md",
     "resources/models/README.md",
