@@ -61,7 +61,7 @@ from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
 from meyes.ui.first_run_wizard import FirstRunWizard
 from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputResult, LiveInputState
-from meyes.ui.main_window import MainWindow
+from meyes.ui.main_window import NAVIGATION_ITEMS, MainWindow
 from meyes.util.paths import AppPaths
 from meyes.vision.worker import VisionStatus
 
@@ -942,19 +942,80 @@ def test_camera_running_keeps_live_input_safe_until_explicit_consent(qtbot: QtBo
     )
     qtbot.addWidget(window)
     window.show()
+    qtbot.waitExposed(window)
 
     window._sync_vision_lifecycle(
         CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
     )
 
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
+    navigation = window.findChild(QListWidget, "mainNavigation")
+    calibration_start = window._calibration_page._start_button
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert safety.registered == 0
     assert executor.calls == []
     assert safety_status is not None and "SAFE MODE" in safety_status.text()
+    assert navigation is not None and navigation.currentRow() == 1
+    qtbot.waitUntil(calibration_start.hasFocus, timeout=1000)
+    assert "calibration is required" in window._calibration_page._instruction.text()
+
+    navigation.setCurrentRow(NAVIGATION_ITEMS.index("Diagnostics"))
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.PAUSED, message="Camera is paused")
+    )
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
+    )
+
+    assert navigation.currentRow() == NAVIGATION_ITEMS.index("Diagnostics")
 
     window.close()
     assert safety.unregistered == 0
+
+
+def test_camera_start_does_not_interrupt_usable_recovered_calibration(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    calibration_settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.1,
+        minimum_holdout_samples=18,
+    )
+    config = AppConfig(calibration=calibration_settings)
+    policy = calibration_settings.acceptance_policy
+    assert policy is not None
+    AcceptedCalibrationRepository(paths).save(
+        accepted_calibration(),
+        policy,
+        CalibrationProvenance(
+            datetime(2026, 7, 22, 1, 0, tzinfo=UTC),
+            PhysicalScreenGeometry(0, 0, 1920, 1080),
+        ),
+    )
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        cursor_geometry_provider=FixedGeometryProvider(),
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    navigation = window.findChild(QListWidget, "mainNavigation")
+    assert navigation is not None and navigation.currentRow() == 0
+
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
+    )
+
+    assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED
+    assert navigation.currentRow() == 0
+    window.close()
 
 
 def test_profile_activation_updates_runtime_config_and_top_bar(

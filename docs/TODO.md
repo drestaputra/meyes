@@ -204,6 +204,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 - [x] Complete the non-capturing, Safe Mode first-run orientation wizard.
 - [x] Complete the Dashboard, Calibration, Bindings, Profiles, Diagnostics, and Privacy views.
+- [x] Route an uncalibrated successful camera start into deliberate Calibration onboarding without
+  auto-collecting, repeating on resume, or changing Live Input state.
 - [x] Complete the validated, disarm-first Sensitivity view.
 - [x] Complete the stopped-only, disarm-first dedicated Camera settings/health view.
 - [x] Add availability-gated system tray controls for show, pause/resume, Safe Mode, and quit.

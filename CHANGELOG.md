@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added start-only calibration onboarding: a successful uncalibrated camera start opens the guided
+  Calibration entry point, while resume and usable accepted calibration remain uninterrupted.
 - Clarified release-manifest signing evidence: wheels now report Authenticode as not applicable,
   preserve the raw Windows probe result, and explicitly record that code signing is not configured.
 - Recorded a clean, live-remote-matched release build with an independently verified revision,

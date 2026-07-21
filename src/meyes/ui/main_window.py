@@ -734,11 +734,13 @@ class MainWindow(QMainWindow):
         self._calibration_page.set_tracking_available(status is CameraStatus.RUNNING)
         if status is self._last_camera_status:
             return
+        previous_status = self._last_camera_status
         self._last_camera_status = status
         if status is CameraStatus.RUNNING:
             self._action_simulation.start()
             self._cursor_diagnostics.start()
             self._vision_controller.start()
+            self._show_calibration_onboarding_after_camera_start(previous_status)
         elif status in {CameraStatus.STOPPING, CameraStatus.STOPPED}:
             self._live_input_controller.disarm(f"camera:{status.value}")
             self._action_simulation.stop(f"camera:{status.value}")
@@ -749,6 +751,22 @@ class MainWindow(QMainWindow):
             self._action_simulation.pause(f"camera:{status.value}")
             self._cursor_diagnostics.suspend()
             self._vision_controller.suspend()
+
+    def _show_calibration_onboarding_after_camera_start(
+        self,
+        previous_status: CameraStatus,
+    ) -> None:
+        if previous_status not in {CameraStatus.STOPPED, CameraStatus.STARTING}:
+            return
+        provisioning = self._calibration_persistence_result.provisioning
+        if provisioning is not None and provisioning.status is CursorProvisioningStatus.READY:
+            return
+        self._select_navigation_row(NAVIGATION_ITEMS.index("Calibration"))
+        self._calibration_page.show_camera_ready_onboarding()
+        self._logger.info(
+            "calibration_onboarding_opened_after_camera_start",
+            extra={"calibration_status": self._calibration_persistence_result.status.value},
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""

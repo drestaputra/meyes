@@ -9,6 +9,9 @@ The product controls are gaze-driven pointer movement, wink clicks, and temple-g
 On a new local configuration, a three-step first-run orientation explains privacy, camera setup,
 calibration honesty, and Live Input safety without opening a camera or enabling OS output. Completion
 is recorded only after the final safety acknowledgement is explicitly selected and saved.
+After a real camera start reaches Running, MEYES opens the Calibration page and focuses its guided
+entry point when no accepted current-display calibration is active. It never starts full-screen
+sample collection automatically, does not repeat the redirect on resume, and does not arm OS input.
 
 ## Development status
 

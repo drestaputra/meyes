@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QFormLayout,
@@ -112,6 +112,7 @@ class CalibrationPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll = scroll
         content = QWidget()
         content.setObjectName("calibrationScrollContent")
         layout = QVBoxLayout(content)
@@ -300,6 +301,28 @@ class CalibrationPage(QWidget):
             self._feedback.setText("Collection cancelled because tracking became unavailable.")
         self._tracking_available = available
         self._render_snapshot(self._controller.snapshot)
+
+    def show_camera_ready_onboarding(self) -> None:
+        """Focus the deliberate calibration entry point after an uncalibrated camera start."""
+
+        if not self._tracking_available:
+            return
+        if self._controller.snapshot.state not in {
+            CalibrationSessionState.IDLE,
+            CalibrationSessionState.CANCELLED,
+        }:
+            return
+        self._instruction.setText("Camera ready · calibration is required")
+        self._feedback.setText(
+            "Start the guided 9-point calibration. Collection begins only after you choose Start."
+        )
+        self._scroll.ensureWidgetVisible(self._start_button)
+        QTimer.singleShot(0, self._focus_onboarding_start)
+
+    @Slot()
+    def _focus_onboarding_start(self) -> None:
+        if self._start_button.isVisible() and self._start_button.isEnabled():
+            self._start_button.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def set_persistence_status(self, message: str) -> None:
         """Display one sanitized persistence lifecycle outcome."""
