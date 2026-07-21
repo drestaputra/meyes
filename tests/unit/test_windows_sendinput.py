@@ -121,7 +121,22 @@ def test_pointer_maps_primary_screen_pixels_to_absolute_sendinput_coordinates() 
         (SendInputPacket(SendInputPacketKind.MOUSE, flags=flags, dx=32768, dy=32768),),
         (SendInputPacket(SendInputPacketKind.MOUSE, flags=flags, dx=65535, dy=65535),),
     ]
-    assert geometry.reads == 1
+    assert geometry.reads == 3
+
+
+def test_pointer_revalidates_geometry_before_every_native_movement() -> None:
+    api = RecordingSendInputApi()
+    geometry = RecordingGeometryProvider()
+    executor = WindowsSendInputExecutor(api, pointer_geometry_provider=geometry)
+
+    executor.move_pointer(100, 200)
+    geometry.geometry = PhysicalScreenGeometry(0, 0, 1280, 720)
+
+    with pytest.raises(ValueError, match="x must be inside"):
+        executor.move_pointer(2020, 1280)
+
+    assert geometry.reads == 2
+    assert len(api.calls) == 1
 
 
 def test_pointer_rejects_pixels_outside_calibrated_primary_screen() -> None:

@@ -118,7 +118,8 @@ Working in the submitted source build:
   only through open freshness/gate boundaries and has no `InputExecutor` dependency;
 - Qt-owned cursor diagnostics wired to gaze, gesture, camera lifecycle, and freshness signals;
 - armed-only delivery of accepted, display-matched candidates to primary-monitor absolute
-  `SendInput`, with native movement failure gating output and requesting tracking pause;
+  `SendInput`, with per-movement display-provenance revalidation and mismatch/native failure
+  removing the pipeline, gating output, releasing owned input, and requesting tracking pause;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;

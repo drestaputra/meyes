@@ -181,6 +181,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   during an explicitly armed Live Input session, with fail-closed pointer-error handling.
 - [x] Keep camera startup in Safe Mode and require exact-phrase, per-session consent before every
   Live Input arm while retaining every native safety preflight.
+- [x] Revalidate current physical geometry against exact accepted provisioning before every native
+  pointer movement and fail closed on mismatch or read failure.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

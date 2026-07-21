@@ -82,7 +82,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - composes accepted calibration, smoothing, screen mapping, and gating in an executor-independent
   pipeline, then forwards candidates only through the explicitly armed Live Input boundary;
 - wires a Qt-owned cursor diagnostics controller to freshness and lifecycle signals and routes
-  accepted, display-matched pixels to absolute primary-monitor `SendInput` only while armed;
+  accepted, display-matched pixels to absolute primary-monitor `SendInput` only while armed,
+  revalidating current geometry against the exact provisioned display before every movement;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,

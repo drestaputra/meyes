@@ -36,6 +36,7 @@ from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.domain.observations import FaceObservation, HandObservation
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
+from meyes.input.windows_sendinput import WindowsSendInputExecutor
 from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
 from meyes.ui.calibration_page import (
@@ -159,6 +160,23 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.windowTitle() == "Meyes"
     assert window.minimumWidth() == 900
     assert window.minimumHeight() == 640
+
+
+def test_default_live_executor_uses_provisioned_display_guard(qtbot: QtBot) -> None:
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        cursor_geometry_provider=FixedGeometryProvider(),
+    )
+    qtbot.addWidget(window)
+
+    executor = window._live_input_controller._executor_factory()
+
+    assert isinstance(executor, WindowsSendInputExecutor)
+    assert executor._pointer_geometry_provider is window._cursor_pipeline_provisioner
+    window.close()
 
 
 def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_safe(

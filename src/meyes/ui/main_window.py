@@ -119,13 +119,6 @@ class MainWindow(QMainWindow):
             BindingManager(initial_profile),
             parent=self,
         )
-        self._live_input_controller = LiveInputController(
-            initial_profile,
-            executor_factory=live_input_executor_factory or WindowsSendInputExecutor,
-            hotkey_factory=live_input_hotkey_factory,
-            platform_supported=live_input_platform_supported,
-            parent=self,
-        )
         self._profile_controller = ProfileController(
             initial_profile,
             self._action_simulation,
@@ -159,6 +152,24 @@ class MainWindow(QMainWindow):
             native_geometry,
             filter_settings=config.cursor.filter_settings,
             gate_settings=config.cursor.gate_settings,
+        )
+        executor_factory: InputExecutorFactory
+        if live_input_executor_factory is None:
+
+            def default_executor_factory() -> WindowsSendInputExecutor:
+                return WindowsSendInputExecutor(
+                    pointer_geometry_provider=self._cursor_pipeline_provisioner
+                )
+
+            executor_factory = default_executor_factory
+        else:
+            executor_factory = live_input_executor_factory
+        self._live_input_controller = LiveInputController(
+            initial_profile,
+            executor_factory=executor_factory,
+            hotkey_factory=live_input_hotkey_factory,
+            platform_supported=live_input_platform_supported,
+            parent=self,
         )
         persistence_store = calibration_store
         if persistence_store is None and config_manager is not None:

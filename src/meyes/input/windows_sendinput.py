@@ -176,7 +176,6 @@ class WindowsSendInputExecutor:
             raise TypeError("Expected PhysicalScreenGeometryProvider")
         self._api = native_api
         self._pointer_geometry_provider = geometry_provider
-        self._pointer_geometry: PhysicalScreenGeometry | None = None
         self._held_buttons: set[MouseButton] = set()
         self._held_keys: set[KeyName] = set()
         self._held_order: list[tuple[str, MouseButton | KeyName]] = []
@@ -368,12 +367,10 @@ class WindowsSendInputExecutor:
             self._held_order.remove(record)
 
     def _read_pointer_geometry(self) -> PhysicalScreenGeometry:
-        if self._pointer_geometry is None:
-            geometry = self._pointer_geometry_provider.read()
-            if not isinstance(geometry, PhysicalScreenGeometry):
-                raise TypeError("Pointer geometry provider returned an invalid result")
-            self._pointer_geometry = geometry
-        return self._pointer_geometry
+        geometry = self._pointer_geometry_provider.read()
+        if not isinstance(geometry, PhysicalScreenGeometry):
+            raise TypeError("Pointer geometry provider returned an invalid result")
+        return geometry
 
 
 def native_input_size() -> int:

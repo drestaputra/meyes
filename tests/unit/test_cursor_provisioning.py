@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import pytest
 from pytestqt.qtbot import QtBot
 
 from meyes.calibration.acceptance import (
@@ -122,6 +123,43 @@ def test_accepted_calibration_configures_fake_only_candidate_pipeline(qtbot: QtB
     assert diagnostics.snapshot.pixel_y == 540
     assert "armed Live Input" in diagnostics.snapshot.message
     diagnostics.close()
+
+
+def test_execution_geometry_requires_active_matching_provisioning(qtbot: QtBot) -> None:
+    diagnostics = CursorDiagnosticsController()
+    provider = _GeometryProvider()
+    provisioner = CursorPipelineProvisioner(diagnostics, provider)
+
+    with pytest.raises(RuntimeError, match="No accepted display geometry"):
+        provisioner.read()
+
+    configured = provisioner.configure(_accepted_calibration())
+    assert configured.status is CursorProvisioningStatus.READY
+    assert configured.geometry == provider.geometry
+    assert provisioner.read() == provider.geometry
+    assert provider.reads == 2
+
+    provider.geometry = PhysicalScreenGeometry(0, 0, 2560, 1440)
+    with pytest.raises(RuntimeError, match="does not match accepted calibration"):
+        provisioner.read()
+
+    assert provisioner.active_geometry is None
+    assert diagnostics.snapshot.status is CursorDiagnosticsStatus.UNAVAILABLE
+    assert "recalibration is required" in diagnostics.snapshot.message
+
+
+def test_execution_geometry_native_failure_invalidates_pipeline(qtbot: QtBot) -> None:
+    diagnostics = CursorDiagnosticsController()
+    provider = _GeometryProvider()
+    provisioner = CursorPipelineProvisioner(diagnostics, provider)
+    provisioner.configure(_accepted_calibration())
+    provider.error = OSError("display disconnected")
+
+    with pytest.raises(RuntimeError, match="could not be verified"):
+        provisioner.read()
+
+    assert provisioner.active_geometry is None
+    assert diagnostics.snapshot.status is CursorDiagnosticsStatus.UNAVAILABLE
 
 
 def test_native_geometry_fault_clears_previously_configured_pipeline(qtbot: QtBot) -> None:
