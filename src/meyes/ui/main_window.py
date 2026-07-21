@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -309,6 +309,8 @@ class MainWindow(QMainWindow):
         selected_row = max(0, NAVIGATION_ITEMS.index(self._config.ui.selected_page))
         navigation.setCurrentRow(selected_row)
         navigation.setAccessibleName("Main navigation")
+        navigation.setToolTip("Use arrow keys or Ctrl+1 through Ctrl+9 to change pages")
+        self._navigation = navigation
 
         pages = QStackedWidget()
         pages.setObjectName("mainPages")
@@ -362,8 +364,15 @@ class MainWindow(QMainWindow):
             )
             pages.addWidget(page)
         pages.setCurrentIndex(selected_row)
+        self._pages = pages
         navigation.currentRowChanged.connect(pages.setCurrentIndex)
         navigation.currentRowChanged.connect(self._on_navigation_changed)
+        self._navigation_shortcuts: list[QShortcut] = []
+        for row in range(len(NAVIGATION_ITEMS)):
+            shortcut = QShortcut(QKeySequence(f"Ctrl+{row + 1}"), self)
+            shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+            shortcut.activated.connect(lambda selected=row: self._select_navigation_row(selected))
+            self._navigation_shortcuts.append(shortcut)
         layout.addWidget(navigation)
         layout.addWidget(pages, stretch=1)
         return workspace
@@ -589,8 +598,31 @@ class MainWindow(QMainWindow):
         return result
 
     def _on_navigation_changed(self, row: int) -> None:
+        if row < 0 or row >= len(NAVIGATION_ITEMS):
+            return
         calibration_row = NAVIGATION_ITEMS.index("Calibration")
         self._calibration_page.set_page_active(row == calibration_row)
+        selected_page = NAVIGATION_ITEMS[row]
+        if selected_page == self._config.ui.selected_page:
+            return
+        ui_settings = self._config.ui.model_copy(update={"selected_page": selected_page})
+        candidate = self._config.model_copy(update={"ui": ui_settings})
+        if self._config_manager is not None:
+            try:
+                self._config_manager.save(candidate)
+            except OSError:
+                self._logger.error(
+                    "navigation_preference_save_failed",
+                    extra={"selected_page": selected_page},
+                )
+                return
+        self._config = candidate
+
+    def _select_navigation_row(self, row: int) -> None:
+        if row < 0 or row >= len(NAVIGATION_ITEMS):
+            raise ValueError("Navigation row is out of range")
+        self._navigation.setCurrentRow(row)
+        self._navigation.setFocus(Qt.FocusReason.ShortcutFocusReason)
 
     def _set_profile_label(self, profile_name: str) -> None:
         full_text = f"Profile: {profile_name}"

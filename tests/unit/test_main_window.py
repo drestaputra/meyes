@@ -9,8 +9,17 @@ from pathlib import Path
 from typing import NoReturn
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QObject
-from PySide6.QtWidgets import QDoubleSpinBox, QLabel, QLineEdit, QPushButton, QSpinBox
+from PySide6.QtCore import QCoreApplication, QObject, Qt
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QDoubleSpinBox,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QSpinBox,
+    QStackedWidget,
+)
 from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import disabled_profile
@@ -163,6 +172,49 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.windowTitle() == "Meyes"
     assert window.minimumWidth() == 900
     assert window.minimumHeight() == 640
+
+
+def test_keyboard_navigation_switches_pages_and_persists_selection(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    window.show()
+    navigation = window.findChild(QListWidget, "mainNavigation")
+    pages = window.findChild(QStackedWidget, "mainPages")
+    assert navigation is not None
+    assert pages is not None
+    navigation.setFocus()
+
+    qtbot.keyClick(navigation, Qt.Key.Key_Down)  # type: ignore[no-untyped-call]
+
+    assert navigation.currentRow() == 1
+    assert pages.currentIndex() == 1
+    assert manager.load().config.ui.selected_page == "Calibration"
+
+    privacy_shortcut = next(
+        shortcut
+        for shortcut in window.findChildren(QShortcut)
+        if shortcut.key() == QKeySequence("Ctrl+9")
+    )
+    privacy_shortcut.activated.emit()
+
+    assert navigation.currentRow() == 8
+    assert pages.currentIndex() == 8
+    assert navigation.hasFocus()
+    assert manager.load().config.ui.selected_page == "Privacy"
 
 
 def test_sensitivity_save_persists_config_and_requests_live_release(

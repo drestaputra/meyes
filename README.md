@@ -124,6 +124,9 @@ The current evidence matrix is documented in
 A fresh-clone, isolated-environment source check is recorded in
 [`docs/evidence/clean-source/2026-07-21.md`](./docs/evidence/clean-source/2026-07-21.md).
 
+The main navigation supports arrow keys and Ctrl+1 through Ctrl+9 in the displayed page order;
+shortcut activation returns focus to the navigation list.
+
 No webcam is required for the deterministic test suite. A webcam is required only for the live camera and model path.
 
 No external sample dataset is required. Deterministic normalized observation fixtures are

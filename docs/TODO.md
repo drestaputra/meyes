@@ -204,6 +204,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Add system tray controls.
 - [x] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.
+  - [x] Add/test arrow-key shell navigation, Ctrl+1 through Ctrl+9 direct page shortcuts, focus return,
+    and selected-page persistence.
+  - [ ] Complete a human keyboard-only pass across native file dialogs and full-screen calibration.
 - [ ] Verify Windows 100%, 125%, and 150% scaling.
 - [x] Add a read-only, exclusive-create display evidence probe and capture the native 100% matrix row.
 - [ ] Capture native 125% and 150% display evidence after human configuration changes.

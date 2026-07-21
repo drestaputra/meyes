@@ -74,6 +74,10 @@ uv run --frozen meyes --diagnose-install
 8. Pause or stop the camera and confirm live observations clear. Close the window and confirm
    the application exits without a hanging worker.
 
+Keyboard shell check: focus the left navigation and use Up/Down, or press Ctrl+1 through Ctrl+9 to
+select the displayed page number. Direct shortcuts return focus to the navigation list and the
+selection is persisted locally.
+
 Optional controlled OS-output check on Windows:
 
 1. Use a disposable target window and keep `Ctrl+Alt+Shift+F11` available.

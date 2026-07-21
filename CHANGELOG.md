@@ -81,6 +81,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Read-only, scrollable Privacy view with explicit camera/storage/network/native-input boundaries, current Safe/Live state, and selectable local file locations.
 - Validated Sensitivity view with dirty drafts/default staging, disarm-first persistence, and fail-closed accepted-pipeline reconstruction for One Euro and temple-gate settings.
 - Dedicated Camera settings/health view with stopped-only complete capture updates, disarm-first persistence, Dashboard synchronization, dirty/default staging, and no duplicate start control.
+- Keyboard-first shell navigation with arrow keys, Ctrl+1 through Ctrl+9 page shortcuts, focus return, and fail-safe selected-page persistence.
 - Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.
 - Fail-closed binocular gaze feature extraction using pixel-aspect-correct eye-local axes, explicit invalid states, Qt lifecycle expiry, and uncalibrated Diagnostics values without pointer output.
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.
