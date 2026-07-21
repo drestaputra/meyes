@@ -217,7 +217,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   - [x] Add a read-only Windows High Contrast probe and defer colors/focus to the system theme when
     enabled, with deterministic on/off/failure tests.
   - [ ] Perform and record a human visual/keyboard pass with Windows High Contrast actually enabled.
-- [ ] Review screens against [`../DESIGN.md`](../DESIGN.md).
+- [x] Review screens against [`../DESIGN.md`](../DESIGN.md); retain the separately listed human
+  keyboard, 125%/150%, enabled High Contrast, and live-camera checks.
 
 ## Backlog — Phase 7
 

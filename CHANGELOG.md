@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added a frozen, non-capturing installation-diagnostic launcher with the shared uv fallback.
 - Documented fail-closed Windows signing requirements, key isolation, post-sign verification, and
   the still-open human choices without claiming the current wheel is signed.
+- Replaced the stale top-bar tracking placeholder with contextual camera controls and fixed the
+  minimum-size Dashboard overlap found by a native nine-page design review.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

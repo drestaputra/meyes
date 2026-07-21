@@ -1,12 +1,13 @@
 # MEYES Native UI Design System
 
-> **Implementation boundary:** This is the target design system for the planned MVP. The
-> current Build Week build implements the native shell, camera dashboard, Diagnostics, Profiles,
-> Bindings, and an explicit-consent Live Input view; several other views remain placeholders.
-> Operating-system input starts disconnected and can be armed only through the volatile safety
-> workflow. See [`README.md`](./README.md) and [`JUDGES.md`](./JUDGES.md) for the exact scope.
+> **Implementation boundary:** The current Build Week build implements all nine native navigation
+> views plus the Safe Mode first-run orientation and availability-gated tray controls. No navigation
+> item resolves to a placeholder. Operating-system input starts disconnected and can be armed only
+> through the volatile safety workflow. Physical reach, native 125%/150% scale, and enabled High
+> Contrast human evidence remain pending. See [`README.md`](./README.md) and
+> [`JUDGES.md`](./JUDGES.md) for the exact scope.
 
-Status: initial design baseline  
+Status: implemented baseline; cross-page native review completed 2026-07-21
 Applies to: PySide6 desktop application  
 Reference methodology: [nutlope/hallmark](https://github.com/nutlope/hallmark)  
 Design direction: **calm control room**
@@ -65,7 +66,7 @@ Do not claim accuracy, latency, privacy certification, medical suitability, or u
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│ MEYES    Profile: Default        TRACKING PAUSED      Resume [F6]  │
+│ MEYES    Profile: Default        CAMERA PAUSED        Resume camera │
 ├──────────────┬───────────────────────────────────┬──────────────────┤
 │ Dashboard    │                                   │ Camera   Ready   │
 │ Calibration  │       Live camera workspace       │ Face     Found   │
@@ -76,18 +77,21 @@ Do not claim accuracy, latency, privacy certification, medical suitability, or u
 │ Diagnostics  │ Recent event / guidance strip     │ Safe mode On     │
 │ Privacy      │                                   │                  │
 ├──────────────┴───────────────────────────────────┴──────────────────┤
-│ Ctrl + Alt + F12 pauses tracking immediately · Processing is local │
+│ Ctrl+Alt+Shift+F11 returns to Safe Mode · Processing is local       │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 Rules:
 
-- Persistent top command bar contains product, active profile, textual tracking status, and the primary pause/resume action.
+- Persistent top command bar contains product, active profile, textual camera status, and a
+  contextual Open Dashboard/Pause camera/Resume camera action. It never represents Live Input as
+  armed.
 - Left navigation stays stable across settings pages.
 - Center workspace receives visual priority.
 - Right status rail is present on live-tracking pages and may collapse on narrower windows.
 - Bottom safety strip always exposes the emergency shortcut while tracking is active.
-- Minimum supported content size is planned around 1024×720; layouts must also be checked at 125% and 150% Windows scaling.
+- Minimum window size is 900×640, with 1200×760 as the primary review size. Native 100% rendering is
+  verified; Windows 125% and 150% still require human-controlled evidence.
 
 ### Dashboard
 
@@ -267,17 +271,41 @@ Before a UI phase is accepted, score it from 1–5 on:
 
 Any score below 3 requires revision before handoff.
 
-## 10. Initial design deliverables
+### 2026-07-21 implementation score
 
-The implementation phase should produce and visually verify, in order:
+| Dimension | Score | Evidence and remaining boundary |
+|---|---:|---|
+| Philosophy | 5 | Safe Mode and explicit consent lead every live-output workflow; camera and OS-input states remain separate. |
+| Hierarchy | 4 | Persistent textual camera status/action and Safe Mode strip survive every page; live hardware-state review remains human. |
+| Execution | 4 | Nine top/bottom native renders at 900×640 had no horizontal overflow; 125%/150% and enabled High Contrast remain pending. |
+| Specificity | 4 | Calibration, bindings, Live Input, diagnostics, and recovery use task-specific structures rather than generic cards. |
+| Restraint | 4 | Flat native surfaces, limited status color, no decorative animation, and text-backed safety states. |
+| Variety | 4 | Preview/status rail, guided calibration, binding/profile tables, diagnostic columns, and read-only privacy content share one token system. |
+
+The review exposed and corrected two concrete issues: a permanently disabled Phase 1 top-bar
+control was replaced with the current contextual camera command, and Dashboard's preview minimum
+was reduced so preview, status, and controls no longer overlap at 900×640. Automated geometry tests
+now guard both behaviors.
+
+Top and bottom native renders covered all nine pages at 900×640 with fake/empty backends. Every
+visible scroll area's horizontal maximum was zero. A second top-state pass covered 1200×760. No
+camera, model inference, emergency hotkey, or operating-system input was activated. The screenshots
+were temporary QA artifacts and are not product or submission evidence for live hardware behavior.
+
+## 10. Implementation deliverables
+
+The implemented baseline provides and has visually reviewed:
 
 1. application shell with top safety bar and left navigation;
 2. camera dashboard in disconnected, ready, active, paused, and error states;
-3. setup wizard camera step;
+3. non-capturing three-step first-run orientation;
 4. calibration target screen;
 5. bindings table and shortcut capture state;
 6. sensitivity groups with keyboard-operable controls;
 7. diagnostics safe-mode view;
-8. tray menu and shutdown confirmation behavior.
+8. availability-gated tray menu and full-shutdown close behavior;
+9. explicit-consent Live Input, profiles, camera settings, and read-only privacy views.
 
-No visual direction is considered complete from code inspection alone. Each major screen must be rendered at the target window sizes and Windows scaling levels before acceptance.
+No visual direction is considered complete from code inspection alone. This native 100% render
+review does not replace the remaining human keyboard/file-dialog, 125%/150% scaling, enabled High
+Contrast, and live-camera passes.

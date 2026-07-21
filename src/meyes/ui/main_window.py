@@ -295,19 +295,19 @@ class MainWindow(QMainWindow):
         self._profile_label.setMinimumWidth(0)
         self._profile_label.setMaximumWidth(240)
         self._set_profile_label(self._profile_controller.active_profile.profile_name)
-        status = QLabel("TRACKING PAUSED")
-        status.setObjectName("trackingStatus")
-        resume = QPushButton("Resume tracking")
-        resume.setObjectName("primaryButton")
-        resume.setAccessibleName("Resume tracking")
-        resume.setEnabled(False)
-        resume.setToolTip("Camera controls will be available in Phase 1")
+        self._camera_status_label = QLabel("CAMERA STOPPED")
+        self._camera_status_label.setObjectName("trackingStatus")
+        self._camera_status_label.setAccessibleName("Camera tracking status")
+        self._camera_command_button = QPushButton("Open Dashboard")
+        self._camera_command_button.setObjectName("primaryButton")
+        self._camera_command_button.clicked.connect(self._handle_camera_command)
+        self._sync_top_bar_camera_status(CameraStatus.STOPPED)
 
         layout.addWidget(product)
         layout.addWidget(self._profile_label)
         layout.addStretch(1)
-        layout.addWidget(status)
-        layout.addWidget(resume)
+        layout.addWidget(self._camera_status_label)
+        layout.addWidget(self._camera_command_button)
         return frame
 
     def _build_workspace(self) -> QWidget:
@@ -641,6 +641,51 @@ class MainWindow(QMainWindow):
         self._navigation.setCurrentRow(row)
         self._navigation.setFocus(Qt.FocusReason.ShortcutFocusReason)
 
+    def _handle_camera_command(self) -> None:
+        status = self._camera_controller.status
+        if status is CameraStatus.RUNNING:
+            self._camera_controller.pause()
+        elif status is CameraStatus.PAUSED:
+            self._camera_controller.resume()
+        elif status in {CameraStatus.STOPPED, CameraStatus.ERROR}:
+            self._select_navigation_row(NAVIGATION_ITEMS.index("Dashboard"))
+
+    def _sync_top_bar_camera_status(self, status: CameraStatus) -> None:
+        labels = {
+            CameraStatus.STOPPED: "CAMERA STOPPED",
+            CameraStatus.STARTING: "CAMERA STARTING",
+            CameraStatus.RUNNING: "CAMERA RUNNING",
+            CameraStatus.PAUSED: "CAMERA PAUSED",
+            CameraStatus.RECOVERING: "CAMERA RECOVERING",
+            CameraStatus.ERROR: "CAMERA ERROR",
+            CameraStatus.STOPPING: "CAMERA STOPPING",
+        }
+        self._camera_status_label.setText(labels[status])
+        self._camera_status_label.setProperty("cameraStatus", status.value)
+        self._camera_status_label.style().unpolish(self._camera_status_label)
+        self._camera_status_label.style().polish(self._camera_status_label)
+
+        if status is CameraStatus.RUNNING:
+            text = "Pause camera"
+            tooltip = "Pause camera tracking and return Live Input to a released safe state"
+            enabled = True
+        elif status is CameraStatus.PAUSED:
+            text = "Resume camera"
+            tooltip = "Resume camera tracking; Live Input remains disconnected until re-armed"
+            enabled = True
+        elif status in {CameraStatus.STOPPED, CameraStatus.ERROR}:
+            text = "Open Dashboard"
+            tooltip = "Open Dashboard camera controls"
+            enabled = True
+        else:
+            text = "Camera busy"
+            tooltip = "Wait for the current camera transition to finish"
+            enabled = False
+        self._camera_command_button.setText(text)
+        self._camera_command_button.setAccessibleName(text)
+        self._camera_command_button.setToolTip(tooltip)
+        self._camera_command_button.setEnabled(enabled)
+
     def _set_profile_label(self, profile_name: str) -> None:
         full_text = f"Profile: {profile_name}"
         display_text = self._profile_label.fontMetrics().elidedText(
@@ -682,6 +727,7 @@ class MainWindow(QMainWindow):
             self._logger.error("invalid_camera_health_signal")
             return
         status = payload.status
+        self._sync_top_bar_camera_status(status)
         if self._system_tray is not None:
             self._system_tray.observe_camera_status(status)
         self._live_input_page.set_tracking_available(status is CameraStatus.RUNNING)

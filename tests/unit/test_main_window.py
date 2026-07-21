@@ -7,13 +7,14 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NoReturn
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from PySide6.QtCore import QCoreApplication, QObject, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
+    QFrame,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -174,6 +175,114 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.windowTitle() == "Meyes"
     assert window.minimumWidth() == 900
     assert window.minimumHeight() == 640
+
+    status = window.findChild(QLabel, "trackingStatus")
+    command = window.findChild(QPushButton, "primaryButton")
+    assert status is not None and status.text() == "CAMERA STOPPED"
+    assert status.accessibleName() == "Camera tracking status"
+    assert command is not None and command.text() == "Open Dashboard"
+    assert command.isEnabled()
+    assert "Phase" not in command.toolTip()
+
+
+def test_top_bar_camera_command_tracks_lifecycle_without_arming_input(qtbot: QtBot) -> None:
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    status = window.findChild(QLabel, "trackingStatus")
+    command = window.findChild(QPushButton, "primaryButton")
+    assert status is not None
+    assert command is not None
+
+    window._sync_top_bar_camera_status(CameraStatus.RUNNING)
+    assert status.text() == "CAMERA RUNNING"
+    assert status.property("cameraStatus") == "running"
+    assert command.text() == "Pause camera"
+    with (
+        patch.object(
+            type(window._camera_controller),
+            "status",
+            new_callable=PropertyMock,
+            return_value=CameraStatus.RUNNING,
+        ),
+        patch.object(window._camera_controller, "pause") as pause,
+    ):
+        command.click()
+    pause.assert_called_once_with()
+
+    window._sync_top_bar_camera_status(CameraStatus.PAUSED)
+    assert status.text() == "CAMERA PAUSED"
+    assert command.text() == "Resume camera"
+    with (
+        patch.object(
+            type(window._camera_controller),
+            "status",
+            new_callable=PropertyMock,
+            return_value=CameraStatus.PAUSED,
+        ),
+        patch.object(window._camera_controller, "resume") as resume,
+    ):
+        command.click()
+    resume.assert_called_once_with()
+
+    window._sync_top_bar_camera_status(CameraStatus.RECOVERING)
+    assert status.text() == "CAMERA RECOVERING"
+    assert command.text() == "Camera busy"
+    assert not command.isEnabled()
+    assert window._live_input_controller.state is LiveInputState.SAFE
+
+
+def test_top_bar_open_dashboard_command_returns_keyboard_focus(qtbot: QtBot) -> None:
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    window.show()
+    navigation = window.findChild(QListWidget, "mainNavigation")
+    command = window.findChild(QPushButton, "primaryButton")
+    assert navigation is not None
+    assert command is not None
+    navigation.setCurrentRow(4)
+
+    command.click()
+
+    assert navigation.currentRow() == 0
+    assert navigation.hasFocus()
+
+
+def test_minimum_dashboard_keeps_preview_status_and_controls_separate(qtbot: QtBot) -> None:
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    window.resize(900, 640)
+    window.show()
+    QCoreApplication.processEvents()
+    dashboard = window._camera_dashboard
+    status_panel = dashboard.findChild(QFrame, "statusPanel")
+    assert status_panel is not None
+
+    assert not dashboard._preview.geometry().intersects(status_panel.geometry())
+    for button in (
+        dashboard._start_button,
+        dashboard._pause_button,
+        dashboard._resume_button,
+        dashboard._stop_button,
+    ):
+        assert not dashboard._preview.geometry().intersects(button.geometry())
 
 
 def test_high_contrast_mode_uses_system_theme_without_hiding_safety_text(qtbot: QtBot) -> None:

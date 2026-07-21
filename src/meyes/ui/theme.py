@@ -104,8 +104,20 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             font-weight: 700;
         }}
         QLabel#trackingStatus {{
-            color: {color.warning};
+            color: {color.ink_muted};
             font-weight: 700;
+        }}
+        QLabel#trackingStatus[cameraStatus="running"] {{
+            color: {color.success};
+        }}
+        QLabel#trackingStatus[cameraStatus="starting"],
+        QLabel#trackingStatus[cameraStatus="paused"],
+        QLabel#trackingStatus[cameraStatus="recovering"],
+        QLabel#trackingStatus[cameraStatus="stopping"] {{
+            color: {color.warning};
+        }}
+        QLabel#trackingStatus[cameraStatus="error"] {{
+            color: {color.danger};
         }}
         QLabel#liveSafetyStatus {{
             color: {color.success};

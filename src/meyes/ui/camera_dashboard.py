@@ -68,7 +68,7 @@ class CameraDashboard(QWidget):
         self._preview = QLabel("Searching for cameras…")
         self._preview.setObjectName("previewPlaceholder")
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._preview.setMinimumSize(480, 320)
+        self._preview.setMinimumSize(320, 240)
         self._preview.setAccessibleName("Camera preview")
         body.addWidget(self._preview, stretch=3)
         body.addWidget(self._build_status_panel(), stretch=1)
