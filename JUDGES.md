@@ -120,6 +120,9 @@ Working in the submitted source build:
 - armed-only delivery of accepted, display-matched candidates to primary-monitor absolute
   `SendInput`, with per-movement display-provenance revalidation and mismatch/native failure
   removing the pipeline, gating output, releasing owned input, and requesting tracking pause;
+- a read-only Windows evidence probe recording native geometry, system DPI, Qt logical geometry,
+  device-pixel ratio, and consistency checks; the committed 100% row passes, while 125% and 150%
+  are explicitly pending;
 - exact-phrase replacement of an existing saved calibration, retaining the prior envelope and
   using the accepted fit only as volatile provisioning until confirmation releases Live Input;
 - normalized observations and left/right wink events with blink suppression;

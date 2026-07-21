@@ -84,6 +84,15 @@ real input.
 
 The check script runs formatting verification, linting, type checking, and tests.
 
+Capture a new, non-overwriting Windows display-scaling evidence record with:
+
+```powershell
+.\scripts\capture_display_evidence.ps1 -OutputPath docs\evidence\display\YYYY-MM-DD-SCALE-percent.json
+```
+
+The current evidence matrix is documented in
+[`docs/evidence/display/`](./docs/evidence/display/README.md).
+
 No webcam is required for the deterministic test suite. A webcam is required only for the live camera and model path.
 
 No external sample dataset is required. Deterministic normalized observation fixtures are

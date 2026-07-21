@@ -65,6 +65,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - provides a physical-pixel primary-screen mapper with explicit clamping and boundary tests;
 - reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
   scope;
+- captures non-overwriting read-only display evidence for native geometry, system DPI, Qt logical
+  geometry/DPR, and consistency; the 100% row is committed and 125%/150% remain pending;
 - constructs the production executor-independent candidate pipeline only from proof-carrying accepted
   calibration plus validated geometry, applies configured smoothing/gate values, and tears it down
   on acceptance loss or native failure;

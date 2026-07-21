@@ -195,6 +195,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.
 - [ ] Verify Windows 100%, 125%, and 150% scaling.
+- [x] Add a read-only, exclusive-create display evidence probe and capture the native 100% matrix row.
+- [ ] Capture native 125% and 150% display evidence after human configuration changes.
 - [ ] Verify Windows high-contrast behavior.
 - [ ] Review screens against [`../DESIGN.md`](../DESIGN.md).
 

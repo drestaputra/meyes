@@ -1,0 +1,21 @@
+{
+  "captured_at_utc": "2026-07-21T14:18:40Z",
+  "physical_primary_screen": {
+    "height": 1080,
+    "left": 0,
+    "top": 0,
+    "width": 1920
+  },
+  "qt_dpr_matches_reported_scale": true,
+  "qt_primary_screen": {
+    "device_pixel_ratio": 1.0,
+    "height": 1080,
+    "left": 0,
+    "top": 0,
+    "width": 1920
+  },
+  "qt_scaled_size_matches_native": true,
+  "reported_scale_percent": 100.0,
+  "schema_version": 1,
+  "system_dpi": 96
+}
