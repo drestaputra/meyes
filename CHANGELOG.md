@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed app-themed confirmation dialogs and tooltips to use an explicit light surface with readable
+  foreground colors instead of inheriting a dark native surface behind dark text.
+
 ### Added
 
 - Added start-only calibration onboarding: a successful uncalibrated camera start enters the guided

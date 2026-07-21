@@ -5,10 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
+from PySide6.QtGui import QPalette
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
 from meyes.ui.confirmation_dialog import confirm_action
+from meyes.ui.theme import ThemeTokens, build_stylesheet
 
 
 def _interact_with_dialog(
@@ -67,3 +69,44 @@ def test_confirmation_dialog_returns_true_only_for_action_button(qtbot: QtBot) -
     )
 
     assert accepted
+
+
+def test_confirmation_dialog_text_contrasts_with_app_theme(qtbot: QtBot) -> None:
+    parent = QWidget()
+    parent.setStyleSheet(build_stylesheet())
+    qtbot.addWidget(parent)
+    tokens = ThemeTokens()
+
+    def inspect_theme(_confirm: QPushButton, cancel: QPushButton) -> None:
+        dialog = QApplication.activeModalWidget()
+        assert isinstance(dialog, QMessageBox)
+        message = dialog.findChild(QLabel, "qt_msgbox_label")
+        assert message is not None
+        assert (
+            dialog.palette().color(QPalette.ColorRole.Window).name().casefold()
+            == tokens.surface.casefold()
+        )
+        assert (
+            message.palette().color(QPalette.ColorRole.WindowText).name().casefold()
+            == tokens.ink.casefold()
+        )
+        assert (
+            cancel.palette().color(QPalette.ColorRole.ButtonText).name().casefold()
+            == tokens.ink.casefold()
+        )
+        cancel.click()
+
+    QTimer.singleShot(
+        0,
+        lambda: _interact_with_dialog(qtbot, inspect_theme),
+    )
+
+    accepted = confirm_action(
+        parent,
+        title="Forget calibration?",
+        message="This message must remain readable under the app theme.",
+        confirm_label="Forget calibration",
+        destructive=True,
+    )
+
+    assert not accepted

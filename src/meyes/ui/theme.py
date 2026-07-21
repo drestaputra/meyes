@@ -61,6 +61,24 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#cameraPageContent {{
             background: {color.canvas};
         }}
+        QMessageBox#actionConfirmationDialog {{
+            background: {color.surface};
+            color: {color.ink};
+        }}
+        QMessageBox#actionConfirmationDialog QLabel {{
+            background: transparent;
+            color: {color.ink};
+        }}
+        QMessageBox#actionConfirmationDialog QPushButton {{
+            background: {color.surface};
+            color: {color.ink};
+        }}
+        QToolTip {{
+            background: {color.surface};
+            color: {color.ink};
+            border: 1px solid {color.border};
+            padding: 4px 6px;
+        }}
         QDialog#firstRunWizard {{
             background: {color.canvas};
         }}

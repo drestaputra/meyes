@@ -1,6 +1,6 @@
 # MEYES Todo List
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Working rules
@@ -208,6 +208,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   onboarding without repeating on resume or changing Live Input state.
 - [x] Replace Calibration management phrase inputs with cancel-default confirmation dialogs while
   preserving release-first, revalidation, and exact-backup boundaries.
+- [x] Give app-themed confirmation dialogs and tooltips explicit foreground/background contrast so
+  Windows dark native palettes cannot produce dark text on a dark surface.
 - [x] Complete the validated, disarm-first Sensitivity view.
 - [x] Complete the stopped-only, disarm-first dedicated Camera settings/health view.
 - [x] Add availability-gated system tray controls for show, pause/resume, Safe Mode, and quit.
