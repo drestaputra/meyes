@@ -107,17 +107,18 @@ Working in the submitted source build:
   complete-target coverage, matrix-rank, conditioning, finite-output, deterministic per-target
   holdout-validation guards, visible metrics, and recoverable failure feedback;
 - an optional all-or-none acceptance policy that reports every missed configured limit, defaults
-  to `Review Required` because no benchmark limits are claimed, and never activates its mapper;
-- a dormant configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive
-  cutoff, independent axes, and stale-gap reset, with no pointer-output consumer;
-- a dormant normalized-to-physical-pixel primary-screen mapper with inclusive bounds, explicit
-  clamping evidence, signed 32-bit validation, and no executor dependency;
-- a dormant cursor movement gate that starts suspended, handles overlapping temple holds and tap
+  to `Review Required` because no benchmark limits are claimed, and activates only accepted fits;
+- a configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive cutoff,
+  independent axes, and stale-gap reset in the accepted cursor-candidate pipeline;
+- a normalized-to-physical-pixel primary-screen mapper with inclusive bounds, explicit clamping
+  evidence, signed 32-bit validation, and no executor dependency;
+- a cursor movement gate that starts suspended, handles overlapping temple holds and tap
   pulses, applies a configurable resume delay, and never overrides tracking-loss suspension;
-- a proof-carrying accepted-calibration token and fake-only pipeline that emits pixel candidates
+- a proof-carrying accepted-calibration token and executor-independent pipeline that emits candidates
   only through open freshness/gate boundaries and has no `InputExecutor` dependency;
-- Qt-owned fake cursor diagnostics wired to gaze, gesture, camera lifecycle, and freshness signals,
-  defaulting honestly to unavailable in production and never sending its candidate to the OS;
+- Qt-owned cursor diagnostics wired to gaze, gesture, camera lifecycle, and freshness signals;
+- armed-only delivery of accepted, display-matched candidates to primary-monitor absolute
+  `SendInput`, with native movement failure gating output and requesting tracking pause;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;
 - independently stabilized Near/Far/Unknown temple states with ordering and timeout guards;
@@ -145,8 +146,8 @@ Working in the submitted source build:
 
 Intentionally not implemented or not enabled:
 
-- evidence-backed default calibration limits, mapper persistence/activation, and cursor mapping;
-- tray controls, gaze pointer movement, or an installer.
+- evidence-backed default calibration limits and broad physical-device reach validation;
+- permanent in-app calibration-backup deletion, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

@@ -179,8 +179,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Construct the production candidate pipeline only after accepted calibration and native screen geometry.
 - [x] Route accepted, gated cursor candidates through absolute primary-monitor `SendInput` only
   during an explicitly armed Live Input session, with fail-closed pointer-error handling.
-- [x] Automatically arm Live Input when the camera reaches `Running`, retaining every native
-  safety preflight and exact-phrase manual re-arm after disarm.
+- [x] Keep camera startup in Safe Mode and require exact-phrase, per-session consent before every
+  Live Input arm while retaining every native safety preflight.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

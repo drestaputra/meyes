@@ -60,30 +60,29 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   accepting or activating its output;
 - evaluates a mapper only when a complete four-limit acceptance policy is explicitly configured,
   otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
-- provides a dormant configurable One Euro 2D filter with deterministic jitter, rapid-step,
-  timestamp-order, independent-axis, reset, and stale-gap tests, without a pointer consumer;
-- provides a dormant physical-pixel primary-screen mapper with explicit clamping and boundary
-  tests;
+- provides a configurable One Euro 2D filter with deterministic jitter, rapid-step,
+  timestamp-order, independent-axis, reset, and stale-gap tests in the candidate pipeline;
+- provides a physical-pixel primary-screen mapper with explicit clamping and boundary tests;
 - reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
   scope;
-- constructs the production fake-only diagnostics pipeline only from proof-carrying accepted
+- constructs the production executor-independent candidate pipeline only from proof-carrying accepted
   calibration plus validated geometry, applies configured smoothing/gate values, and tears it down
   on acceptance loss or native failure;
 - stores only an accepted mapper's coefficients, exact acceptance policy, and holdout evidence in a
   versioned, checksummed local envelope with UTC creation time and physical display geometry;
 - recovers accepted calibration once at SAFE startup under the exact stored policy and can configure
-  only fake diagnostics when current display geometry also matches; consent and Live Input arming
+  only cursor candidates when current display geometry also matches; consent and Live Input arming
   are never restored;
-- offers an exact-phrase calibration-forget control that clears fake diagnostics and moves the
+- offers an exact-phrase calibration-forget control that clears cursor provisioning and moves the
   envelope to a recoverable timestamped backup without changing Live Input state;
 - shows only newest deleted-backup timestamp/size metadata and requires a second exact phrase before
   checksum, policy, display, provisioning, and rollback-gated restore;
-- provides a dormant fail-closed cursor gate for overlapping temple holds, tap pulses, tracking
-  suspension, and delayed resume, without a pointer runtime;
-- composes accepted calibration, smoothing, screen mapping, and gating in a fake-only diagnostic
-  pipeline that cannot call an input executor;
-- wires a Qt-owned fake cursor diagnostics controller to freshness and lifecycle signals while the
-  production status remains unavailable and no pixel candidate reaches the operating system;
+- provides a fail-closed cursor gate for overlapping temple holds, tap pulses, tracking suspension,
+  and delayed resume;
+- composes accepted calibration, smoothing, screen mapping, and gating in an executor-independent
+  pipeline, then forwards candidates only through the explicitly armed Live Input boundary;
+- wires a Qt-owned cursor diagnostics controller to freshness and lifecycle signals and routes
+  accepted, display-matched pixels to absolute primary-monitor `SendInput` only while armed;
 - exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
@@ -93,10 +92,10 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - starts every application session with operating-system input disconnected and never persists
   Live Input consent.
 
-The current build does **not** provide gaze cursor control, evidence-backed default calibration
-limits, stored-calibration user controls, pointer activation, a packaged installer, a medical assessment,
-or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
-description as completed functionality.
+The current build does **not** provide evidence-backed default calibration limits, broad
+physical-device reach validation, permanent in-app calibration-backup deletion, a packaged
+installer, a medical assessment, or a remote OpenAI-powered runtime. Those capabilities must not
+appear in the video or description as completed functionality.
 
 ## Requirement audit
 

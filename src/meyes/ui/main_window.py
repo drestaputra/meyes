@@ -52,7 +52,6 @@ from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
 from meyes.ui.cursor_provisioning import CursorPipelineProvisioner
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
-    LIVE_INPUT_CONSENT_PHRASE,
     EmergencyHotkeyFactory,
     InputExecutorFactory,
     LiveInputController,
@@ -474,7 +473,6 @@ class MainWindow(QMainWindow):
         if status is CameraStatus.RUNNING:
             self._action_simulation.start()
             self._cursor_diagnostics.start()
-            self._auto_arm_live_input()
             self._vision_controller.start()
         elif status in {CameraStatus.STOPPING, CameraStatus.STOPPED}:
             self._live_input_controller.disarm(f"camera:{status.value}")
@@ -486,23 +484,6 @@ class MainWindow(QMainWindow):
             self._action_simulation.pause(f"camera:{status.value}")
             self._cursor_diagnostics.suspend()
             self._vision_controller.suspend()
-
-    def _auto_arm_live_input(self) -> None:
-        """Enable real input on camera start while retaining every native safety preflight."""
-        try:
-            window_id = int(self.winId())
-        except Exception as error:
-            self._logger.error(
-                "live_auto_arm_window_unavailable",
-                extra={"error_type": type(error).__name__},
-            )
-            return
-        result = self._live_input_controller.arm(LIVE_INPUT_CONSENT_PHRASE, window_id)
-        if not result.success:
-            self._logger.warning(
-                "live_auto_arm_failed",
-                extra={"state": result.state.value},
-            )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""

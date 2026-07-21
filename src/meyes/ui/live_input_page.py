@@ -69,9 +69,9 @@ class LiveInputPage(QWidget):
         title = QLabel("Live Input")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Starting the camera automatically arms real Windows pointer, mouse-button, scroll, "
-            "and keyboard output when every safety preflight passes. Pointer movement also "
-            "requires an accepted calibration."
+            "Opt in to real Windows pointer, mouse-button, scroll, and keyboard output for this "
+            "application session. Safe Mode remains the default; pointer movement also requires "
+            "an accepted calibration."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
@@ -125,11 +125,11 @@ class LiveInputPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        heading = QLabel("Manual re-arm")
+        heading = QLabel("Per-session consent")
         heading.setObjectName("panelTitle")
         instruction = QLabel(
-            f"After a manual disarm, type {LIVE_INPUT_CONSENT_PHRASE} exactly to re-arm. "
-            "Arming is available only while the camera is running."
+            f"Type {LIVE_INPUT_CONSENT_PHRASE} exactly. Arming is available only while the "
+            "camera is running, and consent is required again after every disarm."
         )
         instruction.setWordWrap(True)
         self._consent = QLineEdit()

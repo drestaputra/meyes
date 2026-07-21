@@ -11,13 +11,13 @@ current session.
 |---|---|
 | Webcam frames | Held in bounded, latest-only memory for preview and local inference, then discarded. MEYES does not intentionally save or upload frames. |
 | Face and hand landmarks | Derived locally and held in memory for diagnostics and gesture state. They are not written as images or recordings. |
-| Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not calibrated screen coordinates and are not persisted in this build. |
+| Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not themselves screen coordinates and are not persisted; an accepted mapper may transform fresh values into volatile pointer candidates. |
 | Calibration samples | Raw target/feature pairs remain only in bounded session memory. Escape, closing the full-screen presentation, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them. Raw samples are not included in the accepted-calibration envelope. |
 | Accepted calibration envelope | When a newly fitted mapper passes every configured limit, MEYES atomically stores only its quadratic coefficients, holdout metrics, exact accepting policy, UTC creation time, physical primary-screen rectangle, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. It is recovered once at startup only under the identical current policy and display geometry. Invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. Legacy schema-1 files are preserved but not recovered. The checksum is not authentication against a local attacker. |
 | Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; persistence recovery also remains disabled without a complete policy. |
-| Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration consumed only by the accepted fake diagnostics pipeline. They do not enable or move the pointer. |
-| Cursor gate settings | Temple-freeze and resume-delay values are local configuration consumed by fake diagnostics. Disabling temple freeze never disables tracking-loss suspension, and the gate has no pointer executor. |
-| Fake cursor diagnostics | Production constructs a no-executor candidate pipeline only after volatile policy acceptance plus a validated physical-screen read. The latest normalized and physical-pixel candidate is held only in memory and removed on block, expiry, suspension, acceptance loss, or fault. It is never persisted. |
+| Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration consumed by the accepted cursor-candidate pipeline. They do not arm Live Input. |
+| Cursor gate settings | Temple-freeze and resume-delay values are local configuration consumed by the cursor-candidate pipeline. Disabling temple freeze never disables tracking-loss suspension, and the gate cannot arm Live Input. |
+| Cursor diagnostics and candidates | Production constructs an executor-independent candidate pipeline only after acceptance plus a validated physical-screen read. The latest normalized and physical-pixel candidate is held only in memory and removed on block, expiry, suspension, acceptance loss, or fault. It is never persisted and reaches `SendInput` only while the user has explicitly armed Live Input. |
 | Gesture diagnostics | Displayed in memory. Conservative semantic event metadata may appear in the local application log; frames and landmark arrays are not intentionally logged. |
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
@@ -29,9 +29,9 @@ current session.
 recording implementation or recording UI. Enabling that configuration field does not create
 a recording pipeline.
 
-Accepted-calibration recovery is isolated from Live Input. It can configure only the fake cursor
-diagnostics pipeline; it never restores the exact consent phrase, registers an emergency hotkey,
-constructs `SendInput`, or changes the startup SAFE state.
+Accepted-calibration recovery is isolated from Live Input. It can configure only the
+executor-independent cursor-candidate pipeline; it never restores the exact consent phrase,
+registers an emergency hotkey, constructs `SendInput`, or changes the startup SAFE state.
 
 ## MediaPipe network boundary
 
@@ -69,12 +69,12 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
 
 The Calibration page can also move the active `accepted-calibration.json` envelope to a local
 timestamped `accepted-calibration.deleted-*.json` backup after the exact phrase
-`FORGET SAVED CALIBRATION` is typed. This clears fake cursor provisioning but does not permanently
+`FORGET SAVED CALIBRATION` is typed. This clears cursor provisioning but does not permanently
 erase the backup or change Live Input state.
 
 The page shows only the newest deleted backup's UTC deletion time and byte size. Typing
 `RESTORE SAVED CALIBRATION` revalidates the local checksum, configured policy, validation evidence,
-and current physical display geometry before fake diagnostics are restored. The deleted backup is
+and current physical display geometry before cursor diagnostics are restored. The deleted backup is
 retained, and Live Input state is unchanged.
 
 MEYES does not currently provide in-app permanent backup deletion, a cloud account, telemetry

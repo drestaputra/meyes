@@ -507,7 +507,7 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     assert closed_snapshot.state.value == "closed"
 
 
-def test_camera_running_automatically_arms_live_input(qtbot: QtBot) -> None:
+def test_camera_running_keeps_live_input_safe_until_explicit_consent(qtbot: QtBot) -> None:
     executor = FakeInputExecutor()
     safety = MainWindowSafetyApi()
 
@@ -533,13 +533,13 @@ def test_camera_running_automatically_arms_live_input(qtbot: QtBot) -> None:
     )
 
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
-    assert window._live_input_controller.state is LiveInputState.ARMED
-    assert safety.registered == 1
-    assert executor.calls == [InputCall("release_all"), InputCall("release_all")]
-    assert safety_status is not None and "LIVE INPUT" in safety_status.text()
+    assert window._live_input_controller.state is LiveInputState.SAFE
+    assert safety.registered == 0
+    assert executor.calls == []
+    assert safety_status is not None and "SAFE MODE" in safety_status.text()
 
     window.close()
-    assert safety.unregistered == 1
+    assert safety.unregistered == 0
 
 
 def test_profile_activation_updates_runtime_config_and_top_bar(

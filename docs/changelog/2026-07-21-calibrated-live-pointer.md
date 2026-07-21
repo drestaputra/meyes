@@ -7,17 +7,17 @@ preserving Safe Mode before camera startup. The cursor-domain pipeline remains e
 its pixel candidates cross into `WindowsSendInputExecutor` only while the volatile Live Input
 controller is armed.
 
-Camera start now automatically performs that guarded arm attempt. Manual disarm, profile changes,
-calibration, file dialogs, camera pause/fault, and emergency stop still release input; subsequent
-manual re-arm retains the exact typed phrase.
+Camera startup remains in Safe Mode. Every arm requires the exact typed phrase; manual disarm,
+profile changes, calibration, file dialogs, camera pause/fault, and emergency stop release input
+and require fresh consent before another arm.
 
 ## Added
 
 - Absolute `MOUSEINPUT` packets with calibrated primary-screen pixels normalized to `0..65535`.
 - Lazy, cached physical primary-screen geometry validation at the native executor boundary.
 - A cursor-candidate Qt signal and an armed-only Live Input pointer slot.
-- Automatic arming when the camera reaches `Running`, using the same emergency-hotkey,
-  physical-input, and release-first preflights as manual arming.
+- Explicit-consent-only arming after the camera reaches `Running`, followed by emergency-hotkey,
+  physical-input, and release-first preflights.
 - Fail-closed pointer errors that gate dispatch, release input owned by MEYES, retain the emergency
   hotkey for recovery, and request tracking pause.
 - Deterministic native-boundary, controller, and composition-root tests that never move the real

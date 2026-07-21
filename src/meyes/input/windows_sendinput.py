@@ -164,10 +164,14 @@ class WindowsSendInputExecutor:
         *,
         pointer_geometry_provider: PhysicalScreenGeometryProvider | None = None,
     ) -> None:
-        native_api = api or CtypesSendInputApi()
+        native_api = CtypesSendInputApi() if api is None else api
         if not isinstance(native_api, SendInputApi):
             raise TypeError("Expected SendInputApi")
-        geometry_provider = pointer_geometry_provider or WindowsPrimaryScreenGeometryProvider()
+        geometry_provider = (
+            WindowsPrimaryScreenGeometryProvider()
+            if pointer_geometry_provider is None
+            else pointer_geometry_provider
+        )
         if not isinstance(geometry_provider, PhysicalScreenGeometryProvider):
             raise TypeError("Expected PhysicalScreenGeometryProvider")
         self._api = native_api
