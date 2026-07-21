@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 
 import numpy as np
+import pytest
 from PySide6.QtGui import QColor, QImage
 from pytestqt.qtbot import QtBot
 
@@ -113,3 +114,28 @@ def test_stopped_camera_can_switch_without_leaking_previous_capture(qtbot: QtBot
     assert backend.opened_indexes == [0, 1]
     assert first.released
     assert second.released
+
+
+def test_stopped_controller_applies_complete_capture_settings(qtbot: QtBot) -> None:
+    controller = CameraController(PreviewBackend(PreviewCapture([])), CameraSettings())
+    settings = CameraSettings(width=1280, height=720, target_fps=60, mirror=False)
+
+    with qtbot.waitSignal(controller.settings_changed, timeout=1000) as signal:
+        controller.apply_settings(settings)
+
+    assert signal.args == [settings]
+    assert controller.settings == settings
+    controller.shutdown()
+
+
+def test_running_controller_rejects_capture_setting_change(qtbot: QtBot) -> None:
+    capture = PreviewCapture([np.zeros((1, 1, 3), dtype=np.uint8)])
+    controller = CameraController(PreviewBackend(capture), CameraSettings(), preview_interval_ms=5)
+    with qtbot.waitSignal(controller.preview_changed, timeout=1000):
+        controller.start()
+
+    with pytest.raises(RuntimeError, match="Stop camera capture"):
+        controller.apply_settings(CameraSettings(width=1280, height=720))
+
+    assert controller.settings == CameraSettings()
+    controller.shutdown()

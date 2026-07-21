@@ -55,6 +55,12 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#sensitivityContent {{
             background: {color.canvas};
         }}
+        QWidget#cameraPage,
+        QScrollArea#cameraPageScroll,
+        QWidget#cameraPageViewport,
+        QWidget#cameraPageContent {{
+            background: {color.canvas};
+        }}
         QWidget#calibrationPresentation {{
             background: {color.canvas};
         }}
@@ -169,6 +175,28 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border: 1px solid {color.border};
             border-radius: 4px;
             padding: 10px 12px;
+        }}
+        QLabel#cameraSettingsFeedback {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QLabel#cameraSettingsFeedback[feedbackStatus="success"] {{
+            color: {color.success};
+            border-color: {color.success};
+        }}
+        QLabel#cameraSettingsFeedback[feedbackStatus="warning"],
+        QLabel#cameraSettingsDirtyStatus[draftState="dirty"] {{
+            color: {color.warning};
+            border-color: {color.warning};
+        }}
+        QLabel#cameraSettingsFeedback[feedbackStatus="error"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+        }}
+        QLabel#cameraSettingsDirtyStatus[draftState="clean"] {{
+            color: {color.success};
         }}
         QLabel#sensitivityFeedback[feedbackStatus="success"] {{
             color: {color.success};

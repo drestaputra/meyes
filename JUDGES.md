@@ -138,6 +138,8 @@ message instead of continuing through multiple failed commands.
 Working in the submitted source build:
 
 - camera discovery, start, pause/resume, stop, recovery, and aspect-correct preview;
+- a dedicated capture-health/settings view with stopped-only, disarm-first updates synchronized to
+  Dashboard without duplicating camera start controls;
 - independent local face and lower-cadence hand inference;
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;

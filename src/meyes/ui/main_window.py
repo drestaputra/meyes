@@ -48,6 +48,7 @@ from meyes.ui.calibration_persistence import (
     CalibrationPersistenceStatus,
 )
 from meyes.ui.camera_dashboard import CameraDashboard
+from meyes.ui.camera_page import CameraPage, CameraSettingsSaveResult
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
 from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
 from meyes.ui.diagnostics_page import DiagnosticsPage
@@ -104,6 +105,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._config = config
         self._config_manager = config_manager
+        self._camera_settings_pre_persisted = False
         self._logger = get_logger("APP")
         self._camera_controller = CameraController(camera_backend, config.camera, parent=self)
         self._vision_controller = VisionController(
@@ -330,12 +332,17 @@ class MainWindow(QMainWindow):
             self._config.cursor,
             self._save_cursor_settings,
         )
+        self._camera_page = CameraPage(
+            self._camera_controller,
+            self._apply_camera_settings,
+        )
         page_widgets: dict[str, QWidget] = {
             "Dashboard": self._camera_dashboard,
             "Calibration": self._calibration_page,
             "Bindings": BindingsPage(self._binding_editor_controller),
             "Live Input": self._live_input_page,
             "Sensitivity": self._sensitivity_page,
+            "Camera": self._camera_page,
             "Diagnostics": DiagnosticsPage(
                 self._vision_controller,
                 action_simulation=self._action_simulation,
@@ -382,9 +389,52 @@ class MainWindow(QMainWindow):
         if not isinstance(settings, CameraSettings):
             self._logger.error("invalid_camera_settings_signal")
             return
+        if self._camera_settings_pre_persisted:
+            return
         self._config = self._config.model_copy(update={"camera": settings})
         if self._config_manager is not None:
             self._config_manager.save(self._config)
+
+    def _apply_camera_settings(self, settings: CameraSettings) -> CameraSettingsSaveResult:
+        if not isinstance(settings, CameraSettings):
+            raise TypeError("Expected CameraSettings")
+        current = self._camera_controller.settings
+        if self._camera_controller.status is not CameraStatus.STOPPED:
+            return CameraSettingsSaveResult(
+                False,
+                "Stop camera capture before saving camera settings.",
+                current,
+            )
+        disarmed = self._live_input_controller.disarm("camera settings change")
+        if not disarmed.success:
+            return CameraSettingsSaveResult(
+                False,
+                "Live Input could not be released; camera settings were not changed.",
+                current,
+            )
+        candidate_settings = settings.model_copy(update={"camera_index": current.camera_index})
+        candidate = self._config.model_copy(update={"camera": candidate_settings})
+        if self._config_manager is not None:
+            try:
+                self._config_manager.save(candidate)
+            except OSError:
+                return CameraSettingsSaveResult(
+                    False,
+                    "Camera settings could not be saved; the prior values remain active.",
+                    current,
+                )
+        self._config = candidate
+        self._camera_settings_pre_persisted = True
+        try:
+            self._camera_controller.apply_settings(candidate_settings)
+        finally:
+            self._camera_settings_pre_persisted = False
+        persisted = "saved" if self._config_manager is not None else "applied for this session"
+        return CameraSettingsSaveResult(
+            True,
+            f"Camera settings {persisted}; they take effect on the next camera start.",
+            candidate_settings,
+        )
 
     def _save_cursor_settings(self, settings: CursorSettings) -> SensitivitySaveResult:
         if not isinstance(settings, CursorSettings):

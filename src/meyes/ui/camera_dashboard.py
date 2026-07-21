@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import QSignalBlocker, Qt, Slot
 from PySide6.QtGui import QImage, QPixmap, QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from meyes.camera.controller import CameraController, camera_device_list, camera_health
 from meyes.camera.models import CameraHealth, CameraStatus
+from meyes.config.models import CameraSettings
 
 
 class CameraDashboard(QWidget):
@@ -139,6 +140,7 @@ class CameraDashboard(QWidget):
         self._controller.health_changed.connect(self._on_health_changed)
         self._controller.preview_changed.connect(self._on_preview_changed)
         self._controller.preview_fps_changed.connect(self._on_preview_fps_changed)
+        self._controller.settings_changed.connect(self._on_settings_changed)
         self._camera_selector.currentIndexChanged.connect(self._on_camera_selected)
         self._refresh_button.clicked.connect(self._controller.refresh_devices)
         self._mirror_checkbox.toggled.connect(self._controller.set_mirror)
@@ -200,6 +202,15 @@ class CameraDashboard(QWidget):
     @Slot(float)
     def _on_preview_fps_changed(self, fps: float) -> None:
         self._preview_fps_value.setText(f"{fps:.1f}" if fps > 0 else "—")
+
+    @Slot(object)
+    def _on_settings_changed(self, payload: object) -> None:
+        if not isinstance(payload, CameraSettings):
+            raise TypeError("Expected CameraSettings")
+        blocker = QSignalBlocker(self._mirror_checkbox)
+        self._mirror_checkbox.setChecked(payload.mirror)
+        del blocker
+        self._resolution_value.setText(f"{payload.width} x {payload.height}")
 
     @Slot(int)
     def _on_camera_selected(self, row: int) -> None:

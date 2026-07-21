@@ -103,6 +103,19 @@ class CameraController(QObject):
         self._settings = self._settings.model_copy(update={"mirror": enabled})
         self.settings_changed.emit(self._settings)
 
+    @Slot(object)
+    def apply_settings(self, payload: object) -> None:
+        """Replace validated capture settings only while the camera is stopped."""
+
+        if not isinstance(payload, CameraSettings):
+            raise TypeError("Expected CameraSettings")
+        if self.status is not CameraStatus.STOPPED:
+            raise RuntimeError("Stop camera capture before changing capture settings")
+        if payload == self._settings:
+            return
+        self._settings = payload
+        self.settings_changed.emit(self._settings)
+
     @Slot()
     def start(self) -> None:
         """Start capture with current settings."""

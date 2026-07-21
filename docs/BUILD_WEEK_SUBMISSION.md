@@ -35,6 +35,8 @@ Session ID, English-or-translated materials, and free judging access through the
 The current runnable build is a Windows-first, local vision diagnostics application. It:
 
 - captures an ordinary webcam through OpenCV;
+- exposes requested capture size/rate/mirroring and live health in a dedicated Camera view, while
+  keeping device selection, preview, and lifecycle controls on Dashboard;
 - runs independent local MediaPipe face and hand landmark pipelines;
 - reports normalized eye openness and semantic left/right wink events;
 - pairs fresh face and hand observations and reports aspect-correct,
