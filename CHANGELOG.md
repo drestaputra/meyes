@@ -34,6 +34,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added pinned Windows GitHub Actions verification for the frozen safe source and wheel judge gate.
 - Removed first-run Windows CI drift by forcing LF for the checksummed SVG and making calibration
   target assertions relative to the runner's actual exposed content geometry.
+- Recorded the first passing exact-revision Windows CI source/test/wheel run with explicit managed-
+  runner and non-live limitations.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

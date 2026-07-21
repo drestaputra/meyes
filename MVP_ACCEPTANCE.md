@@ -19,6 +19,7 @@ Status vocabulary:
 |---|---|---|
 | Frozen source quality | Ruff format/lint, strict mypy, and 787 tests passed across 158 source files on the packaged-icon iteration. | PASS |
 | Exact remote parity | `scripts/submission_preflight.ps1 -VerifyRemote` passed on `main` after every completed iteration. | PASS |
+| Remote Windows quality | Pinned workflow run `29848753863` passed documentation, Ruff, strict mypy, all 787 tests, and isolated installed-wheel integrity on revision `c91c3a1`. | PASS within managed-runner scope |
 | Installed artifact integrity | Isolated wheel installation resolved and verified both packaged models plus licenses/notices. | PASS |
 | Release artifact integrity | Exact-revision wheel, manifest, checksum file, and independent SHA-256/revision assertions are recorded in `docs/evidence/release/2026-07-21.md`. | PASS |
 | Synthetic performance boundary | Real model adapters completed the bounded blank-frame probe; results and the no-optimization decision are in `docs/evidence/performance/2026-07-21.md`. | PASS within synthetic scope |
