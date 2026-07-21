@@ -77,8 +77,12 @@ The page shows only the newest deleted backup's UTC deletion time and byte size.
 and current physical display geometry before cursor diagnostics are restored. The deleted backup is
 retained, and Live Input state is unchanged.
 
-MEYES does not currently provide in-app permanent backup deletion, a cloud account, telemetry
-opt-out for MediaPipe, or an automated data-retention scheduler.
+Typing `DELETE CALIBRATION BACKUP PERMANENTLY` deletes only that exact newest catalog record after
+path, regular-file, non-link, and byte-size revalidation. The operation cannot target the active
+calibration envelope and does not change Live Input or cursor runtime state. It is not recoverable.
+
+MEYES does not currently provide bulk backup deletion, a cloud account, telemetry opt-out for
+MediaPipe, or an automated data-retention scheduler.
 
 ## Responsible capture and demo use
 

@@ -315,6 +315,7 @@ class MainWindow(QMainWindow):
             forget_calibration=self._forget_saved_calibration,
             backup_catalog=self._calibration_backup_catalog,
             restore_calibration=self._restore_saved_calibration,
+            delete_calibration_backup=self._delete_saved_calibration_backup,
         )
         self._live_input_page = LiveInputPage(
             self._live_input_controller,
@@ -465,6 +466,18 @@ class MainWindow(QMainWindow):
 
     def _calibration_backup_catalog(self) -> DeletedCalibrationCatalog:
         return self._calibration_persistence.deleted_catalog()
+
+    def _delete_saved_calibration_backup(
+        self,
+        backup: DeletedCalibrationBackup,
+    ) -> CalibrationPersistenceResult:
+        result = self._calibration_persistence.delete_backup(backup)
+        self._calibration_persistence_result = result
+        if result.status is CalibrationPersistenceStatus.DELETED:
+            self._logger.info("calibration_backup_permanently_deleted")
+        elif result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error("calibration_backup_delete_failed")
+        return result
 
     def _restore_saved_calibration(
         self,

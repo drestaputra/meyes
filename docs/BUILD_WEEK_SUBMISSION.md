@@ -79,6 +79,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   envelope to a recoverable timestamped backup without changing Live Input state;
 - shows only newest deleted-backup timestamp/size metadata and requires a second exact phrase before
   checksum, policy, display, provisioning, and rollback-gated restore;
+- permanently deletes only the exact newest cataloged backup after a separate exact phrase and
+  path/link/type/size revalidation, without changing active calibration or Live Input state;
 - provides a fail-closed cursor gate for overlapping temple holds, tap pulses, tracking suspension,
   and delayed resume;
 - composes accepted calibration, smoothing, screen mapping, and gating in an executor-independent
@@ -96,9 +98,9 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   Live Input consent.
 
 The current build does **not** provide evidence-backed default calibration limits, broad
-physical-device reach validation, permanent in-app calibration-backup deletion, a packaged
-installer, a medical assessment, or a remote OpenAI-powered runtime. Those capabilities must not
-appear in the video or description as completed functionality.
+physical-device reach validation, bulk calibration-backup cleanup, a packaged installer, a medical
+assessment, or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
+description as completed functionality.
 
 ## Requirement audit
 

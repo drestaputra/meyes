@@ -331,6 +331,28 @@ class AcceptedCalibrationRepository:
             raise
         return CalibrationLoadResult(calibration, provenance=provenance)
 
+    def delete_backup(self, backup: DeletedCalibrationBackup) -> None:
+        """Permanently delete one exact current catalog record without following links."""
+
+        if not isinstance(backup, DeletedCalibrationBackup):
+            raise TypeError("Expected DeletedCalibrationBackup")
+        self._assert_safe_data_directory()
+        if backup not in self.deleted_catalog().backups:
+            raise ValueError("Deleted calibration backup is not an exact current catalog record")
+        if backup.path.parent.resolve(strict=True) != self._paths.data_dir.resolve(strict=True):
+            raise OSError("Deleted calibration backup escapes the configured data directory")
+        metadata = backup.path.lstat()
+        attributes = int(getattr(metadata, "st_file_attributes", 0))
+        if (
+            stat.S_ISLNK(metadata.st_mode)
+            or attributes & _WINDOWS_REPARSE_POINT
+            or not stat.S_ISREG(metadata.st_mode)
+        ):
+            raise OSError("Deleted calibration backup must be a regular non-link file")
+        if int(metadata.st_size) != backup.size_bytes:
+            raise OSError("Deleted calibration backup changed after cataloging")
+        backup.path.unlink()
+
     def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool:
         """Remove only an active copy that still exactly matches its retained backup."""
         if not isinstance(backup, DeletedCalibrationBackup):

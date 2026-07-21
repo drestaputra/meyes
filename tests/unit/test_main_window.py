@@ -41,6 +41,7 @@ from meyes.input.windows_sendinput import WindowsSendInputExecutor
 from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
 from meyes.ui.calibration_page import (
+    DELETE_CALIBRATION_BACKUP_PHRASE,
     FORGET_CALIBRATION_PHRASE,
     REPLACE_CALIBRATION_PHRASE,
     RESTORE_CALIBRATION_PHRASE,
@@ -221,6 +222,8 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     backup_status = window.findChild(QLabel, "calibrationDeletedBackupStatus")
     restore_confirmation = window.findChild(QLineEdit, "restoreCalibrationConfirmation")
     restore_button = window.findChild(QPushButton, "restoreCalibrationButton")
+    delete_backup_confirmation = window.findChild(QLineEdit, "deleteCalibrationBackupConfirmation")
+    delete_backup_button = window.findChild(QPushButton, "deleteCalibrationBackupButton")
     recovered_result = window._calibration_persistence_result
     recovered_cursor = window._cursor_diagnostics.snapshot
 
@@ -235,6 +238,8 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert backup_status is not None
     assert restore_confirmation is not None
     assert restore_button is not None
+    assert delete_backup_confirmation is not None
+    assert delete_backup_button is not None
 
     forget_confirmation.setText(FORGET_CALIBRATION_PHRASE)
     assert forget_button.isEnabled()
@@ -264,6 +269,16 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert len(tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json"))) == 1
     assert "Restored calibration" in persistence_label.text()
     assert restore_confirmation.text() == ""
+
+    delete_backup_confirmation.setText(DELETE_CALIBRATION_BACKUP_PHRASE)
+    assert delete_backup_button.isEnabled()
+    delete_backup_button.click()
+
+    assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.DELETED
+    assert paths.calibration_file.exists()
+    assert tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json")) == ()
+    assert "permanently removed" in persistence_label.text()
+    assert delete_backup_confirmation.text() == ""
 
 
 def test_newly_accepted_fit_is_saved_without_arming_live_input(

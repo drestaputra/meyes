@@ -164,7 +164,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
 - [x] Add an exact-phrase newest deleted-backup restore workflow with full lifecycle gates.
 - [x] Run native Calibration layout QA at 900x640 and 1200x760 with top/bottom viewport inspection.
-- [ ] Add a permanent deleted-backup cleanup workflow.
+- [x] Add separate exact-phrase permanent deletion for the newest exact cataloged backup with
+  path/link/type/size revalidation.
 - [x] Add bounded read-only metadata cataloging for recoverably deleted calibration backups.
 - [x] Add guarded repository restore with exact-record, checksum, policy, and exclusive-create gates.
 - [x] Add lifecycle restore with display validation and exact-copy rollback on incompatibility.

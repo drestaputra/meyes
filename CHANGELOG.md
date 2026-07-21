@@ -69,6 +69,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Explicit-consent-only Live Input arming after camera startup, retaining global emergency-hotkey registration, physical-input checks, release-first activation, and exact-phrase consent after every disarm.
 - Per-movement physical-display provenance revalidation against the exact active cursor provisioning, with pipeline invalidation and fail-closed Live Input recovery on mismatch or native read failure.
 - Exact-phrase saved-calibration replacement that retains the previous envelope until confirmation, keeps the accepted candidate pipeline volatile while pending, and requires Live Input release before the write.
+- Exact-record permanent deletion for the newest recoverable calibration backup, guarded by a separate exact phrase, bounded catalog membership, path/link/type/size revalidation, and no runtime-state change.
 - Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.
 - Fail-closed binocular gaze feature extraction using pixel-aspect-correct eye-local axes, explicit invalid states, Qt lifecycle expiry, and uncalibrated Diagnostics values without pointer output.
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.

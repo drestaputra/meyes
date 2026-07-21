@@ -150,7 +150,7 @@ Working in the submitted source build:
 Intentionally not implemented or not enabled:
 
 - evidence-backed default calibration limits and broad physical-device reach validation;
-- permanent in-app calibration-backup deletion, tray controls, or an installer.
+- bulk calibration-backup cleanup, tray controls, or an installer.
 
 The README, video, and Devpost description should be judged against this boundary and any
 later capabilities present in the exact linked commit, not against roadmap copy.

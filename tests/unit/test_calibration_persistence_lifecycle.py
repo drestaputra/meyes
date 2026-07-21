@@ -90,6 +90,7 @@ class _RecordingStore:
         default_factory=lambda: CalibrationLoadResult(None)
     )
     rollback_result: bool = True
+    delete_error: OSError | None = None
 
     def save(
         self,
@@ -130,6 +131,11 @@ class _RecordingStore:
     def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool:
         self.calls.append(("rollback", backup))
         return self.rollback_result
+
+    def delete_backup(self, backup: DeletedCalibrationBackup) -> None:
+        self.calls.append(("delete_backup", backup))
+        if self.delete_error is not None:
+            raise self.delete_error
 
 
 @dataclass
@@ -387,6 +393,46 @@ def test_lifecycle_restore_provisions_valid_matching_backup() -> None:
         ("restore", backup, _policy()),
         ("configure", accepted),
     ]
+
+
+def test_lifecycle_permanently_deletes_exact_backup_without_reprovisioning() -> None:
+    calls: list[object] = []
+    backup = DeletedCalibrationBackup(
+        Path("accepted-calibration.deleted.json"),
+        _CREATED_AT,
+        100,
+    )
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        _RecordingStore(calls),
+        _policy(),
+    )
+
+    result = lifecycle.delete_backup(backup)
+
+    assert result.status is CalibrationPersistenceStatus.DELETED
+    assert result.recovered_from == backup.path
+    assert calls == [("delete_backup", backup)]
+
+
+def test_lifecycle_backup_delete_failure_is_sanitized() -> None:
+    calls: list[object] = []
+    backup = DeletedCalibrationBackup(
+        Path("accepted-calibration.deleted.json"),
+        _CREATED_AT,
+        100,
+    )
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        _RecordingStore(calls, delete_error=OSError("locked")),
+        _policy(),
+    )
+
+    result = lifecycle.delete_backup(backup)
+
+    assert result.status is CalibrationPersistenceStatus.FAULTED
+    assert "locked" not in result.message
+    assert calls == [("delete_backup", backup)]
 
 
 def test_lifecycle_restore_rolls_back_on_display_mismatch() -> None:

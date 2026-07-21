@@ -50,6 +50,8 @@ class AcceptedCalibrationStore(Protocol):
 
     def rollback_restored(self, backup: DeletedCalibrationBackup) -> bool: ...
 
+    def delete_backup(self, backup: DeletedCalibrationBackup) -> None: ...
+
 
 @runtime_checkable
 class CursorProvisioner(Protocol):
@@ -71,6 +73,7 @@ class CalibrationPersistenceStatus(StrEnum):
     INCOMPATIBLE = "incompatible"
     FORGOTTEN = "forgotten"
     RESTORED = "restored"
+    DELETED = "deleted"
     FAULTED = "faulted"
 
 
@@ -272,6 +275,29 @@ class CalibrationPersistenceLifecycle:
         if self._store is None:
             return DeletedCalibrationCatalog((), "Calibration persistence is unavailable.")
         return self._store.deleted_catalog()
+
+    def delete_backup(self, backup: DeletedCalibrationBackup) -> CalibrationPersistenceResult:
+        """Permanently delete one exact cataloged backup without changing runtime state."""
+
+        if not isinstance(backup, DeletedCalibrationBackup):
+            raise TypeError("Expected DeletedCalibrationBackup")
+        if self._store is None:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.DISABLED,
+                "Calibration backup deletion is unavailable.",
+            )
+        try:
+            self._store.delete_backup(backup)
+        except (OSError, TypeError, ValueError):
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.FAULTED,
+                "Deleted calibration backup could not be removed safely.",
+            )
+        return CalibrationPersistenceResult(
+            CalibrationPersistenceStatus.DELETED,
+            "Newest deleted calibration backup was permanently removed.",
+            recovered_from=backup.path,
+        )
 
     def restore(self, backup: DeletedCalibrationBackup) -> CalibrationPersistenceResult:
         """Restore, provision against current geometry, or roll the active copy back."""

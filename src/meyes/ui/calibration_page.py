@@ -44,9 +44,11 @@ ForgetCalibration = Callable[[], CalibrationPersistenceResult]
 BackupCatalog = Callable[[], DeletedCalibrationCatalog]
 RestoreCalibration = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
 ConfirmCalibrationReplace = Callable[[], CalibrationPersistenceResult]
+DeleteCalibrationBackup = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
 FORGET_CALIBRATION_PHRASE = "FORGET SAVED CALIBRATION"
 RESTORE_CALIBRATION_PHRASE = "RESTORE SAVED CALIBRATION"
 REPLACE_CALIBRATION_PHRASE = "REPLACE SAVED CALIBRATION"
+DELETE_CALIBRATION_BACKUP_PHRASE = "DELETE CALIBRATION BACKUP PERMANENTLY"
 
 
 class CalibrationPage(QWidget):
@@ -61,6 +63,7 @@ class CalibrationPage(QWidget):
         forget_calibration: ForgetCalibration | None = None,
         backup_catalog: BackupCatalog | None = None,
         restore_calibration: RestoreCalibration | None = None,
+        delete_calibration_backup: DeleteCalibrationBackup | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -78,12 +81,17 @@ class CalibrationPage(QWidget):
             raise TypeError("backup_catalog must be callable or None")
         if restore_calibration is not None and not callable(restore_calibration):
             raise TypeError("restore_calibration must be callable or None")
+        if delete_calibration_backup is not None and not callable(delete_calibration_backup):
+            raise TypeError("delete_calibration_backup must be callable or None")
+        if delete_calibration_backup is not None and backup_catalog is None:
+            raise ValueError("Backup deletion requires a configured backup catalog")
         self._controller = controller
         self._prepare_calibration = prepare_calibration
         self._confirm_calibration_replace = confirm_calibration_replace
         self._forget_calibration = forget_calibration
         self._backup_catalog = backup_catalog
         self._restore_calibration = restore_calibration
+        self._delete_calibration_backup = delete_calibration_backup
         self._newest_backup: DeletedCalibrationBackup | None = None
         self._replace_required = False
         self._tracking_available = False
@@ -235,6 +243,22 @@ class CalibrationPage(QWidget):
         restore_actions.addWidget(self._restore_confirmation, stretch=1)
         restore_actions.addWidget(self._restore_button)
         panel_layout.addLayout(restore_actions)
+        delete_backup_actions = QHBoxLayout()
+        self._delete_backup_confirmation = QLineEdit()
+        self._delete_backup_confirmation.setObjectName("deleteCalibrationBackupConfirmation")
+        self._delete_backup_confirmation.setPlaceholderText(
+            f"Type {DELETE_CALIBRATION_BACKUP_PHRASE}"
+        )
+        self._delete_backup_confirmation.setAccessibleName(
+            "Permanent calibration backup deletion confirmation"
+        )
+        self._delete_backup_button = QPushButton("Permanently delete newest backup")
+        self._delete_backup_button.setObjectName("deleteCalibrationBackupButton")
+        self._delete_backup_button.setProperty("dangerAction", True)
+        self._delete_backup_button.setEnabled(False)
+        delete_backup_actions.addWidget(self._delete_backup_confirmation, stretch=1)
+        delete_backup_actions.addWidget(self._delete_backup_button)
+        panel_layout.addLayout(delete_backup_actions)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
         layout.addWidget(description)
@@ -255,6 +279,8 @@ class CalibrationPage(QWidget):
         self._forget_button.clicked.connect(self._forget_saved_calibration)
         self._restore_confirmation.textChanged.connect(self._update_restore_button)
         self._restore_button.clicked.connect(self._restore_saved_calibration)
+        self._delete_backup_confirmation.textChanged.connect(self._update_delete_backup_button)
+        self._delete_backup_button.clicked.connect(self._delete_saved_calibration_backup)
         self._refresh_backup_catalog()
 
     def set_tracking_available(self, available: bool) -> None:
@@ -364,11 +390,38 @@ class CalibrationPage(QWidget):
         self._restore_confirmation.clear()
         self._refresh_backup_catalog()
 
+    @Slot(str)
+    def _update_delete_backup_button(self, value: str) -> None:
+        self._delete_backup_button.setEnabled(
+            self._delete_calibration_backup is not None
+            and self._newest_backup is not None
+            and value == DELETE_CALIBRATION_BACKUP_PHRASE
+        )
+
+    @Slot()
+    def _delete_saved_calibration_backup(self) -> None:
+        backup = self._newest_backup
+        if (
+            self._delete_calibration_backup is None
+            or backup is None
+            or self._delete_backup_confirmation.text() != DELETE_CALIBRATION_BACKUP_PHRASE
+        ):
+            return
+        try:
+            result = self._delete_calibration_backup(backup)
+        except Exception:
+            self.set_persistence_status("Calibration backup could not be removed safely.")
+        else:
+            self.set_persistence_result(result)
+        self._delete_backup_confirmation.clear()
+        self._refresh_backup_catalog()
+
     def _refresh_backup_catalog(self) -> None:
         if self._backup_catalog is None:
             self._newest_backup = None
             self._backup_status.setText("Deleted backup restore is unavailable.")
             self._update_restore_button(self._restore_confirmation.text())
+            self._update_delete_backup_button(self._delete_backup_confirmation.text())
             return
         try:
             catalog = self._backup_catalog()
@@ -384,6 +437,7 @@ class CalibrationPage(QWidget):
                 message = f"{message} Some older metadata was omitted."
         self._backup_status.setText(message)
         self._update_restore_button(self._restore_confirmation.text())
+        self._update_delete_backup_button(self._delete_backup_confirmation.text())
 
     def set_live_input_armed(self, armed: bool) -> None:
         """Cancel collection if real operating-system output becomes armed."""

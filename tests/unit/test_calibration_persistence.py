@@ -294,6 +294,33 @@ def test_restore_exclusively_reactivates_valid_backup_and_retains_copy(tmp_path:
     assert deleted.read_bytes() == deleted_bytes
 
 
+def test_delete_backup_removes_only_exact_current_catalog_record(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+
+    repository.delete_backup(backup)
+
+    assert not deleted.exists()
+    assert repository.deleted_catalog().backups == ()
+
+
+def test_delete_backup_refuses_stale_metadata_and_retains_file(tmp_path: Path) -> None:
+    repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
+    repository.save(_calibration(), _policy(), _provenance())
+    deleted = repository.forget()
+    assert deleted is not None
+    backup = repository.deleted_catalog().backups[0]
+    stale = type(backup)(backup.path, backup.deleted_at_utc, backup.size_bytes + 1)
+
+    with pytest.raises(ValueError, match="exact current catalog record"):
+        repository.delete_backup(stale)
+
+    assert deleted.exists()
+
+
 def test_restore_never_replaces_an_active_envelope(tmp_path: Path) -> None:
     repository = AcceptedCalibrationRepository(AppPaths.under(tmp_path))
     repository.save(_calibration(), _policy(), _provenance())
