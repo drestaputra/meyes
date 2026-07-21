@@ -198,7 +198,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 ## Backlog — Phase 6
 
 - [ ] Complete the first-run setup wizard.
-- [ ] Complete Dashboard, Calibration, Bindings, Sensitivity, Camera, Profiles, Diagnostics, and Privacy views.
+- [x] Complete the Dashboard, Calibration, Bindings, Profiles, Diagnostics, and Privacy views.
+- [ ] Complete the Sensitivity and dedicated Camera views.
 - [ ] Add system tray controls.
 - [x] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.

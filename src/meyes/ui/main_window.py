@@ -60,10 +60,12 @@ from meyes.ui.live_input import (
 )
 from meyes.ui.live_input_page import LiveInputPage
 from meyes.ui.placeholder_page import PlaceholderPage
+from meyes.ui.privacy_page import PrivacyPage
 from meyes.ui.profile_controller import ProfileController, binding_profile
 from meyes.ui.profiles_page import ProfilesPage
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
+from meyes.util.paths import AppPaths
 from meyes.vision.controller import VisionController
 from meyes.vision.interface import FaceBackendFactory, HandBackendFactory
 
@@ -321,6 +323,8 @@ class MainWindow(QMainWindow):
             self._live_input_controller,
             lambda: int(self.winId()),
         )
+        privacy_paths = self._config_manager.paths if self._config_manager else AppPaths.for_user()
+        self._privacy_page = PrivacyPage(privacy_paths)
         page_widgets: dict[str, QWidget] = {
             "Dashboard": self._camera_dashboard,
             "Calibration": self._calibration_page,
@@ -335,6 +339,7 @@ class MainWindow(QMainWindow):
                 self._profile_controller,
                 prepare_transfer=self._prepare_profile_transfer,
             ),
+            "Privacy": self._privacy_page,
         }
         for item in NAVIGATION_ITEMS:
             page = page_widgets.get(item) or PlaceholderPage(
@@ -410,6 +415,7 @@ class MainWindow(QMainWindow):
         self._live_safety_status.style().polish(self._live_safety_status)
         self._camera_dashboard.set_live_input_armed(armed)
         self._calibration_page.set_live_input_armed(armed)
+        self._privacy_page.set_live_input_state(payload.state)
 
     def _on_binding_profile_saved(self, payload: object) -> None:
         binding_profile(payload)

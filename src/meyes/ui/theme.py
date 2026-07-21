@@ -43,6 +43,12 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#appRoot, QWidget#workspace {{
             background: {color.canvas};
         }}
+        QWidget#privacyPage,
+        QScrollArea#privacyScroll,
+        QWidget#privacyViewport,
+        QWidget#privacyContent {{
+            background: {color.canvas};
+        }}
         QWidget#calibrationPresentation {{
             background: {color.canvas};
         }}
