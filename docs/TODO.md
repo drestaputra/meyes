@@ -62,6 +62,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Configure Pyright or mypy.
 - [x] Configure pytest.
 - [x] Add PowerShell scripts for run, test, and static checks.
+- [x] Harden every PowerShell entry point with shared uv resolution, frozen-lock execution,
+  fail-fast native exit handling, and native Windows Qt defaults.
 - [x] Add `README.md` and root `CHANGELOG.md` release summary.
 
 ### Camera vertical slice

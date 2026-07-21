@@ -1,8 +1,4 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\uv_command.ps1"
 
-$uv = Get-Command uv -ErrorAction SilentlyContinue
-if ($uv) {
-    & $uv.Source run meyes
-} else {
-    python -m uv run meyes
-}
+Invoke-Uv run --frozen meyes

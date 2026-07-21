@@ -4,5 +4,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\uv_command.ps1"
 
-uv run python -m meyes.display_evidence --output $OutputPath
+Invoke-Uv run --frozen python -m meyes.display_evidence --output $OutputPath

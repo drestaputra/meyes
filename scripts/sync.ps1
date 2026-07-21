@@ -1,8 +1,4 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\uv_command.ps1"
 
-$uv = Get-Command uv -ErrorAction SilentlyContinue
-if ($uv) {
-    & $uv.Source sync --group dev @args
-} else {
-    python -m uv sync --group dev @args
-}
+Invoke-Uv sync --frozen --group dev @args

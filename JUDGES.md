@@ -112,6 +112,10 @@ and model backends plus normalized observation sequences under
 `tests/fixtures/observation_sequences/`; they do not activate a webcam, save frames, or send
 operating-system input.
 
+The script resolves `uv` or `python -m uv`, runs against the frozen lockfile, and does not force Qt's
+offscreen backend on Windows. If neither uv route is installed, it stops with one prerequisite
+message instead of continuing through multiple failed commands.
+
 ## Expected current scope
 
 Working in the submitted source build:
