@@ -149,6 +149,10 @@ The script resolves `uv` or `python -m uv`, runs against the frozen lockfile, an
 offscreen backend on Windows. If neither uv route is installed, it stops with one prerequisite
 message instead of continuing through multiple failed commands.
 
+Maintainers can build an exact-revision wheel plus `BUILD-MANIFEST.json` and `SHA256SUMS.txt` with
+`.\scripts\build_release.ps1`. The script requires clean live-remote parity and repeats this judge
+gate. It explicitly records the wheel as unsigned and non-standalone; no installer is claimed.
+
 ## Expected current scope
 
 Working in the submitted source build:

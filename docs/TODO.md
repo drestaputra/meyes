@@ -224,6 +224,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add installed-wheel version and integrity diagnostics that cannot activate GUI or native input.
 - [ ] Bundle icons and remaining default resources in the selected Windows delivery.
 - [ ] Add startup and packaging error recovery.
+  - [x] Add a fail-fast, non-overwriting exact-revision wheel/manifest build with full preflight.
+  - [ ] Add standalone executable/installer startup recovery after a packager is selected.
 - [ ] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
 - [ ] Complete privacy and troubleshooting documentation.

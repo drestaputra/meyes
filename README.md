@@ -116,6 +116,15 @@ For a JSON install/model-integrity check that does not import Qt or activate har
 uv run --frozen meyes --diagnose-install
 ```
 
+Build a non-overwriting, exact-revision Python wheel handoff with SHA-256 and an honest unsigned
+artifact manifest only after clean remote parity and the full judge gate pass:
+
+```powershell
+.\scripts\build_release.ps1
+```
+
+This produces a wheel, not a standalone executable or installer, and does not publish the artifact.
+
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 
 ```powershell

@@ -86,6 +86,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Availability-gated system tray with truthful camera/input status and bounded Show, Pause/Resume, Return to Safe Mode, and Quit actions while preserving full close shutdown.
 - Read-only Windows High Contrast detection that defers color/focus rendering to the native system theme while preserving explicit non-color safety text.
 - Submission truthfulness refresh for newly completed first-run, Camera/Sensitivity, Privacy, keyboard, High Contrast, and tray scope, with stale-roadmap preflight rejection.
+- Non-overwriting exact-revision wheel release builder gated by clean live-remote parity and full judge verification, with SHA-256 plus explicit unsigned/non-standalone manifest limitations.
 - Safe profile JSON transfer with a 256 KiB import bound, duplicate-key/schema validation, inactive collision handling, strict repository reads, exclusive/atomic export, native file dialogs, and Live Input disarm before modal dialog entry.
 - Fail-closed binocular gaze feature extraction using pixel-aspect-correct eye-local axes, explicit invalid states, Qt lifecycle expiry, and uncalibrated Diagnostics values without pointer output.
 - Dormant bounded nine-point calibration collector with volatile per-target quotas, attempt caps, ordered-frame replay guards, feature bounds, binocular-consistency checks, retry, cancel, and reset semantics.
