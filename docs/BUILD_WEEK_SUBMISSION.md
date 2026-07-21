@@ -36,6 +36,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 
 - presents a three-step first-run privacy/camera/Safe Mode orientation without starting capture or
   native output, and records completion only after explicit acknowledgement plus durable save;
+- conditionally exposes system-tray Show, Pause/Resume, Return to Safe Mode, and Quit actions when
+  the desktop supports them, without changing full main-window shutdown semantics;
 - captures an ordinary webcam through OpenCV;
 - exposes requested capture size/rate/mirroring and live health in a dedicated Camera view, while
   keeping device selection, preview, and lifecycle controls on Dashboard;

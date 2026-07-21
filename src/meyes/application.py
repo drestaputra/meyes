@@ -60,6 +60,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         profile_repository=profile_repository,
     )
     window.show()
+    window.enable_system_tray()
     window.show_first_run_if_needed()
     exit_code = qt_app.exec()
     logger.info("application_stop", extra={"exit_code": exit_code})

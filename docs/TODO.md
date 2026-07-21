@@ -201,7 +201,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Complete the Dashboard, Calibration, Bindings, Profiles, Diagnostics, and Privacy views.
 - [x] Complete the validated, disarm-first Sensitivity view.
 - [x] Complete the stopped-only, disarm-first dedicated Camera settings/health view.
-- [ ] Add system tray controls.
+- [x] Add availability-gated system tray controls for show, pause/resume, Safe Mode, and quit.
 - [x] Add profile import/export.
 - [ ] Verify keyboard-only operation and visible focus.
   - [x] Add/test arrow-key shell navigation, Ctrl+1 through Ctrl+9 direct page shortcuts, focus return,

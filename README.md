@@ -131,6 +131,10 @@ A fresh-clone, isolated-environment source check is recorded in
 The main navigation supports arrow keys and Ctrl+1 through Ctrl+9 in the displayed page order;
 shortcut activation returns focus to the navigation list.
 
+When the Windows desktop reports system-tray support, MEYES adds bounded Show, Pause/Resume,
+Return to Safe Mode, and Quit actions. Closing the main window still performs the normal full
+shutdown; this build does not silently change close into background execution.
+
 No webcam is required for the deterministic test suite. A webcam is required only for the live camera and model path.
 
 No external sample dataset is required. Deterministic normalized observation fixtures are

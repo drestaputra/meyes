@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QStackedWidget,
+    QStyle,
+    QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
 )
@@ -66,6 +68,7 @@ from meyes.ui.privacy_page import PrivacyPage
 from meyes.ui.profile_controller import ProfileController, binding_profile
 from meyes.ui.profiles_page import ProfilesPage
 from meyes.ui.sensitivity_page import SensitivityPage, SensitivitySaveResult
+from meyes.ui.system_tray import SystemTrayController
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
 from meyes.util.paths import AppPaths
@@ -108,6 +111,7 @@ class MainWindow(QMainWindow):
         self._config_manager = config_manager
         self._camera_settings_pre_persisted = False
         self._first_run_wizard: FirstRunWizard | None = None
+        self._system_tray: SystemTrayController | None = None
         self._logger = get_logger("APP")
         self._camera_controller = CameraController(camera_backend, config.camera, parent=self)
         self._vision_controller = VisionController(
@@ -516,6 +520,8 @@ class MainWindow(QMainWindow):
         self._camera_dashboard.set_live_input_armed(armed)
         self._calibration_page.set_live_input_armed(armed)
         self._privacy_page.set_live_input_state(payload.state)
+        if self._system_tray is not None:
+            self._system_tray.observe_live_input_state(payload.state)
 
     def _on_binding_profile_saved(self, payload: object) -> None:
         binding_profile(payload)
@@ -667,6 +673,8 @@ class MainWindow(QMainWindow):
             self._logger.error("invalid_camera_health_signal")
             return
         status = payload.status
+        if self._system_tray is not None:
+            self._system_tray.observe_camera_status(status)
         self._live_input_page.set_tracking_available(status is CameraStatus.RUNNING)
         self._calibration_page.set_tracking_available(status is CameraStatus.RUNNING)
         if status is self._last_camera_status:
@@ -689,6 +697,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Stop camera resources before allowing the window to close."""
+        if self._system_tray is not None:
+            self._system_tray.close()
         self._calibration_controller.cancel()
         self._live_input_controller.close()
         self._action_simulation.close()
@@ -696,3 +706,29 @@ class MainWindow(QMainWindow):
         self._vision_controller.stop()
         self._camera_controller.shutdown()
         event.accept()
+
+    def enable_system_tray(self) -> SystemTrayController | None:
+        """Create one optional tray icon only when the desktop reports support."""
+
+        if self._system_tray is not None or not QSystemTrayIcon.isSystemTrayAvailable():
+            return self._system_tray
+        icon = self.windowIcon()
+        if icon.isNull():
+            icon = self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+        self._system_tray = SystemTrayController(
+            icon,
+            show_window=self._show_from_tray,
+            pause_tracking=self._camera_controller.pause,
+            resume_tracking=self._camera_controller.resume,
+            return_to_safe_mode=lambda: self._live_input_controller.disarm("system tray"),
+            quit_application=self.close,
+            parent=self,
+        )
+        self._system_tray.observe_camera_status(self._camera_controller.status)
+        self._system_tray.observe_live_input_state(self._live_input_controller.state)
+        return self._system_tray
+
+    def _show_from_tray(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()

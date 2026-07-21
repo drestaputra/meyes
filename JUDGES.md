@@ -82,6 +82,10 @@ Keyboard shell check: focus the left navigation and use Up/Down, or press Ctrl+1
 select the displayed page number. Direct shortcuts return focus to the navigation list and the
 selection is persisted locally.
 
+If the Windows session exposes a system tray, its MEYES menu mirrors current camera/Safe state and
+offers Show, Pause/Resume, Return to Safe Mode, and Quit. Closing the main window still shuts down
+workers and the tray icon rather than leaving a hidden background process.
+
 Optional controlled OS-output check on Windows:
 
 1. Use a disposable target window and keep `Ctrl+Alt+Shift+F11` available.
