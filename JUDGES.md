@@ -39,6 +39,15 @@ with `python -m uv`.
 The official MediaPipe face and hand task bundles are already included and checksum-tested,
 so no model download is needed. Windows may ask for camera permission on first use.
 
+For a one-command locked setup, entry-point smoke test, and deterministic quality gate, run:
+
+```powershell
+.\scripts\judge_verify.ps1
+```
+
+This verification command does not open a camera or arm operating-system input. Start the app
+separately with `.\scripts\run_dev.ps1` when you are ready for the live evaluation path.
+
 ## Live evaluation path
 
 1. Open **Dashboard**.
@@ -104,11 +113,12 @@ Do not interpret the diagnostics as a medical or safety assessment.
 ## Deterministic verification
 
 ```powershell
-.\scripts\check.ps1
+.\scripts\judge_verify.ps1
 ```
 
-This runs Ruff format verification, Ruff lint, strict mypy, and pytest. Tests use fake camera
-and model backends plus normalized observation sequences under
+This performs a frozen dependency sync, verifies the configured package entry point, then runs
+Ruff format verification, Ruff lint, strict mypy, and pytest. Tests use fake camera and model
+backends plus normalized observation sequences under
 `tests/fixtures/observation_sequences/`; they do not activate a webcam, save frames, or send
 operating-system input.
 

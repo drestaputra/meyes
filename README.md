@@ -99,6 +99,13 @@ It checks local Git/file/evidence invariants, confirms the exact revision is pre
 `origin/main`, and then prints the human/external blockers it cannot verify. It never submits to
 Devpost or changes repository visibility.
 
+Judges can reproduce the locked source setup, package entry-point smoke test, and full deterministic
+gate without opening a camera or arming OS input:
+
+```powershell
+.\scripts\judge_verify.ps1
+```
+
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 
 ```powershell
