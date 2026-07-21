@@ -86,6 +86,10 @@ If the Windows session exposes a system tray, its MEYES menu mirrors current cam
 offers Show, Pause/Resume, Return to Safe Mode, and Quit. Closing the main window still shuts down
 workers and the tray icon rather than leaving a hidden background process.
 
+High Contrast support is preference-driven: when Windows reports High Contrast enabled, MEYES
+suppresses its custom palette so Qt uses system colors/focus. This host's automated native probe
+reported High Contrast disabled; an actual enabled-theme human visual pass remains pending.
+
 Optional controlled OS-output check on Windows:
 
 1. Use a disposable target window and keep `Ctrl+Alt+Shift+F11` available.

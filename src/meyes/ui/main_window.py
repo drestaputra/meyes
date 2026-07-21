@@ -70,6 +70,7 @@ from meyes.ui.profiles_page import ProfilesPage
 from meyes.ui.sensitivity_page import SensitivityPage, SensitivitySaveResult
 from meyes.ui.system_tray import SystemTrayController
 from meyes.ui.theme import build_stylesheet
+from meyes.ui.windows_accessibility import windows_high_contrast_enabled
 from meyes.util.logging import get_logger
 from meyes.util.paths import AppPaths
 from meyes.vision.controller import VisionController
@@ -105,8 +106,11 @@ class MainWindow(QMainWindow):
         live_input_platform_supported: bool | None = None,
         cursor_geometry_provider: PhysicalScreenGeometryProvider | None = None,
         calibration_store: AcceptedCalibrationStore | None = None,
+        high_contrast_enabled: bool | None = None,
     ) -> None:
         super().__init__()
+        if high_contrast_enabled is not None and not isinstance(high_contrast_enabled, bool):
+            raise TypeError("high_contrast_enabled must be a bool or None")
         self._config = config
         self._config_manager = config_manager
         self._camera_settings_pre_persisted = False
@@ -230,7 +234,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Meyes")
         self.resize(config.ui.window_width, config.ui.window_height)
         self.setMinimumSize(900, 640)
-        self.setStyleSheet(build_stylesheet())
+        use_system_theme = (
+            windows_high_contrast_enabled()
+            if high_contrast_enabled is None
+            else high_contrast_enabled
+        )
+        self.setStyleSheet("" if use_system_theme else build_stylesheet())
         self.setCentralWidget(self._build_shell())
         self._calibration_page.set_persistence_result(self._calibration_persistence_result)
         if self._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED:

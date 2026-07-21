@@ -135,6 +135,10 @@ When the Windows desktop reports system-tray support, MEYES adds bounded Show, P
 Return to Safe Mode, and Quit actions. Closing the main window still performs the normal full
 shutdown; this build does not silently change close into background execution.
 
+MEYES reads the Windows High Contrast preference without changing it. When enabled, the application
+does not apply its custom color stylesheet and instead uses the system Qt/Windows palette and native
+focus rendering; all safety states remain explicit text rather than color-only indicators.
+
 No webcam is required for the deterministic test suite. A webcam is required only for the live camera and model path.
 
 No external sample dataset is required. Deterministic normalized observation fixtures are

@@ -211,6 +211,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Add a read-only, exclusive-create display evidence probe and capture the native 100% matrix row.
 - [ ] Capture native 125% and 150% display evidence after human configuration changes.
 - [ ] Verify Windows high-contrast behavior.
+  - [x] Add a read-only Windows High Contrast probe and defer colors/focus to the system theme when
+    enabled, with deterministic on/off/failure tests.
+  - [ ] Perform and record a human visual/keyboard pass with Windows High Contrast actually enabled.
 - [ ] Review screens against [`../DESIGN.md`](../DESIGN.md).
 
 ## Backlog — Phase 7

@@ -176,6 +176,23 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.minimumHeight() == 640
 
 
+def test_high_contrast_mode_uses_system_theme_without_hiding_safety_text(qtbot: QtBot) -> None:
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        high_contrast_enabled=True,
+    )
+    qtbot.addWidget(window)
+
+    safety = window.findChild(QLabel, "liveSafetyStatus")
+    navigation = window.findChild(QListWidget, "mainNavigation")
+    assert window.styleSheet() == ""
+    assert safety is not None and "SAFE MODE" in safety.text()
+    assert navigation is not None and navigation.accessibleName() == "Main navigation"
+
+
 def test_keyboard_navigation_switches_pages_and_persists_selection(
     qtbot: QtBot,
     tmp_path: Path,
