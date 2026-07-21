@@ -1,6 +1,6 @@
 # OpenAI Build Week submission record
 
-Last verified against the official Hackathon Website and Official Rules: 2026-07-19.
+Last verified against the official Hackathon Website and Official Rules: 2026-07-21.
 
 This is a readiness and evidence record, not a substitute for the [Official
 Rules](https://openai.devpost.com/rules). The Official Rules, the [Hackathon
@@ -24,6 +24,11 @@ submitting because the Rules may change.
 The Official Rules list judging as July 22 through August 5, 2026 and winners on or around
 August 12. Devpost's machine-readable dates currently show a later judging end date; the
 Official Rules are treated as controlling.
+
+The 2026-07-21 recheck confirmed the same four categories, required working project and text
+description, public YouTube demo shorter than three minutes with audio covering both the project
+and Codex/GPT-5.6 use, judge-accessible repository, README collaboration account, `/feedback`
+Session ID, English-or-translated materials, and free judging access through the judging period.
 
 ## Truthful submission scope
 
@@ -112,7 +117,7 @@ description as completed functionality.
 | Fit one category | Hands-free personal-computing exploration fits Apps for Your Life. | Human confirmation required |
 | Run as depicted on the stated platform | Source build and deterministic checks run on Windows; exact commands are in `JUDGES.md`. | Clean-machine check pending |
 | New work during the submission period | Git history begins on 2026-07-19 and remains unsquashed; the timeline through `57e08f2` is below and later evidence remains in `git log`. | Evidence ready; human originality attestation required |
-| Explain features and functionality | Current scope and exclusions are recorded above and in `README.md`. | Human-written Devpost description pending |
+| Explain features and functionality | Current scope and exclusions are recorded above; an English draft is in [`DEVPOST_DRAFT.md`](./DEVPOST_DRAFT.md). | Human review/edit pending |
 | Public YouTube demo under three minutes | Must show the working build and include audio explaining the project, Codex, and GPT-5.6. | Pending |
 | Repository available to judges | Public with a relevant license, or private and shared with `testing@devpost.com` and `build-week-event@openai.com`. | Pending external verification |
 | README setup and collaboration story | Setup, run, verification, Codex acceleration, human decisions, and GPT-5.6 evidence are present. | Ready |
@@ -128,7 +133,9 @@ field is not required. The source quickstart still gives judges a complete testi
 
 ## Live Devpost form inventory
 
-The authenticated submission form was rechecked on 2026-07-19. Its custom fields are:
+The authenticated submission form inventory below was last checked on 2026-07-19; the public
+requirements and Official Rules were rechecked on 2026-07-21. The human entrant must re-open the
+authenticated form before submission. Its previously observed custom fields are:
 
 | Field | Required | MEYES status |
 |---|---:|---|

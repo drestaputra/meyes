@@ -7,8 +7,8 @@ Git checkout and dependency installation normally require network access, and a 
 repository requires the judge's invited GitHub access.
 
 Use the exact repository revision linked from Devpost. Commit `57e08f2` is the first explicit
-GPT-5.6 implementation evidence baseline; later commits add submission readiness and further
-gesture work.
+GPT-5.6 implementation evidence baseline; later unsquashed commits add the complete calibration,
+cursor-candidate, guarded persistence, and explicitly armed Windows pointer path.
 
 ## Supported and tested path
 
@@ -68,6 +68,23 @@ Optional controlled OS-output check on Windows:
 
 Live Input consent is never persisted. Windows UIPI can block injection into a higher-integrity
 target without a specific error; run MEYES and the disposable target at the same integrity level.
+
+Optional calibration and gaze-pointer check:
+
+1. Treat this as an advanced path. The default calibration acceptance limits are intentionally
+   unset, so a fit reports `Review Required` and cannot move the pointer by default.
+2. If the submitted revision includes a preconfigured, evidence-backed four-limit policy, complete
+   all nine full-screen points and confirm the fit reports `Accepted`. Do not weaken limits merely
+   to force a demo.
+3. Confirm the saved-calibration status names the current physical display. If a saved envelope
+   already exists, replacement requires `REPLACE SAVED CALIBRATION` exactly and releases Live Input.
+4. Re-arm Live Input with `ENABLE LIVE INPUT`; accepted fresh gaze candidates may now move the
+   primary-screen pointer. Every movement revalidates current physical geometry.
+5. Change no display setting while armed. A geometry mismatch or native failure removes the cursor
+   pipeline, faults Live Input, releases owned input, and requests tracking pause.
+
+The committed display evidence covers 100% scale only. Do not claim 125% or 150% verification, or
+broad physical reach, until the corresponding human-controlled evidence is committed.
 
 Profile transfer check:
 

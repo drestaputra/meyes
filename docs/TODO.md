@@ -1,6 +1,6 @@
 # MEYES Todo List
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 
 ## Working rules
@@ -38,6 +38,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Review the demo for consent, private information, trademarks, and copyrighted media.
 - [ ] Human-edit the Devpost description in English and map demonstrated evidence to all four
   judging criteria without claiming roadmap features.
+- [x] Prepare a bounded English Devpost copy and sub-three-minute demo-script draft for human edit.
 - [ ] Recheck the Official Rules, Updates, required fields, video visibility, and repository
   access immediately before submission.
 - [ ] Keep the repository, video, and testing path free and accessible through the official

@@ -15,6 +15,7 @@ See:
 - [`DEVELOPMENT_PLAN.md`](./DEVELOPMENT_PLAN.md) for the roadmap;
 - [`DESIGN.md`](./DESIGN.md) for the native UI system;
 - [`docs/TODO.md`](./docs/TODO.md) for the active checklist;
+- [`docs/DEVPOST_DRAFT.md`](./docs/DEVPOST_DRAFT.md) for human-reviewed submission preparation;
 - [`docs/changelog/`](./docs/changelog/README.md) for dated implementation records.
 
 ## OpenAI Build Week 2026
