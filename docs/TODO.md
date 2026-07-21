@@ -45,6 +45,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Make submission preflight reject unpushed revisions and unresolved Devpost draft markers.
 - [x] Make submission preflight reject stale first-run/tray roadmap claims after implementation.
 - [x] Add a one-command locked judge verification path that cannot arm camera or OS input.
+- [x] Build and independently verify an exact-revision wheel manifest and checksum from clean,
+  live-remote-matched `main`; retain explicit non-standalone and unconfigured-signing limitations.
 - [ ] Recheck the Official Rules, Updates, required fields, video visibility, and repository
   access immediately before submission.
 - [ ] Keep the repository, video, and testing path free and accessible through the official

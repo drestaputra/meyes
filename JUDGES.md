@@ -151,7 +151,10 @@ message instead of continuing through multiple failed commands.
 
 Maintainers can build an exact-revision wheel plus `BUILD-MANIFEST.json` and `SHA256SUMS.txt` with
 `.\scripts\build_release.ps1`. The script requires clean live-remote parity and repeats this judge
-gate. It explicitly records the wheel as unsigned and non-standalone; no installer is claimed.
+gate. It records that code signing is not configured, marks Authenticode as not applicable to the
+ZIP-based wheel, and preserves the raw Windows probe status. No standalone executable or installer
+is claimed. The clean-revision artifact evidence is in
+`docs/evidence/release/2026-07-21.md`.
 
 ## Expected current scope
 

@@ -124,6 +124,8 @@ artifact manifest only after clean remote parity and the full judge gate pass:
 ```
 
 This produces a wheel, not a standalone executable or installer, and does not publish the artifact.
+The latest clean-revision build and independent checksum verification are recorded in
+[`docs/evidence/release/2026-07-21.md`](./docs/evidence/release/2026-07-21.md).
 
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 

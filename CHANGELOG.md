@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Clarified release-manifest signing evidence: wheels now report Authenticode as not applicable,
   preserve the raw Windows probe result, and explicitly record that code signing is not configured.
+- Recorded a clean, live-remote-matched release build with an independently verified revision,
+  wheel checksum, checksum file, manifest schema, and signing metadata.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

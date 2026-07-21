@@ -18,8 +18,13 @@ that MEYES has a standalone executable, installer, signature, or automated publi
   result; it does not mistake `UnknownError` for a signature verdict.
 - Does not upload, publish, sign, delete, or replace an artifact.
 
-## Verification plan
+## Verification results
 
-- Validate every PowerShell script with the parser.
-- Run the builder to an isolated temporary output root from a clean pushed revision.
-- Parse the manifest and independently match its SHA-256 to the wheel.
+- PowerShell parsing and the full deterministic gate passed: 154 formatted/linted/type-checked
+  source files and 773 tests.
+- The builder ran from clean pushed revision `14159970faec2c71a7f5c26363e6144aa180231e` after live
+  remote-parity verification.
+- Isolated installed-wheel diagnostics verified both bundled model assets.
+- Independent checks matched the manifest revision, wheel SHA-256, checksum file, schema, and
+  signing metadata. The durable evidence record is
+  [`docs/evidence/release/2026-07-21.md`](../evidence/release/2026-07-21.md).
