@@ -242,6 +242,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Run a clean-machine smoke test.
 - [x] Complete privacy and troubleshooting documentation.
 - [x] Add a repository-wide tracked-Markdown local-link guard to the quality and submission gates.
+- [x] Run the frozen safe source/wheel judge gate in pinned Windows CI on `main` and pull requests.
 - [x] Profile safe synthetic performance and optimize only measured bottlenecks.
   - [x] Add a bounded JSON synthetic profile for real local model initialization/inference that
     cannot activate camera, GUI, hotkey, or operating-system input.

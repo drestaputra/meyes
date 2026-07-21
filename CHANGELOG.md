@@ -31,6 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   isolated compiler/Nuitka environment can produce comparable measured builds.
 - Added repository-wide verification for local links in tracked Markdown to the deterministic
   quality and submission gates.
+- Added pinned Windows GitHub Actions verification for the frozen safe source and wheel judge gate.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

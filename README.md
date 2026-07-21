@@ -112,6 +112,10 @@ gate without opening a camera or arming OS input:
 .\scripts\judge_verify.ps1
 ```
 
+The same safe judge gate runs on a pinned Windows GitHub Actions workflow for every `main` push and
+pull request. CI is deterministic source/wheel verification, not live-camera, native-input,
+standalone-package, or clean-machine evidence.
+
 For a JSON install/model-integrity check that does not import Qt or activate hardware/native input:
 
 ```powershell
