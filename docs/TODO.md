@@ -30,6 +30,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   URL to the Devpost project; add the judge quickstart to the optional testing field.
 - [ ] Record the `/feedback` Session ID from the task where most core functionality was built.
 - [ ] Verify the judge quickstart on a clean Windows 10/11 x64 environment.
+- [x] Verify a fresh Git clone with isolated locked dependencies, entry-point import, and full gate
+  on the same Windows 11 host; retain the second-machine/live check as pending.
 - [ ] Make the repository public with its license, or invite `testing@devpost.com` and
   `build-week-event@openai.com` and verify both can access it.
 - [ ] Add every teammate to Devpost and have them accept before the deadline, if applicable.

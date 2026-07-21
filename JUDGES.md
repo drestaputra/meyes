@@ -18,6 +18,9 @@ cursor-candidate, guarded persistence, and explicitly armed Windows pointer path
 - Dependency manager: [`uv`](https://docs.astral.sh/uv/), using the committed `uv.lock`.
 - Live hardware: a conventional webcam available to OpenCV.
 - Current delivery: source checkout only; no installer or packaged executable is claimed.
+- Fresh-source evidence: commit `65b2e48` passed locked sync, entry-point import, Ruff, strict mypy,
+  and 740 tests in an isolated environment on the same Windows 11 host. This is not a Windows 10 or
+  second-machine claim.
 
 ## Source quickstart
 

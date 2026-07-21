@@ -115,7 +115,7 @@ description as completed functionality.
 |---|---|---|
 | Build a working project with Codex and GPT-5.6 | Codex collaboration is documented in `README.md`; explicit GPT-5.6 work begins with commit `57e08f2`. | Implementation evidence present; required Session ID pending |
 | Fit one category | Hands-free personal-computing exploration fits Apps for Your Life. | Human confirmation required |
-| Run as depicted on the stated platform | Source build and deterministic checks run on Windows; exact commands are in `JUDGES.md`. | Clean-machine check pending |
+| Run as depicted on the stated platform | Source build and deterministic checks run on Windows; a fresh clone passed locked sync/import/full gate on the same Windows 11 host. | Second-machine/clean-user live check pending |
 | New work during the submission period | Git history begins on 2026-07-19 and remains unsquashed; the timeline through `57e08f2` is below and later evidence remains in `git log`. | Evidence ready; human originality attestation required |
 | Explain features and functionality | Current scope and exclusions are recorded above; an English draft is in [`DEVPOST_DRAFT.md`](./DEVPOST_DRAFT.md). | Human review/edit pending |
 | Public YouTube demo under three minutes | Must show the working build and include audio explaining the project, Codex, and GPT-5.6. | Pending |
