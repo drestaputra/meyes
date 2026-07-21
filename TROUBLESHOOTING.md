@@ -49,7 +49,7 @@ Close MEYES before moving local files so no writer is active.
 - Logs: `%LOCALAPPDATA%\Meyes\Logs\meyes.log` with rotating numbered backups. Removing logs is
   optional and does not reset application state.
 - Accepted calibration: `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. Prefer the guarded
-  **Forget**, **Restore**, and exact-confirmation permanent-backup controls on Calibration. Raw edits
+  **Forget**, **Restore**, and cancel-default permanent-backup controls on Calibration. Raw edits
   invalidate the checksum and cannot restore Live Input consent.
 - Profiles: use the in-app import/export and recoverable deletion controls. Imported profiles remain
   inactive until separately activated through the release-first transition.

@@ -114,7 +114,7 @@ Optional calibration and gaze-pointer check:
    all nine full-screen points and confirm the fit reports `Accepted`. Do not weaken limits merely
    to force a demo.
 3. Confirm the saved-calibration status names the current physical display. If a saved envelope
-   already exists, replacement requires `REPLACE SAVED CALIBRATION` exactly and releases Live Input.
+   already exists, replacement requires a cancel-default modal confirmation and releases Live Input.
 4. Re-arm Live Input with `ENABLE LIVE INPUT`; accepted fresh gaze candidates may now move the
    primary-screen pointer. Every movement revalidates current physical geometry.
 5. Change no display setting while armed. A geometry mismatch or native failure removes the cursor
@@ -199,7 +199,7 @@ Working in the submitted source build:
 - a read-only Windows evidence probe recording native geometry, system DPI, Qt logical geometry,
   device-pixel ratio, and consistency checks; the committed 100% row passes, while 125% and 150%
   are explicitly pending;
-- exact-phrase replacement of an existing saved calibration, retaining the prior envelope and
+- modal-confirmed replacement of an existing saved calibration, retaining the prior envelope and
   using the accepted fit only as volatile provisioning until confirmation releases Live Input;
 - normalized observations and left/right wink events with blink suppression;
 - fresh face/hand pairing and scale-normalized fingertip-to-temple distances;

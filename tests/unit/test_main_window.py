@@ -39,6 +39,7 @@ from meyes.calibration.mapper import (
     PolynomialCalibrationMapper,
 )
 from meyes.calibration.persistence import AcceptedCalibrationRepository, CalibrationProvenance
+from meyes.calibration.session import CalibrationSessionState
 from meyes.camera.models import CameraDevice, CameraHealth, CameraOptions, CameraStatus, FramePacket
 from meyes.config.manager import ConfigManager
 from meyes.config.models import AppConfig, CalibrationSettings
@@ -51,12 +52,6 @@ from meyes.input.windows_safety import WindowsEmergencyHotkey
 from meyes.input.windows_sendinput import WindowsSendInputExecutor
 from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
-from meyes.ui.calibration_page import (
-    DELETE_CALIBRATION_BACKUP_PHRASE,
-    FORGET_CALIBRATION_PHRASE,
-    REPLACE_CALIBRATION_PHRASE,
-    RESTORE_CALIBRATION_PHRASE,
-)
 from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
 from meyes.ui.first_run_wizard import FirstRunWizard
@@ -509,12 +504,9 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     )
     qtbot.addWidget(window)
     persistence_label = window.findChild(QLabel, "calibrationPersistenceStatus")
-    forget_confirmation = window.findChild(QLineEdit, "forgetCalibrationConfirmation")
     forget_button = window.findChild(QPushButton, "forgetCalibrationButton")
     backup_status = window.findChild(QLabel, "calibrationDeletedBackupStatus")
-    restore_confirmation = window.findChild(QLineEdit, "restoreCalibrationConfirmation")
     restore_button = window.findChild(QPushButton, "restoreCalibrationButton")
-    delete_backup_confirmation = window.findChild(QLineEdit, "deleteCalibrationBackupConfirmation")
     delete_backup_button = window.findChild(QPushButton, "deleteCalibrationBackupButton")
     recovered_result = window._calibration_persistence_result
     recovered_cursor = window._cursor_diagnostics.snapshot
@@ -525,17 +517,14 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert persistence_label is not None
     assert "cursor pipeline" in persistence_label.text()
     assert paths.calibration_file.exists()
-    assert forget_confirmation is not None
     assert forget_button is not None
     assert backup_status is not None
-    assert restore_confirmation is not None
     assert restore_button is not None
-    assert delete_backup_confirmation is not None
     assert delete_backup_button is not None
 
-    forget_confirmation.setText(FORGET_CALIBRATION_PHRASE)
     assert forget_button.isEnabled()
-    forget_button.click()
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=True):
+        forget_button.click()
     forgotten_result = window._calibration_persistence_result
     forgotten_cursor = window._cursor_diagnostics.snapshot
 
@@ -545,12 +534,11 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert not paths.calibration_file.exists()
     assert len(tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json"))) == 1
     assert "recoverable deleted backup" in persistence_label.text()
-    assert forget_confirmation.text() == ""
     assert "Newest deleted backup" in backup_status.text()
 
-    restore_confirmation.setText(RESTORE_CALIBRATION_PHRASE)
     assert restore_button.isEnabled()
-    restore_button.click()
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=True):
+        restore_button.click()
     restored_result = window._calibration_persistence_result
     restored_cursor = window._cursor_diagnostics.snapshot
 
@@ -560,17 +548,15 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert paths.calibration_file.exists()
     assert len(tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json"))) == 1
     assert "Restored calibration" in persistence_label.text()
-    assert restore_confirmation.text() == ""
 
-    delete_backup_confirmation.setText(DELETE_CALIBRATION_BACKUP_PHRASE)
     assert delete_backup_button.isEnabled()
-    delete_backup_button.click()
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=True):
+        delete_backup_button.click()
 
     assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.DELETED
     assert paths.calibration_file.exists()
     assert tuple(paths.data_dir.glob("accepted-calibration.deleted-*.json")) == ()
     assert "permanently removed" in persistence_label.text()
-    assert delete_backup_confirmation.text() == ""
 
 
 def test_newly_accepted_fit_is_saved_without_arming_live_input(
@@ -619,7 +605,7 @@ def test_newly_accepted_fit_is_saved_without_arming_live_input(
     assert "Saved calibration" in persistence_label.text()
 
 
-def test_existing_calibration_is_replaced_only_after_exact_confirmation(
+def test_existing_calibration_is_replaced_only_after_modal_confirmation(
     qtbot: QtBot,
     tmp_path: Path,
 ) -> None:
@@ -675,34 +661,30 @@ def test_existing_calibration_is_replaced_only_after_exact_confirmation(
     window._calibration_controller.fit_changed.emit(outcome)
 
     repository = AcceptedCalibrationRepository(paths)
-    confirmation = window.findChild(QLineEdit, "replaceCalibrationConfirmation")
     button = window.findChild(QPushButton, "replaceCalibrationButton")
     pending_result = window._calibration_persistence_result
     assert pending_result.status is CalibrationPersistenceStatus.PENDING_REPLACE
     assert repository.load(policy).calibration == original
-    assert confirmation is not None and button is not None
-    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert button is not None
     assert button.isEnabled()
 
-    with patch.object(
-        window._live_input_controller,
-        "disarm",
-        return_value=LiveInputResult(False, LiveInputState.FAULTED, "release failed"),
-    ):
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=True):
+        with patch.object(
+            window._live_input_controller,
+            "disarm",
+            return_value=LiveInputResult(False, LiveInputState.FAULTED, "release failed"),
+        ):
+            button.click()
+
+        failed_result = window._calibration_persistence_result
+        assert failed_result.status is CalibrationPersistenceStatus.PENDING_REPLACE
+        assert repository.load(policy).calibration == original
+        assert button.isEnabled()
+
         button.click()
-
-    failed_result = window._calibration_persistence_result
-    assert failed_result.status is CalibrationPersistenceStatus.PENDING_REPLACE
-    assert repository.load(policy).calibration == original
-    assert confirmation.text() == ""
-    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
-    assert button.isEnabled()
-
-    button.click()
 
     assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.SAVED
     assert repository.load(policy).calibration == replacement
-    assert confirmation.text() == ""
     assert not button.isEnabled()
     assert window._live_input_controller.state is LiveInputState.SAFE
 
@@ -950,15 +932,21 @@ def test_camera_running_keeps_live_input_safe_until_explicit_consent(qtbot: QtBo
 
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
     navigation = window.findChild(QListWidget, "mainNavigation")
-    calibration_start = window._calibration_page._start_button
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert safety.registered == 0
     assert executor.calls == []
     assert safety_status is not None and "SAFE MODE" in safety_status.text()
     assert navigation is not None and navigation.currentRow() == 1
-    qtbot.waitUntil(calibration_start.hasFocus, timeout=1000)
-    assert "calibration is required" in window._calibration_page._instruction.text()
+    qtbot.waitUntil(
+        lambda: (
+            window._calibration_controller.snapshot.state is CalibrationSessionState.AWAITING_TARGET
+        ),
+        timeout=1000,
+    )
+    assert window._calibration_page._presentation.isVisible()
+    assert "Full-screen collection started" in window._calibration_page._feedback.text()
 
+    window._calibration_page._presentation.close()
     navigation.setCurrentRow(NAVIGATION_ITEMS.index("Diagnostics"))
     window._sync_vision_lifecycle(
         CameraHealth(status=CameraStatus.PAUSED, message="Camera is paused")

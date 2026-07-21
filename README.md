@@ -9,13 +9,34 @@ The product controls are gaze-driven pointer movement, wink clicks, and temple-g
 On a new local configuration, a three-step first-run orientation explains privacy, camera setup,
 calibration honesty, and Live Input safety without opening a camera or enabling OS output. Completion
 is recorded only after the final safety acknowledgement is explicitly selected and saved.
-After a real camera start reaches Running, MEYES opens the Calibration page and focuses its guided
-entry point when no accepted current-display calibration is active. It never starts full-screen
-sample collection automatically, does not repeat the redirect on resume, and does not arm OS input.
+After a real camera start reaches Running, MEYES enters the guided full-screen Calibration onboarding
+when no accepted current-display calibration is active. The normal release-first preparation runs
+before collection; resume does not repeat onboarding and camera startup never arms OS input.
 
 ## Development status
 
-Phase 0 through Phase 4 are implemented, and Phase 5 includes fail-closed normalized gaze features plus a distraction-free primary-display nine-point collection flow. Calibration fits a mapper and reports deterministic holdout metrics; acceptance defaults to `Review Required`. An executor-independent cursor pipeline composes proof-carrying accepted calibration, configured adaptive smoothing, physical-pixel mapping, and the configured tracking/temple gate. A Qt-owned diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals. When and only when calibration is accepted, a provisioning boundary reads Windows primary-monitor physical pixels through a temporary restored Per-Monitor V2 DPI scope and constructs that pipeline. Missing acceptance, unsupported geometry, or native failure keeps Diagnostics truthfully `Unavailable` and clears any prior candidate. Accepted candidates reach the native executor only during an explicitly armed Live Input session; each move revalidates the current physical display against the exact provisioned geometry, and mismatch or native failure removes the pipeline, faults Live Input, releases owned input, and requests tracking pause. Accepted fits are atomically saved in a schema-2 checksummed evidence envelope with UTC creation time and physical primary-display geometry. A newly accepted fit cannot overwrite an existing envelope until Live Input is released and `REPLACE SAVED CALIBRATION` is typed exactly; before confirmation it remains volatile while the prior file stays intact. Safe startup recovery requires the exact same policy and geometry; mismatch keeps the stored file but removes the pipeline. Exact-phrase controls can forget the active envelope into a recoverable backup, restore the newest valid backup through checksum/policy/display revalidation, or permanently delete exactly the newest cataloged backup. These persistence paths cannot restore consent or arm Live Input. Physical-device reach evidence and scaling-matrix QA remain pending.
+Phase 0 through Phase 4 are implemented, and Phase 5 includes fail-closed normalized gaze features
+plus a distraction-free primary-display nine-point collection flow. Calibration fits a mapper and
+reports deterministic holdout metrics; acceptance defaults to `Review Required`. An
+executor-independent cursor pipeline composes proof-carrying accepted calibration, configured
+adaptive smoothing, physical-pixel mapping, and the configured tracking/temple gate. A Qt-owned
+diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals.
+When and only when calibration is accepted, a provisioning boundary reads Windows primary-monitor
+physical pixels through a temporary restored Per-Monitor V2 DPI scope and constructs that pipeline.
+Missing acceptance, unsupported geometry, or native failure keeps Diagnostics truthfully
+`Unavailable` and clears any prior candidate. Accepted candidates reach the native executor only
+during an explicitly armed Live Input session; each move revalidates the current physical display
+against the exact provisioned geometry, and mismatch or native failure removes the pipeline, faults
+Live Input, releases owned input, and requests tracking pause. Accepted fits are atomically saved in
+a schema-2 checksummed evidence envelope with UTC creation time and physical primary-display
+geometry. A newly accepted fit cannot overwrite an existing envelope until Live Input is released
+and a cancel-default replacement dialog is confirmed; before confirmation it remains volatile while
+the prior file stays intact. Safe startup recovery requires the exact same policy and geometry;
+mismatch keeps the stored file but removes the pipeline. Modal-confirmed controls can forget the
+active envelope into a recoverable backup, restore the newest valid backup through
+checksum/policy/display revalidation, or permanently delete exactly the newest cataloged backup.
+These persistence paths cannot restore consent or arm Live Input. Physical-device reach evidence
+and scaling-matrix QA remain pending.
 
 See:
 

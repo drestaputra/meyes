@@ -6,7 +6,7 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QLineEdit, QProgressBar, QPushButton, QScrollArea
+from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QScrollArea
 from pytestqt.qtbot import QtBot
 
 from meyes.calibration.acceptance import (
@@ -29,7 +29,7 @@ from meyes.ui.calibration_controller import (
     CalibrationFitState,
     calibration_fit_outcome,
 )
-from meyes.ui.calibration_page import REPLACE_CALIBRATION_PHRASE, CalibrationPage
+from meyes.ui.calibration_page import CalibrationPage
 from meyes.ui.calibration_persistence import (
     CalibrationPersistenceResult,
     CalibrationPersistenceStatus,
@@ -132,7 +132,9 @@ def test_page_requires_tracking_and_release_then_completes_target(qtbot: QtBot) 
     assert controller.snapshot.state.value == CalibrationSessionState.AWAITING_TARGET.value
 
 
-def test_saved_calibration_replace_requires_exact_pending_confirmation(qtbot: QtBot) -> None:
+def test_saved_calibration_replace_requires_pending_state_and_modal_confirmation(
+    qtbot: QtBot,
+) -> None:
     controller = CalibrationController()
     calls: list[bool] = []
 
@@ -149,11 +151,8 @@ def test_saved_calibration_replace_requires_exact_pending_confirmation(qtbot: Qt
         confirm_calibration_replace=confirm_replace,
     )
     qtbot.addWidget(page)
-    confirmation = page.findChild(QLineEdit, "replaceCalibrationConfirmation")
     button = page.findChild(QPushButton, "replaceCalibrationButton")
-    assert confirmation is not None and button is not None
-
-    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert button is not None
     assert not button.isEnabled()
 
     page.set_persistence_result(
@@ -162,15 +161,20 @@ def test_saved_calibration_replace_requires_exact_pending_confirmation(qtbot: Qt
             "Confirmation required.",
         )
     )
-    confirmation.setText("replace saved calibration")
-    assert not button.isEnabled()
-    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
     assert button.isEnabled()
-    button.click()
+
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=False) as confirm:
+        button.click()
+    assert calls == []
+    confirm.assert_called_once()
+
+    with patch("meyes.ui.calibration_page.confirm_action", return_value=True) as confirm:
+        button.click()
 
     assert calls == [True]
+    assert confirm.call_args.kwargs["destructive"] is True
+    assert confirm.call_args.kwargs["confirm_label"] == "Replace calibration"
     assert page._persistence_status.text() == "Saved replacement."
-    assert confirmation.text() == ""
     assert not button.isEnabled()
 
 

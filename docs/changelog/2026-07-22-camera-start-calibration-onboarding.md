@@ -7,9 +7,9 @@ current-display calibration is active.
 
 ## Changed
 
-- `Stopped/Starting -> Running` selects Calibration, explains the guided nine-point flow, and
-  focuses the Start button.
-- Collection remains deliberate: no fullscreen presentation or sample capture starts automatically.
+- `Stopped/Starting -> Running` selects Calibration and enters its guided nine-point full-screen
+  onboarding immediately.
+- Release-first preparation still gates the collection; individual point capture remains explicit.
 - Camera resume does not repeat the redirect, and an active recovered/saved/volatile accepted
   provisioning leaves the user's current page unchanged.
 - Safe Mode and volatile Live Input consent remain unchanged.
@@ -18,8 +18,8 @@ current-display calibration is active.
 
 - MainWindow tests cover missing calibration, focus/instruction state, Safe Mode invariants, no
   resume redirect, and usable startup-recovered calibration.
-- The full local gate passed: documentation and ICO verification, Ruff, strict mypy across 158
-  typed source/test files, and all 789 tests on native Windows Qt.
+- The full local gate passed: documentation and ICO verification, Ruff, strict mypy across 160
+  typed source/test files, and all 791 tests on native Windows Qt.
 - Remote Windows CI must pass on the exact pushed revision before completing the iteration.
 
 ## Known limitations

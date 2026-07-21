@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -38,6 +37,7 @@ from meyes.ui.calibration_persistence import (
     CalibrationPersistenceStatus,
 )
 from meyes.ui.calibration_presentation import CalibrationPresentation
+from meyes.ui.confirmation_dialog import confirm_action
 
 PrepareCalibration = Callable[[], bool]
 ForgetCalibration = Callable[[], CalibrationPersistenceResult]
@@ -45,10 +45,6 @@ BackupCatalog = Callable[[], DeletedCalibrationCatalog]
 RestoreCalibration = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
 ConfirmCalibrationReplace = Callable[[], CalibrationPersistenceResult]
 DeleteCalibrationBackup = Callable[[DeletedCalibrationBackup], CalibrationPersistenceResult]
-FORGET_CALIBRATION_PHRASE = "FORGET SAVED CALIBRATION"
-RESTORE_CALIBRATION_PHRASE = "RESTORE SAVED CALIBRATION"
-REPLACE_CALIBRATION_PHRASE = "REPLACE SAVED CALIBRATION"
-DELETE_CALIBRATION_BACKUP_PHRASE = "DELETE CALIBRATION BACKUP PERMANENTLY"
 
 
 class CalibrationPage(QWidget):
@@ -202,64 +198,32 @@ class CalibrationPage(QWidget):
         panel_layout.addLayout(fit_form)
         replace_instruction = QLabel(
             "A newly accepted fit remains volatile when a saved calibration already exists. "
-            f"Type {REPLACE_CALIBRATION_PHRASE} to replace it."
+            "Select Replace saved calibration and confirm the modal dialog to replace it."
         )
         replace_instruction.setObjectName("mutedText")
         replace_instruction.setWordWrap(True)
         panel_layout.addWidget(replace_instruction)
-        replace_actions = QHBoxLayout()
-        self._replace_confirmation = QLineEdit()
-        self._replace_confirmation.setObjectName("replaceCalibrationConfirmation")
-        self._replace_confirmation.setPlaceholderText(f"Type {REPLACE_CALIBRATION_PHRASE}")
-        self._replace_confirmation.setAccessibleName("Replace saved calibration confirmation")
         self._replace_button = QPushButton("Replace saved calibration")
         self._replace_button.setObjectName("replaceCalibrationButton")
         self._replace_button.setEnabled(False)
-        replace_actions.addWidget(self._replace_confirmation, stretch=1)
-        replace_actions.addWidget(self._replace_button)
-        panel_layout.addLayout(replace_actions)
-        forget_actions = QHBoxLayout()
-        self._forget_confirmation = QLineEdit()
-        self._forget_confirmation.setObjectName("forgetCalibrationConfirmation")
-        self._forget_confirmation.setPlaceholderText(f"Type {FORGET_CALIBRATION_PHRASE}")
-        self._forget_confirmation.setAccessibleName("Forget saved calibration confirmation")
+        panel_layout.addWidget(self._replace_button)
         self._forget_button = QPushButton("Forget saved calibration")
         self._forget_button.setObjectName("forgetCalibrationButton")
-        self._forget_button.setEnabled(False)
-        forget_actions.addWidget(self._forget_confirmation, stretch=1)
-        forget_actions.addWidget(self._forget_button)
-        panel_layout.addLayout(forget_actions)
+        self._forget_button.setEnabled(self._forget_calibration is not None)
+        panel_layout.addWidget(self._forget_button)
         self._backup_status = QLabel("Deleted backup restore is unavailable.")
         self._backup_status.setObjectName("calibrationDeletedBackupStatus")
         self._backup_status.setWordWrap(True)
         panel_layout.addWidget(self._backup_status)
-        restore_actions = QHBoxLayout()
-        self._restore_confirmation = QLineEdit()
-        self._restore_confirmation.setObjectName("restoreCalibrationConfirmation")
-        self._restore_confirmation.setPlaceholderText(f"Type {RESTORE_CALIBRATION_PHRASE}")
-        self._restore_confirmation.setAccessibleName("Restore saved calibration confirmation")
         self._restore_button = QPushButton("Restore newest deleted backup")
         self._restore_button.setObjectName("restoreCalibrationButton")
         self._restore_button.setEnabled(False)
-        restore_actions.addWidget(self._restore_confirmation, stretch=1)
-        restore_actions.addWidget(self._restore_button)
-        panel_layout.addLayout(restore_actions)
-        delete_backup_actions = QHBoxLayout()
-        self._delete_backup_confirmation = QLineEdit()
-        self._delete_backup_confirmation.setObjectName("deleteCalibrationBackupConfirmation")
-        self._delete_backup_confirmation.setPlaceholderText(
-            f"Type {DELETE_CALIBRATION_BACKUP_PHRASE}"
-        )
-        self._delete_backup_confirmation.setAccessibleName(
-            "Permanent calibration backup deletion confirmation"
-        )
+        panel_layout.addWidget(self._restore_button)
         self._delete_backup_button = QPushButton("Permanently delete newest backup")
         self._delete_backup_button.setObjectName("deleteCalibrationBackupButton")
         self._delete_backup_button.setProperty("dangerAction", True)
         self._delete_backup_button.setEnabled(False)
-        delete_backup_actions.addWidget(self._delete_backup_confirmation, stretch=1)
-        delete_backup_actions.addWidget(self._delete_backup_button)
-        panel_layout.addLayout(delete_backup_actions)
+        panel_layout.addWidget(self._delete_backup_button)
         panel_layout.addLayout(actions)
         layout.addWidget(title)
         layout.addWidget(description)
@@ -274,13 +238,9 @@ class CalibrationPage(QWidget):
         self._capture_button.clicked.connect(self._controller.begin_target)
         self._advance_button.clicked.connect(self._advance_or_retry)
         self._cancel_button.clicked.connect(self._controller.cancel)
-        self._replace_confirmation.textChanged.connect(self._update_replace_button)
         self._replace_button.clicked.connect(self._replace_saved_calibration)
-        self._forget_confirmation.textChanged.connect(self._update_forget_button)
         self._forget_button.clicked.connect(self._forget_saved_calibration)
-        self._restore_confirmation.textChanged.connect(self._update_restore_button)
         self._restore_button.clicked.connect(self._restore_saved_calibration)
-        self._delete_backup_confirmation.textChanged.connect(self._update_delete_backup_button)
         self._delete_backup_button.clicked.connect(self._delete_saved_calibration_backup)
         self._refresh_backup_catalog()
 
@@ -303,7 +263,7 @@ class CalibrationPage(QWidget):
         self._render_snapshot(self._controller.snapshot)
 
     def show_camera_ready_onboarding(self) -> None:
-        """Focus the deliberate calibration entry point after an uncalibrated camera start."""
+        """Enter guided calibration after an uncalibrated camera start."""
 
         if not self._tracking_available:
             return
@@ -312,17 +272,15 @@ class CalibrationPage(QWidget):
             CalibrationSessionState.CANCELLED,
         }:
             return
-        self._instruction.setText("Camera ready · calibration is required")
-        self._feedback.setText(
-            "Start the guided 9-point calibration. Collection begins only after you choose Start."
-        )
+        self._instruction.setText("Camera ready · starting calibration onboarding")
+        self._feedback.setText("Preparing the guided 9-point full-screen calibration.")
         self._scroll.ensureWidgetVisible(self._start_button)
-        QTimer.singleShot(0, self._focus_onboarding_start)
+        QTimer.singleShot(0, self._start_camera_onboarding)
 
     @Slot()
-    def _focus_onboarding_start(self) -> None:
-        if self._start_button.isVisible() and self._start_button.isEnabled():
-            self._start_button.setFocus(Qt.FocusReason.OtherFocusReason)
+    def _start_camera_onboarding(self) -> None:
+        if self.isVisible() and self._tracking_available:
+            self._start()
 
     def set_persistence_status(self, message: str) -> None:
         """Display one sanitized persistence lifecycle outcome."""
@@ -331,30 +289,32 @@ class CalibrationPage(QWidget):
         self._persistence_status.setText(message.strip())
 
     def set_persistence_result(self, result: CalibrationPersistenceResult) -> None:
-        """Render persistence status and exact-confirmation availability."""
+        """Render persistence status and modal-confirmation availability."""
 
         if not isinstance(result, CalibrationPersistenceResult):
             raise TypeError("Expected CalibrationPersistenceResult")
         self.set_persistence_status(result.message)
         self._replace_required = result.status is CalibrationPersistenceStatus.PENDING_REPLACE
-        if not self._replace_required:
-            self._replace_confirmation.clear()
-        self._update_replace_button(self._replace_confirmation.text())
+        self._update_replace_button()
 
-    @Slot(str)
-    def _update_replace_button(self, value: str) -> None:
+    def _update_replace_button(self) -> None:
         self._replace_button.setEnabled(
-            self._replace_required
-            and self._confirm_calibration_replace is not None
-            and value == REPLACE_CALIBRATION_PHRASE
+            self._replace_required and self._confirm_calibration_replace is not None
         )
 
     @Slot()
     def _replace_saved_calibration(self) -> None:
-        if (
-            not self._replace_required
-            or self._confirm_calibration_replace is None
-            or self._replace_confirmation.text() != REPLACE_CALIBRATION_PHRASE
+        if not self._replace_required or self._confirm_calibration_replace is None:
+            return
+        if not confirm_action(
+            self,
+            title="Replace saved calibration?",
+            message=(
+                "Replace the existing saved calibration with the accepted calibration active "
+                "for this session? Live Input will be released before replacement."
+            ),
+            confirm_label="Replace calibration",
+            destructive=True,
         ):
             return
         try:
@@ -363,19 +323,20 @@ class CalibrationPage(QWidget):
             self.set_persistence_status("Saved calibration could not be replaced safely.")
         else:
             self.set_persistence_result(result)
-        self._replace_confirmation.clear()
-
-    @Slot(str)
-    def _update_forget_button(self, value: str) -> None:
-        self._forget_button.setEnabled(
-            self._forget_calibration is not None and value == FORGET_CALIBRATION_PHRASE
-        )
 
     @Slot()
     def _forget_saved_calibration(self) -> None:
-        if (
-            self._forget_calibration is None
-            or self._forget_confirmation.text() != FORGET_CALIBRATION_PHRASE
+        if self._forget_calibration is None:
+            return
+        if not confirm_action(
+            self,
+            title="Forget saved calibration?",
+            message=(
+                "Move the saved calibration to a recoverable deleted backup and clear the "
+                "active cursor calibration? Live Input will remain disconnected."
+            ),
+            confirm_label="Forget calibration",
+            destructive=True,
         ):
             return
         try:
@@ -384,24 +345,26 @@ class CalibrationPage(QWidget):
             self.set_persistence_status("Saved calibration could not be forgotten safely.")
         else:
             self.set_persistence_result(result)
-        self._forget_confirmation.clear()
         self._refresh_backup_catalog()
 
-    @Slot(str)
-    def _update_restore_button(self, value: str) -> None:
+    def _update_restore_button(self) -> None:
         self._restore_button.setEnabled(
-            self._restore_calibration is not None
-            and self._newest_backup is not None
-            and value == RESTORE_CALIBRATION_PHRASE
+            self._restore_calibration is not None and self._newest_backup is not None
         )
 
     @Slot()
     def _restore_saved_calibration(self) -> None:
         backup = self._newest_backup
-        if (
-            self._restore_calibration is None
-            or backup is None
-            or self._restore_confirmation.text() != RESTORE_CALIBRATION_PHRASE
+        if self._restore_calibration is None or backup is None:
+            return
+        if not confirm_action(
+            self,
+            title="Restore deleted calibration?",
+            message=(
+                "Restore the newest deleted calibration backup? It will be revalidated against "
+                "the current policy and display and will not arm Live Input."
+            ),
+            confirm_label="Restore backup",
         ):
             return
         try:
@@ -410,24 +373,27 @@ class CalibrationPage(QWidget):
             self.set_persistence_status("Deleted calibration could not be restored safely.")
         else:
             self.set_persistence_result(result)
-        self._restore_confirmation.clear()
         self._refresh_backup_catalog()
 
-    @Slot(str)
-    def _update_delete_backup_button(self, value: str) -> None:
+    def _update_delete_backup_button(self) -> None:
         self._delete_backup_button.setEnabled(
-            self._delete_calibration_backup is not None
-            and self._newest_backup is not None
-            and value == DELETE_CALIBRATION_BACKUP_PHRASE
+            self._delete_calibration_backup is not None and self._newest_backup is not None
         )
 
     @Slot()
     def _delete_saved_calibration_backup(self) -> None:
         backup = self._newest_backup
-        if (
-            self._delete_calibration_backup is None
-            or backup is None
-            or self._delete_backup_confirmation.text() != DELETE_CALIBRATION_BACKUP_PHRASE
+        if self._delete_calibration_backup is None or backup is None:
+            return
+        if not confirm_action(
+            self,
+            title="Permanently delete calibration backup?",
+            message=(
+                "Permanently delete the newest calibration backup? This cannot be undone. "
+                "The active calibration and Live Input state will not be changed."
+            ),
+            confirm_label="Delete permanently",
+            destructive=True,
         ):
             return
         try:
@@ -436,15 +402,14 @@ class CalibrationPage(QWidget):
             self.set_persistence_status("Calibration backup could not be removed safely.")
         else:
             self.set_persistence_result(result)
-        self._delete_backup_confirmation.clear()
         self._refresh_backup_catalog()
 
     def _refresh_backup_catalog(self) -> None:
         if self._backup_catalog is None:
             self._newest_backup = None
             self._backup_status.setText("Deleted backup restore is unavailable.")
-            self._update_restore_button(self._restore_confirmation.text())
-            self._update_delete_backup_button(self._delete_backup_confirmation.text())
+            self._update_restore_button()
+            self._update_delete_backup_button()
             return
         try:
             catalog = self._backup_catalog()
@@ -459,8 +424,8 @@ class CalibrationPage(QWidget):
             if catalog.warning:
                 message = f"{message} Some older metadata was omitted."
         self._backup_status.setText(message)
-        self._update_restore_button(self._restore_confirmation.text())
-        self._update_delete_backup_button(self._delete_backup_confirmation.text())
+        self._update_restore_button()
+        self._update_delete_backup_button()
 
     def set_live_input_armed(self, armed: bool) -> None:
         """Cancel collection if real operating-system output becomes armed."""

@@ -8,8 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- Added start-only calibration onboarding: a successful uncalibrated camera start opens the guided
-  Calibration entry point, while resume and usable accepted calibration remain uninterrupted.
+- Added start-only calibration onboarding: a successful uncalibrated camera start enters the guided
+  full-screen flow, while resume and usable accepted calibration remain uninterrupted.
+- Replaced all four Calibration management phrase inputs with direct action buttons and
+  cancel-default confirmation dialogs without weakening lifecycle/revalidation boundaries.
 - Clarified release-manifest signing evidence: wheels now report Authenticode as not applicable,
   preserve the raw Windows probe result, and explicitly record that code signing is not configured.
 - Recorded a clean, live-remote-matched release build with an independently verified revision,

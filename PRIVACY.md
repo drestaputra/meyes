@@ -16,7 +16,7 @@ Safe operational recovery guidance is maintained in
 | Face and hand landmarks | Derived locally and held in memory for diagnostics and gesture state. They are not written as images or recordings. |
 | Gaze features | Binocular iris-to-eye ratios are derived locally, held only in memory, and cleared on tracking suspension or freshness timeout. They are not themselves screen coordinates and are not persisted; an accepted mapper may transform fresh values into volatile pointer candidates. |
 | Calibration samples | Raw target/feature pairs remain only in bounded session memory. Escape, closing the full-screen presentation, navigation away, tracking loss, Live Input arming, cancellation, restart, and shutdown discard them. Raw samples are not included in the accepted-calibration envelope. |
-| Accepted calibration envelope | When a newly fitted mapper passes every configured limit, MEYES atomically stores only its quadratic coefficients, holdout metrics, exact accepting policy, UTC creation time, physical primary-screen rectangle, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. If an active envelope already exists, the new fit remains volatile and the prior file stays intact until `REPLACE SAVED CALIBRATION` is typed exactly after Live Input is released. It is recovered once at startup only under the identical current policy and display geometry. Invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. Legacy schema-1 files are preserved but not recovered. The checksum is not authentication against a local attacker. |
+| Accepted calibration envelope | When a newly fitted mapper passes every configured limit, MEYES atomically stores only its quadratic coefficients, holdout metrics, exact accepting policy, UTC creation time, physical primary-screen rectangle, schema version, and a corruption-detection SHA-256 checksum in `%LOCALAPPDATA%\Meyes\accepted-calibration.json`. If an active envelope already exists, the new fit remains volatile and the prior file stays intact until the cancel-default replacement dialog is confirmed after Live Input is released. It is recovered once at startup only under the identical current policy and display geometry. Invalid files are never activated and may be renamed to timestamped `.invalid-*.json` backups. Legacy schema-1 files are preserved but not recovered. The checksum is not authentication against a local attacker. |
 | Calibration acceptance limits | Optional numeric evidence limits are local configuration values. All four default to unset, so a mapper remains `Review Required`; persistence recovery also remains disabled without a complete policy. |
 | Cursor smoothing settings | One Euro cutoff, speed coefficient, derivative cutoff, and stale-gap values are local configuration consumed by the accepted cursor-candidate pipeline. They do not arm Live Input. |
 | Cursor gate settings | Temple-freeze and resume-delay values are local configuration consumed by the cursor-candidate pipeline. Disabling temple freeze never disables tracking-loss suspension, and the gate cannot arm Live Input. |
@@ -71,16 +71,16 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
   `%LOCALAPPDATA%\Meyes\` to remove stored mapper coefficients and validation evidence.
 
 The Calibration page can also move the active `accepted-calibration.json` envelope to a local
-timestamped `accepted-calibration.deleted-*.json` backup after the exact phrase
-`FORGET SAVED CALIBRATION` is typed. This clears cursor provisioning but does not permanently
+timestamped `accepted-calibration.deleted-*.json` backup after its cancel-default confirmation
+dialog is accepted. This clears cursor provisioning but does not permanently
 erase the backup or change Live Input state.
 
-The page shows only the newest deleted backup's UTC deletion time and byte size. Typing
-`RESTORE SAVED CALIBRATION` revalidates the local checksum, configured policy, validation evidence,
+The page shows only the newest deleted backup's UTC deletion time and byte size. Confirming Restore
+revalidates the local checksum, configured policy, validation evidence,
 and current physical display geometry before cursor diagnostics are restored. The deleted backup is
 retained, and Live Input state is unchanged.
 
-Typing `DELETE CALIBRATION BACKUP PERMANENTLY` deletes only that exact newest catalog record after
+Confirming permanent deletion deletes only that exact newest catalog record after
 path, regular-file, non-link, and byte-size revalidation. The operation cannot target the active
 calibration envelope and does not change Live Input or cursor runtime state. It is not recoverable.
 

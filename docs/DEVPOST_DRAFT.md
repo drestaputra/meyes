@@ -50,7 +50,8 @@ lifecycle gates, while Privacy exposes the local data boundary and file location
 the system tray mirrors state and offers bounded lifecycle controls without hidden close-to-tray.
 
 Calibration evidence is local, checksummed, policy-bound, and tied to physical display geometry.
-Replacement, recoverable forget, restore, and permanent backup deletion use separate exact phrases.
+Replacement, recoverable forget, restore, and permanent backup deletion use separate cancel-default
+confirmation dialogs.
 Raw frames, landmarks, gaze samples, and Live Input consent are not persisted.
 
 ### How we built it
