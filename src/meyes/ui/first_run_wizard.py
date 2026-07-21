@@ -6,7 +6,6 @@ from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -16,6 +15,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from meyes.ui.confirmation_dialog import confirm_action
 
 CompleteFirstRun = Callable[[], bool]
 
@@ -85,8 +86,8 @@ class FirstRunWizard(QDialog):
         final_page = self._step(
             "Safe Mode is the default",
             "Camera tracking and real Windows output are separate decisions. Live Input requires "
-            "exact consent every session, a registered emergency shortcut, clear physical inputs, "
-            "and an explicit Arm action.",
+            "explicit modal consent every session, a registered emergency shortcut, clear physical "
+            "inputs, and an explicit Arm action.",
             (
                 "Startup and camera start never arm operating-system input.",
                 "Ctrl+Alt+Shift+F11 returns MEYES to Safe Mode.",
@@ -95,11 +96,13 @@ class FirstRunWizard(QDialog):
         )
         final_layout = final_page.layout()
         assert isinstance(final_layout, QVBoxLayout)
-        self._acknowledgement = QCheckBox(
-            "I understand that Live Input is optional and requires explicit per-session consent."
+        acknowledgement = QLabel(
+            "Finishing records only that this safety orientation was completed. Live Input remains "
+            "optional and requires a separate confirmation for every armed session."
         )
-        self._acknowledgement.setObjectName("firstRunSafetyAcknowledgement")
-        final_layout.addWidget(self._acknowledgement)
+        acknowledgement.setObjectName("firstRunSafetyAcknowledgementNotice")
+        acknowledgement.setWordWrap(True)
+        final_layout.addWidget(acknowledgement)
         self._pages.addWidget(final_page)
 
         self._feedback = QLabel()
@@ -133,7 +136,6 @@ class FirstRunWizard(QDialog):
         self._back.clicked.connect(self._previous_step)
         self._next.clicked.connect(self._next_step)
         self._finish.clicked.connect(self._finish_setup)
-        self._acknowledgement.toggled.connect(self._render_step)
 
     @staticmethod
     def _step(title: str, description: str, points: tuple[str, ...]) -> QWidget:
@@ -168,7 +170,7 @@ class FirstRunWizard(QDialog):
         self._back.setEnabled(index > 0)
         self._next.setVisible(not final)
         self._finish.setVisible(final)
-        self._finish.setEnabled(final and self._acknowledgement.isChecked())
+        self._finish.setEnabled(final)
 
     def _previous_step(self) -> None:
         self._pages.setCurrentIndex(max(0, self._pages.currentIndex() - 1))
@@ -179,7 +181,15 @@ class FirstRunWizard(QDialog):
         self._render_step()
 
     def _finish_setup(self) -> None:
-        if not self._acknowledgement.isChecked():
+        if not confirm_action(
+            self,
+            title="Finish safety orientation?",
+            message=(
+                "Record this orientation as complete? MEYES will still start in Safe Mode, and "
+                "Live Input remains optional with separate confirmation for every armed session."
+            ),
+            confirm_label="Finish setup",
+        ):
             return
         if self._complete_first_run():
             self.accept()

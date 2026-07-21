@@ -25,7 +25,6 @@ from meyes.services.action_dispatcher import (
     LifecycleReport,
 )
 
-LIVE_INPUT_CONSENT_PHRASE = "ENABLE LIVE INPUT"
 _MAX_QT_TIMER_INTERVAL_MS = 2_147_483_647
 
 InputExecutorFactory = Callable[[], InputExecutor]
@@ -137,14 +136,17 @@ class LiveInputController(QObject):
     def timer_active(self) -> bool:
         return self._poll_timer.isActive()
 
-    def arm(self, consent_phrase: str, window_id: int) -> LiveInputResult:
-        """Register the stop chord, preflight, release, and arm one volatile session."""
+    def arm(self, consent_granted: bool, window_id: int) -> LiveInputResult:
+        """Arm one volatile session only after explicit modal consent."""
         if self._state is LiveInputState.CLOSED:
             return self._finish(False, "Live Input is closed for this application session.")
         if not self._platform_supported:
             return self._finish(False, "Live Input requires Windows 10 or Windows 11.")
-        if consent_phrase != LIVE_INPUT_CONSENT_PHRASE:
-            return self._finish(False, f"Type {LIVE_INPUT_CONSENT_PHRASE} exactly to continue.")
+        if consent_granted is not True:
+            return self._finish(
+                False,
+                "Confirm Live Input in the per-session dialog to continue.",
+            )
         if self._state is LiveInputState.ARMED:
             return self._finish(True, "Live Input is already armed.")
         if self._state is LiveInputState.FAULTED:

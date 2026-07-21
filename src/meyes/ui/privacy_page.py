@@ -82,10 +82,10 @@ class PrivacyPage(QWidget):
         layout.addWidget(
             self._boundary_panel(
                 "Real Windows input",
-                "Real output requires a running camera, exact per-session consent, a registered "
-                "emergency shortcut, clear physical inputs, and explicit arming. Camera lifecycle, "
-                "profile changes, faults, shutdown, or Ctrl+Alt+Shift+F11 disarm and release "
-                "state.",
+                "Real output requires a running camera, explicit per-session modal consent, a "
+                "registered emergency shortcut, clear physical inputs, and explicit arming. Camera "
+                "lifecycle, profile changes, faults, shutdown, or Ctrl+Alt+Shift+F11 disarm and "
+                "release state.",
                 "privacyInputBoundary",
             )
         )

@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Removed the remaining typed/checkbox confirmation controls from Live Input, Profiles, and
+  first-run completion in favor of cancel-default modal dialogs while retaining all controller and
+  lifecycle safety gates.
 - Fixed app-themed confirmation dialogs and tooltips to use an explicit light surface with readable
   foreground colors instead of inheriting a dark native surface behind dark text.
 
@@ -101,16 +104,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Qt-owned action simulation that loads the active profile fail-closed, consumes live semantic events, schedules dispatcher deadlines without a worker loop, releases before camera shutdown, and exposes bounded fake primitive diagnostics in a responsive Safe Mode layout while OS input remains disconnected.
 - Durable Profiles workflow with all-disabled creation, pause-first activation, preference rollback, canonical active-profile status, and a read-only preview of all six simulated bindings.
 - Isolated Bindings editor covering every validated MVP action with hold-only filtering, inline errors, last-valid preview, dirty-draft preservation, and inactive save-as-copy.
-- Fail-safe inactive profile lifecycle with rename, exact-name-confirmed recoverable deletion, restore-from-Default, and built-in/active-profile protections.
+- Fail-safe inactive profile lifecycle with rename, modal-confirmed recoverable deletion, restore-from-Default, and built-in/active-profile protections.
 - Dormant Windows `SendInput` executor for validated mouse and keyboard primitives with ABI-safe ctypes structures, owned held-state tracking, partial-send detection, reverse-order cleanup, and fake native-boundary tests.
 - Dormant Windows live-safety foundation with `Ctrl+Alt+Shift+F11` registration, native Qt hotkey filtering, retryable cleanup, and physical button/modifier preflight.
 - Dormant explicit-consent live session controller with hotkey-first preflight, lazy `SendInput` construction, release-first arming, emergency disarm, profile-transition gating, and terminal cleanup.
-- Application-wired Live Input view with volatile typed consent, real `SendInput` dispatch, persistent Safe/Live/Fault status, native emergency pause, physical-input preflight, camera/profile lifecycle disarm, pending-profile recovery, and terminal release paths.
+- Application-wired Live Input view with volatile modal consent, real `SendInput` dispatch, persistent Safe/Live/Fault status, native emergency pause, physical-input preflight, camera/profile lifecycle disarm, pending-profile recovery, and terminal release paths.
 - Accepted-calibration gaze pointer output using primary-monitor absolute `SendInput` coordinates, armed-session gating, cursor-pipeline lifecycle gates, and release-plus-tracking-pause recovery on native movement failure.
-- Explicit-consent-only Live Input arming after camera startup, retaining global emergency-hotkey registration, physical-input checks, release-first activation, and exact-phrase consent after every disarm.
+- Explicit-consent-only Live Input arming after camera startup, retaining global emergency-hotkey registration, physical-input checks, release-first activation, and fresh modal consent after every disarm.
 - Per-movement physical-display provenance revalidation against the exact active cursor provisioning, with pipeline invalidation and fail-closed Live Input recovery on mismatch or native read failure.
-- Exact-phrase saved-calibration replacement that retains the previous envelope until confirmation, keeps the accepted candidate pipeline volatile while pending, and requires Live Input release before the write.
-- Exact-record permanent deletion for the newest recoverable calibration backup, guarded by a separate exact phrase, bounded catalog membership, path/link/type/size revalidation, and no runtime-state change.
+- Modal-confirmed saved-calibration replacement that retains the previous envelope until confirmation, keeps the accepted candidate pipeline volatile while pending, and requires Live Input release before the write.
+- Exact-record permanent deletion for the newest recoverable calibration backup, guarded by a separate destructive modal, bounded catalog membership, path/link/type/size revalidation, and no runtime-state change.
 - Read-only, exclusively written Windows display-scaling evidence probe covering native physical geometry, system DPI, Qt logical geometry/DPR, and two consistency checks; native 100% evidence is recorded while 125%/150% remain pending.
 - Fresh-clone locked dependency, package entry-point, static-analysis, and 740-test verification in an isolated CPython 3.11 environment on the same Windows 11 host, with second-machine/live limitations recorded.
 - Shared fail-fast PowerShell uv resolver with direct-launcher and `python -m uv` support, frozen-lock execution across all scripts, and native Qt testing unless callers explicitly request another platform.
@@ -123,7 +126,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Validated Sensitivity view with dirty drafts/default staging, disarm-first persistence, and fail-closed accepted-pipeline reconstruction for One Euro and temple-gate settings.
 - Dedicated Camera settings/health view with stopped-only complete capture updates, disarm-first persistence, Dashboard synchronization, dirty/default staging, and no duplicate start control.
 - Keyboard-first shell navigation with arrow keys, Ctrl+1 through Ctrl+9 page shortcuts, focus return, and fail-safe selected-page persistence.
-- Three-step first-run orientation for privacy, camera readiness, calibration honesty, and Safe Mode, with no capture/output side effects and acknowledgement-gated durable completion.
+- Three-step first-run orientation for privacy, camera readiness, calibration honesty, and Safe Mode, with no capture/output side effects and modal-confirmed durable completion.
 - Availability-gated system tray with truthful camera/input status and bounded Show, Pause/Resume, Return to Safe Mode, and Quit actions while preserving full close shutdown.
 - Read-only Windows High Contrast detection that defers color/focus rendering to the native system theme while preserving explicit non-color safety text.
 - Submission truthfulness refresh for newly completed first-run, Camera/Sensitivity, Privacy, keyboard, High Contrast, and tray scope, with stale-roadmap preflight rejection.
@@ -149,9 +152,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Composition-root accepted-calibration save/recovery using shared application paths, SAFE-only startup invariants, sanitized Calibration status/logging, and conditional fake diagnostics provisioning without consent or executor restoration.
 - Config-driven fake cursor provisioning for One Euro smoothing and temple/tracking gate settings, with behavioral tests for custom resume delay and filter response.
 - Accepted-calibration schema 2 provenance with canonical UTC creation time, physical primary-display geometry, legacy-schema preservation, startup geometry mismatch invalidation, and sanitized provenance UI.
-- Exact-phrase Forget saved calibration workflow with pipeline-first clearing, recoverable timestamped backup moves, sanitized status/logging, and no Live Input state change.
+- Modal-confirmed Forget saved calibration workflow with pipeline-first clearing, recoverable timestamped backup moves, sanitized status/logging, and no Live Input state change.
 - Read-only bounded deleted-calibration backup catalog metadata with strict filename timestamps, newest-first ordering, link/reparse refusal, and no payload reads or mutations.
 - Guarded repository restore for exact deleted-calibration catalog records with full envelope revalidation, exclusive active creation, no active overwrite, and retained backups on success or failure.
 - Calibration restore lifecycle with pipeline-first clearing, current-display reprovision validation, byte-matched active-copy rollback, and retained deleted backups.
-- Exact-phrase newest calibration-backup restore UI with bounded timestamp/size metadata, full lifecycle validation, sanitized status/logging, and unchanged Live Input state.
+- Modal-confirmed newest calibration-backup restore UI with bounded timestamp/size metadata, full lifecycle validation, sanitized status/logging, and unchanged Live Input state.
 - Native Calibration-page vertical scrolling with preserved control size hints, no horizontal scrolling, ASCII-safe backup metadata, and visual QA at 900x640 and 1200x760.

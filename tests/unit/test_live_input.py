@@ -13,11 +13,7 @@ from meyes.domain.actions import MouseButton
 from meyes.domain.events import GestureEvent, GestureEventType
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
-from meyes.ui.live_input import (
-    LIVE_INPUT_CONSENT_PHRASE,
-    LiveInputController,
-    LiveInputState,
-)
+from meyes.ui.live_input import LiveInputController, LiveInputState
 
 
 @dataclass
@@ -137,10 +133,10 @@ def test_live_input_starts_safe_without_constructing_native_services(qtbot: QtBo
     assert factories == []
 
 
-def test_arm_requires_exact_nonpersistent_consent(qtbot: QtBot) -> None:
+def test_arm_requires_explicit_nonpersistent_consent(qtbot: QtBot) -> None:
     controller, executor, safety, hotkeys = _controller(qtbot)
 
-    result = controller.arm("enable live input", 101)
+    result = controller.arm(False, 101)
 
     assert not result.success
     assert result.state is LiveInputState.SAFE
@@ -152,7 +148,7 @@ def test_arm_requires_exact_nonpersistent_consent(qtbot: QtBot) -> None:
 def test_arm_registers_hotkey_preflights_and_releases_before_active(qtbot: QtBot) -> None:
     controller, executor, safety, hotkeys = _controller(qtbot)
 
-    result = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 101)
+    result = controller.arm(True, 101)
 
     assert result.success and result.released
     assert controller.state is LiveInputState.ARMED
@@ -166,7 +162,7 @@ def test_physical_input_preflight_fails_closed_and_unregisters(qtbot: QtBot) -> 
     safety = FakeSafetyApi(pressed={0x01, 0x11})
     controller, executor, _safety, _hotkeys = _controller(qtbot, safety=safety)
 
-    result = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 202)
+    result = controller.arm(True, 202)
 
     assert not result.success
     assert controller.state is LiveInputState.SAFE
@@ -181,7 +177,7 @@ def test_registration_failure_never_constructs_executor(qtbot: QtBot) -> None:
     safety = FakeSafetyApi(register_result=False)
     controller, executor, _safety, _hotkeys = _controller(qtbot, safety=safety)
 
-    result = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 303)
+    result = controller.arm(True, 303)
 
     assert not result.success
     assert controller.state is LiveInputState.FAULTED
@@ -193,7 +189,7 @@ def test_armed_event_reaches_executor_but_safe_event_does_not(qtbot: QtBot) -> N
     controller, executor, _safety, _hotkeys = _controller(qtbot, clock=lambda: 2.0)
 
     assert controller.dispatch_event(_event()) is None
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 404).success
+    assert controller.arm(True, 404).success
     report = controller.dispatch_event(_event())
     stopped = controller.disarm("test")
     assert controller.dispatch_event(_event(2)) is None
@@ -209,7 +205,7 @@ def test_pointer_candidate_reaches_executor_only_while_armed(qtbot: QtBot) -> No
     controller, executor, _safety, _hotkeys = _controller(qtbot)
 
     assert not controller.move_pointer(100, 200)
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 414).success
+    assert controller.arm(True, 414).success
     assert controller.move_pointer(100, 200)
     assert controller.disarm("test").success
     assert not controller.move_pointer(300, 400)
@@ -223,7 +219,7 @@ def test_pointer_failure_gates_live_input_and_requests_tracking_pause(qtbot: QtB
     controller, _executor, safety, _hotkeys = _controller(qtbot, executor=executor)
     pauses: list[bool] = []
     controller.tracking_pause_requested.connect(lambda: pauses.append(True))
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 424).success
+    assert controller.arm(True, 424).success
 
     moved = controller.move_pointer(100, 200)
 
@@ -242,7 +238,7 @@ def test_emergency_stop_releases_unregisters_and_requests_tracking_pause(qtbot: 
     controller, executor, safety, hotkeys = _controller(qtbot, clock=lambda: 2.0)
     pauses: list[bool] = []
     controller.tracking_pause_requested.connect(lambda: pauses.append(True))
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 505).success
+    assert controller.arm(True, 505).success
     controller.dispatch_event(_event())
 
     hotkeys[0].triggered.emit()
@@ -258,7 +254,7 @@ def test_release_failure_faults_and_keeps_registered_emergency_hotkey(qtbot: QtB
     executor = FailReleaseExecutor()
     controller, _executor, safety, _hotkeys = _controller(qtbot, executor=executor)
 
-    result = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 606)
+    result = controller.arm(True, 606)
 
     assert not result.success
     assert controller.state is LiveInputState.FAULTED
@@ -270,7 +266,7 @@ def test_release_failure_faults_and_keeps_registered_emergency_hotkey(qtbot: QtB
 
 def test_profile_change_disarms_and_requires_consent_again(qtbot: QtBot) -> None:
     controller, _executor, safety, _hotkeys = _controller(qtbot)
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 707).success
+    assert controller.arm(True, 707).success
 
     changed = controller.activate_profile(disabled_profile("Quiet"))
 
@@ -285,7 +281,7 @@ def test_failed_profile_transition_stays_faulted_until_pending_profile_is_synced
 ) -> None:
     executor = FailThirdReleaseExecutor()
     controller, _executor, safety, _hotkeys = _controller(qtbot, executor=executor)
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 717).success
+    assert controller.arm(True, 717).success
 
     changed = controller.activate_profile(disabled_profile("Quiet"))
 
@@ -307,10 +303,10 @@ def test_failed_profile_transition_stays_faulted_until_pending_profile_is_synced
 
 def test_close_is_terminal_and_releases_before_hotkey_cleanup(qtbot: QtBot) -> None:
     controller, executor, safety, _hotkeys = _controller(qtbot)
-    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 808).success
+    assert controller.arm(True, 808).success
 
     result = controller.close()
-    rearm = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 808)
+    rearm = controller.arm(True, 808)
 
     assert result.success and result.released
     assert not rearm.success
@@ -338,7 +334,7 @@ def test_unsupported_platform_stays_safe_without_factories(qtbot: QtBot) -> None
         platform_supported=False,
     )
 
-    result = controller.arm(LIVE_INPUT_CONSENT_PHRASE, 909)
+    result = controller.arm(True, 909)
 
     assert not result.success
     assert controller.state is LiveInputState.SAFE

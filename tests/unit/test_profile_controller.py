@@ -491,7 +491,7 @@ def test_rename_inactive_profile_preserves_runtime_and_updates_catalog(
     assert persistence.names == []
 
 
-def test_delete_requires_exact_name_and_retains_recovery_backup(
+def test_delete_requires_confirmation_and_retains_recovery_backup(
     qtbot: QtBot,
     tmp_path: Path,
 ) -> None:
@@ -506,11 +506,11 @@ def test_delete_requires_exact_name_and_retains_recovery_backup(
     calls_before = simulation.simulated_calls
     release_count_before = fake.release_all_calls
 
-    rejected = controller.delete("Work", "work")
-    deleted = controller.delete("Work", "Work")
+    rejected = controller.delete("Work", confirmed=False)
+    deleted = controller.delete("Work", confirmed=True)
 
     assert not rejected.success
-    assert "exactly" in rejected.message
+    assert "Confirm" in rejected.message
     assert deleted.success
     assert deleted.profile_name is None
     assert controller.profile_names == ("Default",)
@@ -580,8 +580,8 @@ def test_active_and_default_profiles_are_protected_from_lifecycle_changes(
         active_result = controller.rename("Work", "Focus")
         default_result = controller.rename("Default", "Focus")
     elif operation == "delete":
-        active_result = controller.delete("Work", "Work")
-        default_result = controller.delete("Default", "Default")
+        active_result = controller.delete("Work", confirmed=True)
+        default_result = controller.delete("Default", confirmed=True)
     else:
         active_result = controller.restore_default("Work", confirmed=True)
         default_result = controller.restore_default("Default", confirmed=True)

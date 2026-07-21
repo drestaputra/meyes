@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -18,12 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 from meyes.input.windows_safety import EMERGENCY_HOTKEY_LABEL
-from meyes.ui.live_input import (
-    LIVE_INPUT_CONSENT_PHRASE,
-    LiveInputController,
-    LiveInputSnapshot,
-    LiveInputState,
-)
+from meyes.ui.confirmation_dialog import confirm_action
+from meyes.ui.live_input import LiveInputController, LiveInputSnapshot, LiveInputState
 
 WindowIdProvider = Callable[[], int]
 
@@ -47,7 +42,6 @@ class LiveInputPage(QWidget):
         self._tracking_available = False
         self._build_ui()
         self._controller.snapshot_changed.connect(self._on_snapshot_changed)
-        self._consent.textChanged.connect(self._update_controls)
         self._arm_button.clicked.connect(self._arm)
         self._safe_button.clicked.connect(self._return_to_safe_mode)
         self._render(self._controller.snapshot)
@@ -128,15 +122,10 @@ class LiveInputPage(QWidget):
         heading = QLabel("Per-session consent")
         heading.setObjectName("panelTitle")
         instruction = QLabel(
-            f"Type {LIVE_INPUT_CONSENT_PHRASE} exactly. Arming is available only while the "
-            "camera is running, and consent is required again after every disarm."
+            "Select Arm Live Input and confirm the safety dialog. Arming is available only while "
+            "the camera is running, and confirmation is required again after every disarm."
         )
         instruction.setWordWrap(True)
-        self._consent = QLineEdit()
-        self._consent.setObjectName("liveInputConsent")
-        self._consent.setAccessibleName("Exact phrase to enable Live Input")
-        self._consent.setPlaceholderText(LIVE_INPUT_CONSENT_PHRASE)
-        self._consent.setMaxLength(len(LIVE_INPUT_CONSENT_PHRASE))
 
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
@@ -158,7 +147,6 @@ class LiveInputPage(QWidget):
 
         layout.addWidget(heading)
         layout.addWidget(instruction)
-        layout.addWidget(self._consent)
         layout.addLayout(buttons)
         layout.addWidget(self._feedback)
         return panel
@@ -172,20 +160,30 @@ class LiveInputPage(QWidget):
 
     @Slot()
     def _arm(self) -> None:
+        if not confirm_action(
+            self,
+            title="Arm Live Input?",
+            message=(
+                "Enable real Windows pointer, mouse-button, scroll, and keyboard output for this "
+                f"application session? Keep {EMERGENCY_HOTKEY_LABEL} available and release all "
+                "physical mouse buttons and modifier keys before continuing."
+            ),
+            confirm_label="Arm Live Input",
+            destructive=True,
+        ):
+            self._feedback.setText("Live Input remains in Safe Mode; arming was cancelled.")
+            return
         try:
             window_id = self._window_id_provider()
         except Exception as error:
             self._feedback.setText(f"Window handle unavailable ({type(error).__name__}).")
             return
-        phrase = self._consent.text()
-        self._consent.clear()
-        result = self._controller.arm(phrase, window_id)
+        result = self._controller.arm(consent_granted=True, window_id=window_id)
         self._feedback.setText(result.message)
 
     @Slot()
     def _return_to_safe_mode(self) -> None:
         result = self._controller.disarm("user request")
-        self._consent.clear()
         self._feedback.setText(result.message)
 
     @Slot(object)
@@ -200,7 +198,6 @@ class LiveInputPage(QWidget):
             snapshot.state is LiveInputState.SAFE
             and snapshot.platform_supported
             and self._tracking_available
-            and self._consent.text() == LIVE_INPUT_CONSENT_PHRASE
         )
         self._arm_button.setEnabled(can_arm)
         self._safe_button.setEnabled(
@@ -209,7 +206,6 @@ class LiveInputPage(QWidget):
         self._safe_button.setText(
             "Retry cleanup" if snapshot.state is LiveInputState.FAULTED else "Return to Safe Mode"
         )
-        self._consent.setEnabled(snapshot.state is LiveInputState.SAFE)
 
     def _render(self, snapshot: LiveInputSnapshot) -> None:
         labels = {

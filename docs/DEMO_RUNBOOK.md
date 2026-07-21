@@ -31,7 +31,7 @@ and submission against the current [Official Rules](https://openai.devpost.com/r
 | 0:00-0:15 | MEYES opens in `SAFE MODE` | Ordinary-webcam, local, assistive productivity prototype; not a medical device. |
 | 0:15-0:45 | Start camera, show Diagnostics, wink, temple tap/hold | Face/hand inference runs locally; frames are not intentionally stored or uploaded. |
 | 0:45-1:15 | Show nine-point calibration and held-out result | State the result exactly. `Review Required` is not accepted and cannot enable pointer movement. |
-| 1:15-1:50 | Disposable target plus Live Input checklist | Type exact consent, arm, show one wink click and bounded temple scroll, then trigger the emergency shortcut and show `SAFE MODE`. |
+| 1:15-1:50 | Disposable target plus Live Input checklist | Confirm the arm dialog, show one wink click and bounded temple scroll, then trigger the emergency shortcut and show `SAFE MODE`. |
 | 1:50-2:15 | Test result, commit history, architecture/evidence | Show the current count/revision and the separate observation, intent, candidate, consent, and executor boundaries. |
 | 2:15-2:35 | Application plus concise close | Explain human product/safety decisions and how Codex with GPT-5.6 accelerated implementation, review, tests, and QA. |
 
@@ -43,7 +43,7 @@ status, or the emergency return. Camera startup must visibly remain disconnected
 - If the fit says `Review Required` or `Rejected`, show that honest result and omit gaze movement.
 - Show gaze movement only if the exact current display has a saved `Accepted` envelope produced by
   a complete configured four-limit evidence policy. Do not loosen limits for the recording.
-- Wink/temple output still requires the disposable target, exact `ENABLE LIVE INPUT` phrase, clear
+- Wink/temple output still requires the disposable target, explicit per-session arm confirmation, clear
   physical buttons/modifiers, registered emergency shortcut, and visible `LIVE INPUT` state.
 - If any preflight, camera, calibration, or native-output step faults, return to Safe Mode and record
   the real recovery. Do not edit a failure into an apparent success.
@@ -56,7 +56,7 @@ status, or the emergency return. Camera startup must visibly remain disconnected
 - Local MediaPipe input-media processing with the separately disclosed dependency-network boundary.
 - Deterministic fake-boundary tests and guarded Windows `SendInput` implementation.
 - Native 100% display evidence and managed Windows CI.
-- Exact, volatile consent; emergency and lifecycle release paths.
+- Explicit, volatile modal consent; emergency and lifecycle release paths.
 
 Do not claim universal accuracy, medical benefit, 125%/150% scale validation, enabled High Contrast
 human validation, broad screen reach, representative live performance, signed delivery,

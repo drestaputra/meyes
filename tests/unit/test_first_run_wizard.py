@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from typing import TypeVar
+from unittest.mock import patch
 
 from PySide6.QtCore import QObject
-from PySide6.QtWidgets import QCheckBox, QDialog, QLabel, QPushButton
+from PySide6.QtWidgets import QDialog, QLabel, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
 from meyes.ui.first_run_wizard import FirstRunWizard
@@ -25,7 +26,7 @@ def _advance_to_final(wizard: FirstRunWizard) -> None:
     next_button.click()
 
 
-def test_first_run_requires_final_safety_acknowledgement(qtbot: QtBot) -> None:
+def test_first_run_requires_final_safety_dialog_confirmation(qtbot: QtBot) -> None:
     completions = 0
 
     def complete() -> bool:
@@ -44,12 +45,19 @@ def test_first_run_requires_final_safety_acknowledgement(qtbot: QtBot) -> None:
 
     assert wizard.current_step == 2
     assert finish.isHidden() is False
-    assert finish.isEnabled() is False
-    _child(wizard, QCheckBox, "firstRunSafetyAcknowledgement").click()
     assert finish.isEnabled() is True
-    finish.click()
+    assert wizard.findChild(QWidget, "firstRunSafetyAcknowledgement") is None
+
+    with patch("meyes.ui.first_run_wizard.confirm_action", return_value=False):
+        finish.click()
+    assert completions == 0
+    assert wizard.result() == 0
+
+    with patch("meyes.ui.first_run_wizard.confirm_action", return_value=True) as confirm:
+        finish.click()
 
     assert completions == 1
+    assert confirm.call_args.kwargs["confirm_label"] == "Finish setup"
     assert wizard.result() == QDialog.DialogCode.Accepted
 
 
@@ -74,9 +82,9 @@ def test_persistence_failure_keeps_wizard_open_and_safe(qtbot: QtBot) -> None:
     wizard = FirstRunWizard(lambda: False)
     qtbot.addWidget(wizard)
     _advance_to_final(wizard)
-    _child(wizard, QCheckBox, "firstRunSafetyAcknowledgement").click()
 
-    _child(wizard, QPushButton, "firstRunFinishButton").click()
+    with patch("meyes.ui.first_run_wizard.confirm_action", return_value=True):
+        _child(wizard, QPushButton, "firstRunFinishButton").click()
 
     assert wizard.result() == 0
     feedback = _child(wizard, QLabel, "firstRunFeedback")

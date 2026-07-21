@@ -9,7 +9,6 @@ from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QAbstractScrollArea,
-    QCheckBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -30,6 +29,7 @@ from PySide6.QtWidgets import (
 from meyes.bindings.defaults import DEFAULT_PROFILE_NAME
 from meyes.bindings.models import BindableGesture, BindingProfile
 from meyes.bindings.presentation import action_label, gesture_label
+from meyes.ui.confirmation_dialog import confirm_action
 from meyes.ui.profile_controller import (
     ProfileController,
     ProfileOperationResult,
@@ -228,15 +228,10 @@ class ProfilesPage(QWidget):
         restore_label.setObjectName("fieldLabel")
         restore_helper = QLabel(
             "This replaces all six stored bindings in the selected profile. It does not "
-            "activate the profile or dispatch any action."
+            "activate the profile or dispatch any action. Confirmation is requested in a dialog."
         )
         restore_helper.setObjectName("mutedText")
         restore_helper.setWordWrap(True)
-        self._restore_confirmation = QCheckBox(
-            "I understand that all six bindings will be replaced"
-        )
-        self._restore_confirmation.setObjectName("restoreDefaultConfirmation")
-        self._restore_confirmation.setAccessibleName("Confirm replacing all bindings with Default")
         self._restore_button = QPushButton("Restore Default bindings")
         self._restore_button.setObjectName("restoreDefaultButton")
         self._restore_button.setAccessibleName(
@@ -246,17 +241,11 @@ class ProfilesPage(QWidget):
         delete_label = QLabel("Delete selected profile")
         delete_label.setObjectName("fieldLabel")
         delete_helper = QLabel(
-            "Type the selected profile name exactly. Deletion retains a local recovery "
-            "backup and never changes the active runtime snapshot."
+            "Deletion requires confirmation in a dialog, retains a local recovery backup, and "
+            "never changes the active runtime snapshot."
         )
         delete_helper.setObjectName("mutedText")
         delete_helper.setWordWrap(True)
-        self._delete_confirmation = QLineEdit()
-        self._delete_confirmation.setObjectName("deleteProfileConfirmation")
-        self._delete_confirmation.setAccessibleName(
-            "Exact selected profile name to confirm deletion"
-        )
-        self._delete_confirmation.setPlaceholderText("Type selected profile name exactly")
         self._delete_button = QPushButton("Delete inactive profile")
         self._delete_button.setObjectName("deleteProfileButton")
         self._delete_button.setAccessibleName("Delete selected inactive profile")
@@ -271,12 +260,10 @@ class ProfilesPage(QWidget):
         layout.addSpacing(4)
         layout.addWidget(restore_label)
         layout.addWidget(restore_helper)
-        layout.addWidget(self._restore_confirmation)
         layout.addWidget(self._restore_button)
         layout.addSpacing(4)
         layout.addWidget(delete_label)
         layout.addWidget(delete_helper)
-        layout.addWidget(self._delete_confirmation)
         layout.addWidget(self._delete_button)
         return panel
 
@@ -400,8 +387,6 @@ class ProfilesPage(QWidget):
         self._profile_list.currentItemChanged.connect(self._on_selection_changed)
         self._name_input.textChanged.connect(self._update_controls)
         self._rename_input.textChanged.connect(self._update_controls)
-        self._delete_confirmation.textChanged.connect(self._update_controls)
-        self._restore_confirmation.stateChanged.connect(self._update_controls)
         self._import_name_input.textChanged.connect(self._update_controls)
         self._create_button.clicked.connect(self._create_profile)
         self._activate_button.clicked.connect(self._activate_selected)
@@ -460,16 +445,8 @@ class ProfilesPage(QWidget):
         self._rename_button.setEnabled(
             can_change_selected and bool(self._rename_input.text().strip())
         )
-        self._restore_confirmation.setEnabled(can_change_selected)
-        self._restore_button.setEnabled(
-            can_change_selected and self._restore_confirmation.isChecked()
-        )
-        self._delete_confirmation.setEnabled(can_change_selected)
-        self._delete_button.setEnabled(
-            can_change_selected
-            and selected is not None
-            and self._delete_confirmation.text() == selected
-        )
+        self._restore_button.setEnabled(can_change_selected)
+        self._delete_button.setEnabled(can_change_selected)
         self._browse_import_button.setEnabled(can_manage)
         self._import_path_display.setEnabled(can_manage)
         self._import_name_input.setEnabled(can_manage)
@@ -496,17 +473,38 @@ class ProfilesPage(QWidget):
     @Slot()
     def _restore_selected(self) -> None:
         selected = self._selected_profile_name()
-        if selected is not None:
-            self._controller.restore_default(
-                selected,
-                confirmed=self._restore_confirmation.isChecked(),
-            )
+        if selected is None:
+            return
+        if not confirm_action(
+            self,
+            title=f"Restore Default bindings to {selected}?",
+            message=(
+                f"Replace all six bindings in the inactive profile '{selected}' with the "
+                "built-in Default bindings? The profile will remain inactive."
+            ),
+            confirm_label="Restore bindings",
+            destructive=True,
+        ):
+            return
+        self._controller.restore_default(selected, confirmed=True)
 
     @Slot()
     def _delete_selected(self) -> None:
         selected = self._selected_profile_name()
-        if selected is not None:
-            self._controller.delete(selected, self._delete_confirmation.text())
+        if selected is None:
+            return
+        if not confirm_action(
+            self,
+            title=f"Delete inactive profile {selected}?",
+            message=(
+                f"Delete the inactive profile '{selected}'? A local recovery backup will be "
+                "retained and the active runtime profile will not change."
+            ),
+            confirm_label="Delete profile",
+            destructive=True,
+        ):
+            return
+        self._controller.delete(selected, confirmed=True)
 
     @Slot()
     def _browse_import_file(self) -> None:
@@ -638,8 +636,6 @@ class ProfilesPage(QWidget):
 
     def _clear_lifecycle_inputs(self) -> None:
         self._rename_input.clear()
-        self._delete_confirmation.clear()
-        self._restore_confirmation.setChecked(False)
 
     def _clear_transfer_inputs(self) -> None:
         self._selected_import_path = None

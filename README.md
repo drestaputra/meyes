@@ -2,13 +2,13 @@
 
 MEYES is a Windows-first local vision application exploring hands-free computer interaction with an ordinary webcam. The current OpenAI Build Week build runs independent face and hand landmark pipelines, derives binocular iris positions, detects left/right wink events, calculates same-side fingertip-to-temple distance, stabilizes independent Near/Far/Unknown states, and classifies per-side tap, hold-start, and hold-end events. The application opens in Safe Mode and keeps an in-memory action trace. On Windows, a user can explicitly opt in per session to calibrated gaze pointer movement plus configured click, scroll, key, and shortcut actions through `SendInput` after the emergency-hotkey, physical-input, and release preflights pass.
 
-The product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake dispatcher exercise gesture mappings in tests and Diagnostics. The Profiles view can create and safely activate durable profiles; rename, restore, or recoverably delete protected inactive profiles; and import/export complete validated JSON snapshots without activating them. Bindings provides inline editing for every validated MVP action, an isolated six-row preview, and save-as-copy without runtime activation. Sensitivity edits validated smoothing and temple-gate settings, releases Live Input before saving, and rebuilds only a still-valid accepted cursor pipeline. A dedicated Camera view reports capture health and edits complete requested capture settings only while stopped; Dashboard retains device selection, preview, and lifecycle controls. The Live Input view owns the deliberate real-output transition: exact typed consent, global emergency-hotkey registration, physical-input preflight, release-first arming, visible status, and release on emergency, disarm, camera pause/fault, profile change, file dialog, or shutdown. Pointer candidates are emitted only from an accepted, display-matched calibration and are ignored unless Live Input is explicitly armed. A read-only Privacy view exposes current Safe/Live state, storage/network boundaries, and selectable local file locations.
+The product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake dispatcher exercise gesture mappings in tests and Diagnostics. The Profiles view can create and safely activate durable profiles; rename, restore, or recoverably delete protected inactive profiles; and import/export complete validated JSON snapshots without activating them. Bindings provides inline editing for every validated MVP action, an isolated six-row preview, and save-as-copy without runtime activation. Sensitivity edits validated smoothing and temple-gate settings, releases Live Input before saving, and rebuilds only a still-valid accepted cursor pipeline. A dedicated Camera view reports capture health and edits complete requested capture settings only while stopped; Dashboard retains device selection, preview, and lifecycle controls. The Live Input view owns the deliberate real-output transition: cancel-default per-session modal consent, global emergency-hotkey registration, physical-input preflight, release-first arming, visible status, and release on emergency, disarm, camera pause/fault, profile change, file dialog, or shutdown. Pointer candidates are emitted only from an accepted, display-matched calibration and are ignored unless Live Input is explicitly armed. A read-only Privacy view exposes current Safe/Live state, storage/network boundaries, and selectable local file locations.
 
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 On a new local configuration, a three-step first-run orientation explains privacy, camera setup,
 calibration honesty, and Live Input safety without opening a camera or enabling OS output. Completion
-is recorded only after the final safety acknowledgement is explicitly selected and saved.
+is recorded only after the final cancel-default safety dialog is explicitly confirmed and saved.
 After a real camera start reaches Running, MEYES enters the guided full-screen Calibration onboarding
 when no accepted current-display calibration is active. The normal release-first preparation runs
 before collection; resume does not repeat onboarding and camera startup never arms OS input.
@@ -52,7 +52,7 @@ See:
 - Target platform: Windows 10/11 x64, Python 3.11, and an ordinary webcam; live and visual QA is currently recorded on Windows 11 x64.
 - Build-period evidence: Git history begins on July 19, 2026, inside the July 13-21 submission window and remains unsquashed.
 - Runtime boundary: GPT-5.6 and Codex helped build MEYES; neither is an application runtime dependency and no OpenAI API key is required.
-- Safety boundary: the application opens and starts its camera with OS input disconnected. Live Input requires volatile exact-phrase consent; its emergency shortcut, preflight, armed state, and release behavior must be shown in any demo that uses real output.
+- Safety boundary: the application opens and starts its camera with OS input disconnected. Live Input requires volatile cancel-default modal consent; its emergency shortcut, preflight, armed state, and release behavior must be shown in any demo that uses real output.
 
 See the [Build Week submission record](./docs/BUILD_WEEK_SUBMISSION.md) and [judge quickstart](./JUDGES.md). The public demo URL, final Devpost URL, and `/feedback` Session ID remain explicit pre-submission checklist items.
 Use the [demo recording runbook](./docs/DEMO_RUNBOOK.md) for the bounded 2:35 safety/evidence story,
@@ -95,14 +95,14 @@ Or use:
 
 1. Start the camera and verify stable gesture diagnostics in **Diagnostics**.
 2. Complete an accepted calibration if you want gaze pointer movement.
-3. Open **Live Input**, release physical mouse buttons and modifier keys, type
-   `ENABLE LIVE INPUT` exactly, and select **Arm Live Input**.
+3. Open **Live Input**, release physical mouse buttons and modifier keys, select **Arm Live Input**,
+   review the safety dialog, and explicitly confirm **Arm Live Input**.
 4. Confirm the persistent bar says `LIVE INPUT` before testing in a disposable target window.
 5. Press `Ctrl+Alt+Shift+F11`, select **Return to Safe Mode**, pause/stop the camera, or close MEYES
    to gate dispatch and release all input owned by MEYES.
 
-Consent and armed state are not persisted. Every disarm, including a profile change, requires the
-exact phrase again.
+Consent and armed state are not persisted. Every disarm, including a profile change, requires a
+fresh modal confirmation.
 Windows may block `SendInput` when the target process runs at a higher integrity level; MEYES
 cannot bypass that operating-system boundary. Automated tests use fake native APIs and never send
 real input.

@@ -19,7 +19,7 @@ Local, safety-first hands-free Windows control with an ordinary webcam.
 
 MEYES is a Windows-first assistive productivity prototype that turns local webcam observations into
 gaze pointer candidates, wink clicks, and temple gestures. It starts with operating-system input
-disconnected, keeps frames on device, and requires exact per-session consent plus an emergency
+disconnected, keeps frames on device, and requires explicit per-session modal consent plus an emergency
 shortcut before any real Windows input can be sent.
 
 ## Full description
@@ -39,7 +39,7 @@ held-out metrics. Only fits accepted by a complete configured evidence policy ca
 candidates.
 
 Safe Mode is the default. Diagnostics and a fake action trace let users inspect behavior without OS
-output. On Windows, users may type `ENABLE LIVE INPUT` to arm validated clicks, scrolling,
+output. On Windows, users use a cancel-default safety dialog to arm validated clicks, scrolling,
 shortcuts, and—when an accepted display-matched calibration exists—gaze pointer movement through
 `SendInput`. `Ctrl+Alt+Shift+F11`, camera loss, profile changes, faults, and shutdown gate output and
 release state owned by MEYES. Camera startup never auto-arms real input.
@@ -78,7 +78,7 @@ timeline; commit `57e08f2` is the first explicit post-model-switch GPT-5.6 itera
 ### Accomplishments
 
 - a coherent native workflow from camera diagnostics through calibration and guarded real input;
-- exact, volatile consent with a global emergency shortcut and fail-closed lifecycle gates;
+- explicit, volatile modal consent with a global emergency shortcut and fail-closed lifecycle gates;
 - accepted-calibration persistence with checksum, policy, display provenance, recovery, and explicit
   replacement/deletion controls;
 - per-movement display-provenance revalidation before absolute pointer packets;
@@ -141,7 +141,7 @@ review-required fit as accepted.
 
 ### 1:15-1:50 — Explicit real input
 
-Open a disposable target, show the Live Input checklist, type `ENABLE LIVE INPUT`, and arm. Demo one
+Open a disposable target, show the Live Input checklist, confirm the arm dialog, and demo one
 wink click and one bounded temple scroll. If and only if an accepted, display-matched calibration is
 already available, also show gaze movement. Press `Ctrl+Alt+Shift+F11` and show return to Safe Mode.
 

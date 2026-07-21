@@ -35,7 +35,8 @@ Session ID, English-or-translated materials, and free judging access through the
 The current runnable build is a Windows-first, local vision diagnostics application. It:
 
 - presents a three-step first-run privacy/camera/Safe Mode orientation without starting capture or
-  native output, and records completion only after explicit acknowledgement plus durable save;
+  native output, and records completion only after a cancel-default modal confirmation plus durable
+  save;
 - conditionally exposes system-tray Show, Pause/Resume, Return to Safe Mode, and Quit actions when
   the desktop supports them, without changing full main-window shutdown semantics;
 - captures an ordinary webcam through OpenCV;
@@ -58,7 +59,7 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - provides an isolated binding draft editor for the complete validated action vocabulary, with
   inline correction, last-valid preview, and save-as-copy that never activates runtime input;
 - protects active and built-in profiles while allowing inactive profile rename,
-  exact-name-confirmed recoverable deletion, and restore from the built-in Default bindings;
+  modal-confirmed recoverable deletion, and restore from the built-in Default bindings;
 - imports bounded, complete profile JSON only as a new inactive snapshot and exports selected
   profiles through exclusive creation or atomically confirmed replacement without runtime change;
 - derives a fail-closed binocular iris-to-eye feature, expires it with the tracking watchdog, and
@@ -103,7 +104,7 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - wires a Qt-owned cursor diagnostics controller to freshness and lifecycle signals and routes
   accepted, display-matched pixels to absolute primary-monitor `SendInput` only while armed,
   revalidating current geometry against the exact provisioned display before every movement;
-- exposes a dedicated Live Input view requiring volatile exact-phrase consent, successful global
+- exposes a dedicated Live Input view requiring volatile cancel-default modal consent, successful global
   hotkey registration, a clear physical-input preflight, and release-first initialization;
 - releases and gates native output on the emergency shortcut, user disarm, camera pause/stop/fault,
   profile transition, backend fault, page destruction, and application shutdown;
@@ -205,7 +206,7 @@ description in their own voice rather than submitting AI-generated copy unchange
 
 | Equally weighted criterion | Evidence to demonstrate |
 |---|---|
-| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, bounded nine-point sample collection with robust outlier rejection, a rank/condition-guarded quadratic mapper with holdout metrics, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, exact-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
+| Technological Implementation | Typed adapters, latest-only buffers, lifecycle generation gates, Qt-thread serialization, independent model cadence, eye-local binocular gaze features, bounded nine-point sample collection with robust outlier rejection, a rank/condition-guarded quadratic mapper with holdout metrics, hysteretic proximity and semantic tap/hold state machines, fail-closed durable profiles, pause-first profile transitions with rollback, bounded duplicate-key-safe profile transfer, a typed isolated binding-draft codec, parallel fake/live action dispatch, an owned-state `SendInput` backend, modal-consent/hotkey/physical-preflight safety gates, freshness watchdogs, deterministic race tests, and an unsquashed Codex collaboration record. |
 | Design | A coherent native Windows information architecture, readable Safe Mode diagnostics, a responsive profile catalog, an inline-validating six-binding editor and preview, accessible labels/focus behavior, aspect-correct preview, explicit error states, and independent Hallmark-inspired design tokens. |
 | Potential Impact | A concrete exploration of ordinary-webcam hands-free interaction for people who want alternative personal-computing input; the demo must present this as a product direction, not a medical claim. |
 | Quality of the Idea | Independent face and hand signals are composed into same-side, scale-normalized temple states and tap/hold intent events while real OS output stays behind an explicit, volatile safety boundary. |

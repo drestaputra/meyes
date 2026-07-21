@@ -60,7 +60,7 @@ uv run --frozen meyes --diagnose-install
 ## Live evaluation path
 
 On a fresh configuration, review the three-step first-run orientation. It opens no camera and sends
-no OS input; select Not now to leave it pending, or acknowledge the final Safe Mode summary to record
+no OS input; select Not now to leave it pending, or confirm the final Safe Mode dialog to record
 completion locally.
 
 1. Open **Dashboard**.
@@ -96,8 +96,8 @@ reported High Contrast disabled; an actual enabled-theme human visual pass remai
 Optional controlled OS-output check on Windows:
 
 1. Use a disposable target window and keep `Ctrl+Alt+Shift+F11` available.
-2. With the camera running, open **Live Input**, release physical mouse/modifier inputs, type
-   `ENABLE LIVE INPUT` exactly, and select **Arm Live Input**.
+2. With the camera running, open **Live Input**, release physical mouse/modifier inputs, select
+   **Arm Live Input**, review the safety dialog, and confirm **Arm Live Input**.
 3. Confirm the persistent status changes to `LIVE INPUT`. Default left/right winks issue left/right
    clicks and temple tap/hold gestures issue bounded scroll steps.
 4. Press `Ctrl+Alt+Shift+F11` and confirm MEYES returns to `SAFE MODE`; camera pause/stop, profile
@@ -115,7 +115,7 @@ Optional calibration and gaze-pointer check:
    to force a demo.
 3. Confirm the saved-calibration status names the current physical display. If a saved envelope
    already exists, replacement requires a cancel-default modal confirmation and releases Live Input.
-4. Re-arm Live Input with `ENABLE LIVE INPUT`; accepted fresh gaze candidates may now move the
+4. Re-arm Live Input through its per-session confirmation dialog; accepted fresh gaze candidates may now move the
    primary-screen pointer. Every movement revalidates current physical geometry.
 5. Change no display setting while armed. A geometry mismatch or native failure removes the cursor
    pipeline, faults Live Input, releases owned input, and requests tracking pause.
@@ -130,7 +130,7 @@ Profile transfer check:
 3. Confirm `Default Copy` appears selected but inactive, while the active profile and tracking state
    remain unchanged. Import never overwrites an existing local profile.
 4. Delete the temporary exported file when finished. The import copy can be removed through the
-   exact-name-confirmed, recoverable profile lifecycle control.
+   modal-confirmed, recoverable profile lifecycle control.
 
 Lighting, camera field of view, occlusion, and landmark confidence affect live detection.
 Do not interpret the diagnostics as a medical or safety assessment.
@@ -211,7 +211,7 @@ Working in the submitted source build:
   selected snapshot through a pause-first transition, and previews all six simulated bindings;
 - a no-JSON Bindings editor for every validated MVP action, with hold-only choice filtering,
   inline errors, isolated preview, dirty-draft preservation, and inactive save-as-copy;
-- inactive-only profile rename, restore-from-Default, and exact-name-confirmed deletion that
+- inactive-only profile rename, modal-confirmed restore-from-Default and deletion that
   retains a local recovery backup without changing the runtime snapshot;
 - bounded, duplicate-key-rejecting profile JSON import as a new inactive snapshot, plus read-only
   export with explicit collision handling and atomic confirmed replacement;
@@ -219,7 +219,7 @@ Working in the submitted source build:
   fault recovery, and a bounded simulated primitive trace in Diagnostics;
 - an application-wired Windows `SendInput` executor with owned-state tracking, partial-send
   containment, and reverse-order cleanup;
-- a volatile Live Input session requiring exact typed consent, successful
+- a volatile Live Input session requiring cancel-default modal consent, successful
   `Ctrl+Alt+Shift+F11` registration, clear physical inputs, and release-first arming;
 - emergency, camera-lifecycle, profile-transition, executor-fault, page-close, and application-close
   disarm/release paths, with a persistent non-color status boundary;

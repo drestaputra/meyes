@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QObject
-from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton
+from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import default_profile
 from meyes.input.fake import FakeInputExecutor, InputCall
 from meyes.input.windows_safety import WindowsEmergencyHotkey
-from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputController, LiveInputState
+from meyes.ui.live_input import LiveInputController, LiveInputState
 from meyes.ui.live_input_page import LiveInputPage
 
 
@@ -76,21 +77,30 @@ def _page(
     return page, controller, executor, fake_safety
 
 
-def test_arm_requires_running_tracking_and_exact_phrase(qtbot: QtBot) -> None:
+def test_arm_requires_running_tracking_and_modal_confirmation(qtbot: QtBot) -> None:
     page, controller, executor, safety = _page(qtbot)
-    consent = page.findChild(QLineEdit, "liveInputConsent")
     arm = page.findChild(QPushButton, "armLiveInputButton")
-    assert consent is not None and arm is not None
+    assert arm is not None
+    assert page.findChild(QWidget, "liveInputConsent") is None
 
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
     assert not arm.isEnabled()
     page.set_tracking_available(True)
     assert arm.isEnabled()
 
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=False) as confirm:
+        arm.click()
+    confirm.assert_called_once()
+    assert controller.state is LiveInputState.SAFE
+    assert safety.registrations == []
+    assert executor.calls == []
 
-    assert controller.state is LiveInputState.ARMED
-    assert consent.text() == ""
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True) as confirm:
+        arm.click()
+
+    armed_snapshot = controller.snapshot
+    assert armed_snapshot.state is LiveInputState.ARMED
+    assert confirm.call_args.kwargs["destructive"] is True
+    assert confirm.call_args.kwargs["confirm_label"] == "Arm Live Input"
     assert len(safety.registrations) == 1
     assert executor.calls == [InputCall("release_all"), InputCall("release_all")]
     assert controller.disarm("test cleanup").success
@@ -98,14 +108,13 @@ def test_arm_requires_running_tracking_and_exact_phrase(qtbot: QtBot) -> None:
 
 def test_disarm_button_releases_and_restores_safe_status(qtbot: QtBot) -> None:
     page, controller, executor, safety = _page(qtbot)
-    consent = page.findChild(QLineEdit, "liveInputConsent")
     arm = page.findChild(QPushButton, "armLiveInputButton")
     safe = page.findChild(QPushButton, "disarmLiveInputButton")
     status = page.findChild(QLabel, "liveInputStatus")
-    assert consent is not None and arm is not None and safe is not None and status is not None
+    assert arm is not None and safe is not None and status is not None
     page.set_tracking_available(True)
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True):
+        arm.click()
 
     safe.click()
 
@@ -117,14 +126,13 @@ def test_disarm_button_releases_and_restores_safe_status(qtbot: QtBot) -> None:
 
 def test_pressed_physical_input_fails_closed_with_visible_feedback(qtbot: QtBot) -> None:
     page, controller, executor, safety = _page(qtbot, safety=FakeSafetyApi(pressed={0x01}))
-    consent = page.findChild(QLineEdit, "liveInputConsent")
     arm = page.findChild(QPushButton, "armLiveInputButton")
     feedback = page.findChild(QLabel, "liveInputFeedback")
-    assert consent is not None and arm is not None and feedback is not None
+    assert arm is not None and feedback is not None
     page.set_tracking_available(True)
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
 
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True):
+        arm.click()
 
     assert controller.state is LiveInputState.SAFE
     assert "left mouse button" in feedback.text()
@@ -135,12 +143,10 @@ def test_pressed_physical_input_fails_closed_with_visible_feedback(qtbot: QtBot)
 
 def test_unsupported_platform_never_enables_arm(qtbot: QtBot) -> None:
     page, controller, executor, safety = _page(qtbot, platform_supported=False)
-    consent = page.findChild(QLineEdit, "liveInputConsent")
     arm = page.findChild(QPushButton, "armLiveInputButton")
     status = page.findChild(QLabel, "liveInputStatus")
-    assert consent is not None and arm is not None and status is not None
+    assert arm is not None and status is not None
     page.set_tracking_available(True)
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
 
     assert not arm.isEnabled()
     assert "UNAVAILABLE" in status.text()

@@ -25,7 +25,7 @@ Safe operational recovery guidance is maintained in
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
 | Model assets | Loaded from packaged `meyes/resources/models/` assets in an installed wheel, with a source-tree fallback during development. Exact size and SHA-256 are verified by tests and the non-capturing install diagnostic. |
-| Live Input consent | Held only in widget memory long enough to validate the exact phrase, then cleared. It is not persisted or intentionally logged. |
+| Live Input consent | The cancel-default modal decision is consumed immediately by the arm request. It is not persisted or intentionally logged. |
 | Profile import/export | Reads or writes only the local `.json` path explicitly selected in the native file dialog. Imports are copied into the local profile catalog; exports are not uploaded or transmitted by MEYES. |
 
 `diagnostic_recording_enabled` defaults to `false`, and the current build has no frame
@@ -33,7 +33,7 @@ recording implementation or recording UI. Enabling that configuration field does
 a recording pipeline.
 
 Accepted-calibration recovery is isolated from Live Input. It can configure only the
-executor-independent cursor-candidate pipeline; it never restores the exact consent phrase,
+executor-independent cursor-candidate pipeline; it never restores modal consent,
 registers an emergency hotkey, constructs `SendInput`, or changes the startup SAFE state.
 
 ## MediaPipe network boundary
@@ -60,7 +60,7 @@ does not send camera frames to Codex or GPT-5.6 through its runtime.
 
 - Camera processing begins only after **Start camera** is selected.
 - Pause, stop, or application close ends the live pipeline and clears current observations.
-- Real OS output requires exact per-session consent and a running camera. Emergency shortcut,
+- Real OS output requires explicit per-session modal consent and a running camera. Emergency shortcut,
   disarm, camera pause/stop/fault, profile change, or application close gates output and attempts
   to release all mouse/keyboard state owned by MEYES.
 - Delete `config.json` and any timestamped corrupt-config backups from `%APPDATA%\Meyes\`

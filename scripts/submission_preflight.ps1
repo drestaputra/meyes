@@ -107,10 +107,18 @@ if ($license -notmatch "MIT License" -or $license -notmatch "drestaputra") {
 }
 
 $readme = Get-Content -LiteralPath README.md -Raw
-foreach ($requiredText in @("uv sync --frozen", "Codex", "GPT-5.6", "ENABLE LIVE INPUT")) {
+foreach ($requiredText in @(
+    "uv sync --frozen",
+    "Codex",
+    "GPT-5.6",
+    "cancel-default per-session modal consent"
+)) {
     if ($readme -notmatch [regex]::Escape($requiredText)) {
         $failures.Add("README is missing required evidence text: $requiredText")
     }
+}
+if ($readme -match [regex]::Escape("ENABLE LIVE INPUT")) {
+    $failures.Add("README contains the removed typed Live Input confirmation phrase.")
 }
 
 $devpostDraft = Get-Content -LiteralPath docs/DEVPOST_DRAFT.md -Raw

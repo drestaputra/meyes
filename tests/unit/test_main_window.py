@@ -12,11 +12,9 @@ from unittest.mock import PropertyMock, patch
 from PySide6.QtCore import QCoreApplication, QObject, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QCheckBox,
     QDoubleSpinBox,
     QFrame,
     QLabel,
-    QLineEdit,
     QListWidget,
     QPushButton,
     QSpinBox,
@@ -55,7 +53,7 @@ from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFi
 from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
 from meyes.ui.first_run_wizard import FirstRunWizard
-from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputResult, LiveInputState
+from meyes.ui.live_input import LiveInputResult, LiveInputState
 from meyes.ui.main_window import NAVIGATION_ITEMS, MainWindow
 from meyes.util.paths import AppPaths
 from meyes.vision.worker import VisionStatus
@@ -365,15 +363,13 @@ def test_first_run_completion_is_explicit_safe_and_persisted(
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert manager.load().config.app.first_run is True
     next_button = wizard.findChild(QPushButton, "firstRunNextButton")
-    acknowledgement = wizard.findChild(QCheckBox, "firstRunSafetyAcknowledgement")
     finish = wizard.findChild(QPushButton, "firstRunFinishButton")
     assert next_button is not None
-    assert acknowledgement is not None
     assert finish is not None
     next_button.click()
     next_button.click()
-    acknowledgement.click()
-    finish.click()
+    with patch("meyes.ui.first_run_wizard.confirm_action", return_value=True):
+        finish.click()
 
     assert manager.load().config.app.first_run is False
     assert window._camera_controller.status is CameraStatus.STOPPED
@@ -840,18 +836,17 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     qtbot.addWidget(window)
     window.show()
     window._live_input_page.set_tracking_available(True)
-    consent = window.findChild(QLineEdit, "liveInputConsent")
     arm = window.findChild(QPushButton, "armLiveInputButton")
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
-    assert consent is not None and arm is not None and safety_status is not None
+    assert arm is not None and safety_status is not None
     window._cursor_diagnostics.pointer_candidate.emit(111, 222)
     assert InputCall("move_pointer", (111, 222)) not in executor.calls
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
     window._calibration_controller.start()
     window._calibration_controller.begin_target()
     assert window._calibration_controller.snapshot.state.value == "collecting"
 
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True):
+        arm.click()
     window._cursor_diagnostics.pointer_candidate.emit(111, 222)
     timestamp = time.monotonic()
     window._vision_controller.event_detected.emit(
@@ -874,8 +869,8 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     transfer_snapshot = window._live_input_controller.snapshot
     assert transfer_snapshot.state.value == "safe"
     assert safety.unregistered == 1
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True):
+        arm.click()
     rearmed_snapshot = window._live_input_controller.snapshot
     assert rearmed_snapshot.state.value == "armed"
     assert safety.registered == 2
@@ -884,8 +879,8 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     calibration_snapshot = window._live_input_controller.snapshot
     assert calibration_snapshot.state.value == "safe"
     assert safety.unregistered == 2
-    consent.setText(LIVE_INPUT_CONSENT_PHRASE)
-    arm.click()
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True):
+        arm.click()
     assert window._live_input_controller.snapshot.state.value == "armed"
     assert safety.registered == 3
 
@@ -1127,7 +1122,7 @@ def test_inactive_profile_lifecycle_does_not_change_runtime_or_config(
     created = window._profile_controller.create_disabled("Work")
     renamed = window._profile_controller.rename("Work", "Focus")
     restored = window._profile_controller.restore_default("Focus", confirmed=True)
-    deleted = window._profile_controller.delete("Focus", "Focus")
+    deleted = window._profile_controller.delete("Focus", confirmed=True)
 
     assert created.success
     assert renamed.success and renamed.profile_name == "Focus"

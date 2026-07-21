@@ -138,7 +138,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Implement the global emergency pause shortcut.
 - [x] Add the dormant Windows global-hotkey registration, native-event filter, and physical-input
   preflight foundation without registering it in the Safe Mode application.
-- [x] Add a dormant per-session live controller with exact typed consent, hotkey-first physical
+- [x] Add a dormant per-session live controller with explicit consent, hotkey-first physical
   preflight, release-first arming, emergency release, and fail-closed recovery tests.
 - [x] Add explicit live-mode consent, physical-key preflight, emergency pause, and a release-first
   arm/disarm UI that constructs the native executor only after the user opts in.
@@ -151,7 +151,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Preview the active profile's six simulated gesture bindings.
 - [x] Test all actions through a fake executor.
 - [x] Add a safe draft-based binding editor without enabling operating-system input.
-- [x] Add inactive profile rename, exact-confirmation recoverable deletion, and restore-default
+- [x] Add inactive profile rename, modal-confirmed recoverable deletion, and restore-default
   workflows with built-in and active-profile protections.
 - [x] Add bounded profile import/export workflows with inactive-only import and atomic confirmed
   export replacement.
@@ -172,12 +172,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
 - [x] Wire accepted-mapper save/recovery without weakening Live Input startup safety.
 - [x] Bind stored calibration to UTC creation time and exact physical primary-display geometry.
-- [x] Add an exact-phrase replace-confirmation control that retains the saved envelope and releases
+- [x] Add an explicit replace-confirmation control that retains the saved envelope and releases
   Live Input before replacement.
-- [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
-- [x] Add an exact-phrase newest deleted-backup restore workflow with full lifecycle gates.
+- [x] Add modal-confirmed, recoverable Forget saved calibration control with pipeline-first clearing.
+- [x] Add a modal-confirmed newest deleted-backup restore workflow with full lifecycle gates.
 - [x] Run native Calibration layout QA at 900x640 and 1200x760 with top/bottom viewport inspection.
-- [x] Add separate exact-phrase permanent deletion for the newest exact cataloged backup with
+- [x] Add separate modal-confirmed permanent deletion for the newest exact cataloged backup with
   path/link/type/size revalidation.
 - [x] Add bounded read-only metadata cataloging for recoverably deleted calibration backups.
 - [x] Add guarded repository restore with exact-record, checksum, policy, and exclusive-create gates.
@@ -194,7 +194,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Construct the production candidate pipeline only after accepted calibration and native screen geometry.
 - [x] Route accepted, gated cursor candidates through absolute primary-monitor `SendInput` only
   during an explicitly armed Live Input session, with fail-closed pointer-error handling.
-- [x] Keep camera startup in Safe Mode and require exact-phrase, per-session consent before every
+- [x] Keep camera startup in Safe Mode and require explicit per-session consent before every
   Live Input arm while retaining every native safety preflight.
 - [x] Revalidate current physical geometry against exact accepted provisioning before every native
   pointer movement and fail closed on mismatch or read failure.
@@ -210,6 +210,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   preserving release-first, revalidation, and exact-backup boundaries.
 - [x] Give app-themed confirmation dialogs and tooltips explicit foreground/background contrast so
   Windows dark native palettes cannot produce dark text on a dark surface.
+- [x] Replace the remaining Live Input/profile phrases and profile restore/first-run acknowledgement
+  confirmation controls with cancel-default modal dialogs without weakening controller gates.
 - [x] Complete the validated, disarm-first Sensitivity view.
 - [x] Complete the stopped-only, disarm-first dedicated Camera settings/health view.
 - [x] Add availability-gated system tray controls for show, pause/resume, Safe Mode, and quit.

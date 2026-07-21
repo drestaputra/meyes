@@ -230,19 +230,19 @@ class ProfileController(QObject):
             )
         )
 
-    def delete(self, profile_name: str, confirmation: str) -> ProfileOperationResult:
-        """Retire one inactive user profile after an exact-name confirmation."""
+    def delete(self, profile_name: str, *, confirmed: bool) -> ProfileOperationResult:
+        """Retire one inactive user profile after explicit modal confirmation."""
         unavailable = self._lifecycle_unavailable()
         if unavailable is not None:
             return unavailable
         selected = self._inactive_user_profile(profile_name, "delete")
         if isinstance(selected, ProfileOperationResult):
             return selected
-        if confirmation != selected:
+        if confirmed is not True:
             return self._finish(
                 ProfileOperationResult(
                     False,
-                    "Type the selected profile name exactly to confirm deletion.",
+                    "Confirm deletion of the selected inactive profile before continuing.",
                 )
             )
 
