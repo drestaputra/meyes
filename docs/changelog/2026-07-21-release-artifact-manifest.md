@@ -12,7 +12,10 @@ that MEYES has a standalone executable, installer, signature, or automated publi
   installed-wheel model/license diagnostics before building the handoff wheel.
 - Creates a new UTC/revision-named directory and refuses overwrite.
 - Writes the wheel, `SHA256SUMS.txt`, and `BUILD-MANIFEST.json` with version, full Git SHA, byte size,
-  SHA-256, Authenticode status, passed gates, and explicit limitations.
+  SHA-256, signing configuration, Authenticode applicability and raw probe status, passed gates, and
+  explicit limitations.
+- Reports Authenticode as not applicable to the ZIP-based wheel while retaining the raw Windows probe
+  result; it does not mistake `UnknownError` for a signature verdict.
 - Does not upload, publish, sign, delete, or replace an artifact.
 
 ## Verification plan

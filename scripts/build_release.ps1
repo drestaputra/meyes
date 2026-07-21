@@ -54,9 +54,14 @@ try {
     $wheel = $wheels[0]
     $hash = Get-FileHash -LiteralPath $wheel.FullName -Algorithm SHA256
     $signature = Get-AuthenticodeSignature -LiteralPath $wheel.FullName
+    # A Python wheel is a ZIP archive rather than a Windows PE/MSI artifact, so
+    # Authenticode is not an applicable signing scheme. Keep the raw probe result
+    # for auditability without presenting PowerShell's UnknownError as a release
+    # failure or as proof of a valid signature.
+    $authenticodeProbeStatus = $signature.Status.ToString()
     $createdAt = [DateTimeOffset]::UtcNow.ToString("o")
     $manifest = [ordered]@{
-        schema_version = 1
+        schema_version = 2
         project = "MEYES"
         version = $version
         git_revision = $revision
@@ -66,7 +71,12 @@ try {
             filename = $wheel.Name
             size_bytes = $wheel.Length
             sha256 = $hash.Hash.ToLowerInvariant()
-            authenticode_status = $signature.Status.ToString()
+            code_signing = [ordered]@{
+                configured = $false
+                authenticode_applicability = "not_applicable"
+                authenticode_probe_status = $authenticodeProbeStatus
+                reason = "Python wheels are ZIP archives, not Windows PE or MSI artifacts."
+            }
         }
         verification = [ordered]@{
             submission_preflight = "passed"
@@ -89,7 +99,8 @@ try {
     Write-Host "Revision: $revision"
     Write-Host "Wheel: $($wheel.FullName)"
     Write-Host "SHA-256: $($hash.Hash.ToLowerInvariant())"
-    Write-Host "Authenticode: $($signature.Status)"
+    Write-Host "Code signing: not configured"
+    Write-Host "Authenticode: not applicable to wheels (probe: $authenticodeProbeStatus)"
     Write-Host "Manifest: $manifestPath"
 } finally {
     Pop-Location
