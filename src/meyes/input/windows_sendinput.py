@@ -11,6 +11,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
 
+from meyes.cursor.screen_mapping import (
+    PhysicalScreenGeometry,
+    PhysicalScreenGeometryProvider,
+)
+from meyes.cursor.windows_geometry import WindowsPrimaryScreenGeometryProvider
 from meyes.domain.actions import KeyName, MouseButton
 from meyes.input.interface import InputCleanupError, InputReleaseError
 
@@ -24,7 +29,9 @@ MOUSEEVENTF_RIGHTDOWN = 0x0008
 MOUSEEVENTF_RIGHTUP = 0x0010
 MOUSEEVENTF_MIDDLEDOWN = 0x0020
 MOUSEEVENTF_MIDDLEUP = 0x0040
+MOUSEEVENTF_MOVE = 0x0001
 MOUSEEVENTF_WHEEL = 0x0800
+MOUSEEVENTF_ABSOLUTE = 0x8000
 WHEEL_DELTA = 120
 
 
@@ -41,6 +48,8 @@ class SendInputPacket:
 
     kind: SendInputPacketKind
     flags: int
+    dx: int = 0
+    dy: int = 0
     mouse_data: int = 0
     virtual_key: int = 0
     scan_code: int = 0
@@ -149,11 +158,21 @@ class _HeldTransition:
 class WindowsSendInputExecutor:
     """Send real mouse and keyboard primitives only when explicitly constructed."""
 
-    def __init__(self, api: SendInputApi | None = None) -> None:
+    def __init__(
+        self,
+        api: SendInputApi | None = None,
+        *,
+        pointer_geometry_provider: PhysicalScreenGeometryProvider | None = None,
+    ) -> None:
         native_api = api or CtypesSendInputApi()
         if not isinstance(native_api, SendInputApi):
             raise TypeError("Expected SendInputApi")
+        geometry_provider = pointer_geometry_provider or WindowsPrimaryScreenGeometryProvider()
+        if not isinstance(geometry_provider, PhysicalScreenGeometryProvider):
+            raise TypeError("Expected PhysicalScreenGeometryProvider")
         self._api = native_api
+        self._pointer_geometry_provider = geometry_provider
+        self._pointer_geometry: PhysicalScreenGeometry | None = None
         self._held_buttons: set[MouseButton] = set()
         self._held_keys: set[KeyName] = set()
         self._held_order: list[tuple[str, MouseButton | KeyName]] = []
@@ -174,7 +193,19 @@ class WindowsSendInputExecutor:
             raise TypeError("x must be an integer")
         if isinstance(y, bool) or not isinstance(y, int):
             raise TypeError("y must be an integer")
-        raise NotImplementedError("Pointer movement requires calibrated screen mapping")
+        with self._lock:
+            geometry = self._read_pointer_geometry()
+            if not geometry.left <= x <= geometry.right:
+                raise ValueError("x must be inside the calibrated primary screen")
+            if not geometry.top <= y <= geometry.bottom:
+                raise ValueError("y must be inside the calibrated primary screen")
+            packet = SendInputPacket(
+                SendInputPacketKind.MOUSE,
+                flags=MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE,
+                dx=_absolute_coordinate(x - geometry.left, geometry.width),
+                dy=_absolute_coordinate(y - geometry.top, geometry.height),
+            )
+            self._send_sequence((packet,), (None,))
 
     def mouse_click(self, button: MouseButton) -> None:
         selected = _validate_button(button)
@@ -332,6 +363,14 @@ class WindowsSendInputExecutor:
         with suppress(ValueError):
             self._held_order.remove(record)
 
+    def _read_pointer_geometry(self) -> PhysicalScreenGeometry:
+        if self._pointer_geometry is None:
+            geometry = self._pointer_geometry_provider.read()
+            if not isinstance(geometry, PhysicalScreenGeometry):
+                raise TypeError("Pointer geometry provider returned an invalid result")
+            self._pointer_geometry = geometry
+        return self._pointer_geometry
+
 
 def native_input_size() -> int:
     """Expose the runtime INPUT structure size for ABI smoke tests."""
@@ -343,8 +382,8 @@ def _native_input(packet: SendInputPacket) -> _INPUT:
     if packet.kind is SendInputPacketKind.MOUSE:
         native.type = INPUT_MOUSE
         native.mi = _MOUSEINPUT(
-            0,
-            0,
+            packet.dx,
+            packet.dy,
             packet.mouse_data & 0xFFFFFFFF,
             packet.flags,
             0,
@@ -398,6 +437,12 @@ def _validate_key(key: KeyName) -> KeyName:
     if not isinstance(key, KeyName):
         raise TypeError("Expected KeyName")
     return key
+
+
+def _absolute_coordinate(offset: int, extent: int) -> int:
+    if extent == 1:
+        return 0
+    return (offset * 65_535 + (extent - 1) // 2) // (extent - 1)
 
 
 _VIRTUAL_KEYS: dict[KeyName, int] = {

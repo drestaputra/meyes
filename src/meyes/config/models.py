@@ -168,7 +168,7 @@ class CalibrationSettings(StrictConfigModel):
 
 
 class CursorSettings(StrictConfigModel):
-    """Fake-diagnostics smoothing and movement-gate values; no pointer output consumes them."""
+    """Smoothing and movement-gate values shared by diagnostics and Live Input."""
 
     minimum_cutoff: float = Field(
         default=1.0,

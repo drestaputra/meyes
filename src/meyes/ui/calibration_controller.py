@@ -195,7 +195,7 @@ def _acceptance_message(acceptance: CalibrationAcceptance) -> str:
     if acceptance.state is CalibrationAcceptanceState.ACCEPTED:
         return (
             "Mapper meets every configured acceptance limit. "
-            "It remains disconnected from pointer output."
+            "Pointer output still requires explicit Live Input consent."
         )
     if acceptance.state is CalibrationAcceptanceState.REJECTED:
         return (

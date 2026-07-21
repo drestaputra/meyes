@@ -1,4 +1,4 @@
-"""Qt-owned, fake-only cursor candidate diagnostics with freshness expiry."""
+"""Qt-owned cursor candidate diagnostics with freshness expiry."""
 
 from __future__ import annotations
 
@@ -40,9 +40,10 @@ class CursorDiagnosticsSnapshot:
 
 
 class CursorDiagnosticsController(QObject):
-    """Own fake-only pipeline timing without accepting an input executor."""
+    """Own cursor-candidate timing without accepting an input executor."""
 
     snapshot_changed = Signal(object)
+    pointer_candidate = Signal(int, int)
 
     def __init__(
         self,
@@ -223,9 +224,9 @@ class CursorDiagnosticsController(QObject):
     def _publish_pipeline_result(self, result: CursorPipelineResult) -> None:
         if result.status is CursorPipelineStatus.READY:
             assert result.normalized is not None and result.screen is not None
-            self._publish(
+            snapshot = self._publish(
                 CursorDiagnosticsStatus.READY,
-                "Fake-only cursor candidate ready; no operating-system output was sent.",
+                "Cursor candidate ready; output requires an armed Live Input session.",
                 gate_state=result.gate.state,
                 normalized_x=result.normalized.x,
                 normalized_y=result.normalized.y,
@@ -233,6 +234,8 @@ class CursorDiagnosticsController(QObject):
                 pixel_y=result.screen.point.y,
                 clamped=result.screen.clamped,
             )
+            assert snapshot.pixel_x is not None and snapshot.pixel_y is not None
+            self.pointer_candidate.emit(snapshot.pixel_x, snapshot.pixel_y)
         elif result.status is CursorPipelineStatus.FEATURE_UNAVAILABLE:
             self._publish(
                 CursorDiagnosticsStatus.STALE,

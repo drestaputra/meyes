@@ -305,6 +305,18 @@ class LiveInputController(QObject):
         self._schedule_next_poll()
         return report
 
+    @Slot(int, int)
+    def move_pointer(self, x: int, y: int) -> bool:
+        """Move to one calibrated pixel only while this session remains armed."""
+        if self._state is not LiveInputState.ARMED or self._executor is None:
+            return False
+        try:
+            self._executor.move_pointer(x, y)
+        except Exception as error:
+            self._fault_pointer_output(error)
+            return False
+        return True
+
     @Slot(object)
     def handle_event(self, payload: object) -> None:
         if isinstance(payload, GestureEvent):
@@ -409,6 +421,22 @@ class LiveInputController(QObject):
         self._state = LiveInputState.FAULTED
         self._message = "Live Input faulted, released owned input, and requested tracking pause."
         self.snapshot_changed.emit(self.snapshot)
+
+    def _fault_pointer_output(self, error: Exception) -> None:
+        self._poll_timer.stop()
+        released = False
+        if self._dispatcher is not None:
+            report = self._dispatcher.pause("pointer output failure")
+            released = report.released
+            self._emit_lifecycle(report)
+        self._state = LiveInputState.FAULTED
+        self._finish(
+            False,
+            f"Pointer output failed ({type(error).__name__}); Live Input was gated and "
+            "tracking was paused.",
+            released=released,
+        )
+        self.tracking_pause_requested.emit()
 
     def _schedule_next_poll(self) -> None:
         self._poll_timer.stop()

@@ -8,15 +8,18 @@ from dataclasses import dataclass, field
 
 import pytest
 
+from meyes.cursor.screen_mapping import PhysicalScreenGeometry
 from meyes.domain.actions import KeyName, MouseButton
 from meyes.input.interface import InputCleanupError, InputExecutor, InputReleaseError
 from meyes.input.windows_sendinput import (
     KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP,
+    MOUSEEVENTF_ABSOLUTE,
     MOUSEEVENTF_LEFTDOWN,
     MOUSEEVENTF_LEFTUP,
     MOUSEEVENTF_MIDDLEDOWN,
     MOUSEEVENTF_MIDDLEUP,
+    MOUSEEVENTF_MOVE,
     MOUSEEVENTF_RIGHTDOWN,
     MOUSEEVENTF_RIGHTUP,
     MOUSEEVENTF_WHEEL,
@@ -50,6 +53,18 @@ class RecordingSendInputApi:
 
     def last_error(self) -> int:
         return self.error_code
+
+
+@dataclass(slots=True)
+class RecordingGeometryProvider:
+    geometry: PhysicalScreenGeometry = field(
+        default_factory=lambda: PhysicalScreenGeometry(100, 200, 1921, 1081)
+    )
+    reads: int = 0
+
+    def read(self) -> PhysicalScreenGeometry:
+        self.reads += 1
+        return self.geometry
 
 
 def test_executor_and_native_adapter_implement_their_protocols() -> None:
@@ -89,6 +104,37 @@ def test_mouse_click_maps_complete_native_sequence(
         )
     ]
     assert executor.held_buttons == frozenset()
+
+
+def test_pointer_maps_primary_screen_pixels_to_absolute_sendinput_coordinates() -> None:
+    api = RecordingSendInputApi()
+    geometry = RecordingGeometryProvider()
+    executor = WindowsSendInputExecutor(api, pointer_geometry_provider=geometry)
+
+    executor.move_pointer(100, 200)
+    executor.move_pointer(1060, 740)
+    executor.move_pointer(2020, 1280)
+
+    flags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE
+    assert api.calls == [
+        (SendInputPacket(SendInputPacketKind.MOUSE, flags=flags, dx=0, dy=0),),
+        (SendInputPacket(SendInputPacketKind.MOUSE, flags=flags, dx=32768, dy=32768),),
+        (SendInputPacket(SendInputPacketKind.MOUSE, flags=flags, dx=65535, dy=65535),),
+    ]
+    assert geometry.reads == 1
+
+
+def test_pointer_rejects_pixels_outside_calibrated_primary_screen() -> None:
+    api = RecordingSendInputApi()
+    geometry = RecordingGeometryProvider()
+    executor = WindowsSendInputExecutor(api, pointer_geometry_provider=geometry)
+
+    with pytest.raises(ValueError, match="x must be inside"):
+        executor.move_pointer(99, 500)
+    with pytest.raises(ValueError, match="y must be inside"):
+        executor.move_pointer(500, 1281)
+
+    assert api.calls == []
 
 
 @pytest.mark.parametrize("amount", [-20, -3, 1, 20])
@@ -279,7 +325,7 @@ def test_invalid_primitives_fail_before_native_call() -> None:
         executor.mouse_scroll(0)
     with pytest.raises(ValueError, match="1-5"):
         executor.keyboard_shortcut(())
-    with pytest.raises(NotImplementedError, match="calibrated"):
-        executor.move_pointer(10, 20)
+    with pytest.raises(TypeError, match="x must be an integer"):
+        executor.move_pointer(True, 20)
 
     assert api.calls == []

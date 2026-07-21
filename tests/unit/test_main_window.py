@@ -208,7 +208,7 @@ def test_startup_recovery_configures_only_fake_diagnostics_and_keeps_live_input_
     assert recovered_cursor.status is CursorDiagnosticsStatus.SUSPENDED
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert persistence_label is not None
-    assert "fake-only diagnostics" in persistence_label.text()
+    assert "cursor pipeline" in persistence_label.text()
     assert paths.calibration_file.exists()
     assert forget_confirmation is not None
     assert forget_button is not None
@@ -447,12 +447,15 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     arm = window.findChild(QPushButton, "armLiveInputButton")
     safety_status = window.findChild(QLabel, "liveSafetyStatus")
     assert consent is not None and arm is not None and safety_status is not None
+    window._cursor_diagnostics.pointer_candidate.emit(111, 222)
+    assert InputCall("move_pointer", (111, 222)) not in executor.calls
     consent.setText(LIVE_INPUT_CONSENT_PHRASE)
     window._calibration_controller.start()
     window._calibration_controller.begin_target()
     assert window._calibration_controller.snapshot.state.value == "collecting"
 
     arm.click()
+    window._cursor_diagnostics.pointer_candidate.emit(111, 222)
     timestamp = time.monotonic()
     window._vision_controller.event_detected.emit(
         GestureEvent(
@@ -466,6 +469,7 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     assert window._live_input_controller.state is LiveInputState.ARMED
     assert safety.registered == 1
     assert window._calibration_controller.snapshot.state.value == "cancelled"
+    assert InputCall("move_pointer", (111, 222)) in executor.calls
     assert InputCall("mouse_click", (MouseButton.LEFT,)) in executor.calls
     assert "LIVE INPUT" in safety_status.text()
 
@@ -501,6 +505,41 @@ def test_window_wires_explicit_live_input_and_camera_pause_disarms(qtbot: QtBot)
     window.close()
     closed_snapshot = window._live_input_controller.snapshot
     assert closed_snapshot.state.value == "closed"
+
+
+def test_camera_running_automatically_arms_live_input(qtbot: QtBot) -> None:
+    executor = FakeInputExecutor()
+    safety = MainWindowSafetyApi()
+
+    def hotkey_factory(parent: QObject) -> WindowsEmergencyHotkey:
+        application = QCoreApplication.instance()
+        assert application is not None
+        return WindowsEmergencyHotkey(api=safety, application=application, parent=parent)
+
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_executor_factory=lambda: executor,
+        live_input_hotkey_factory=hotkey_factory,
+        live_input_platform_supported=True,
+    )
+    qtbot.addWidget(window)
+    window.show()
+
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
+    )
+
+    safety_status = window.findChild(QLabel, "liveSafetyStatus")
+    assert window._live_input_controller.state is LiveInputState.ARMED
+    assert safety.registered == 1
+    assert executor.calls == [InputCall("release_all"), InputCall("release_all")]
+    assert safety_status is not None and "LIVE INPUT" in safety_status.text()
+
+    window.close()
+    assert safety.unregistered == 1
 
 
 def test_profile_activation_updates_runtime_config_and_top_bar(

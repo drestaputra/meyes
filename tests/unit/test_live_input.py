@@ -65,6 +65,12 @@ class FailThirdReleaseExecutor(FakeInputExecutor):
             raise RuntimeError("one-shot profile transition failure")
 
 
+class FailMoveExecutor(FakeInputExecutor):
+    def move_pointer(self, x: int, y: int) -> None:
+        super().move_pointer(x, y)
+        raise RuntimeError("injected pointer failure")
+
+
 def _event(sequence: int = 1) -> GestureEvent:
     return GestureEvent(
         GestureEventType.LEFT_WINK,
@@ -197,6 +203,39 @@ def test_armed_event_reaches_executor_but_safe_event_does_not(qtbot: QtBot) -> N
     assert InputCall("mouse_click", (MouseButton.LEFT,)) in executor.calls
     assert len(_safety.unregistrations) == 1
     assert controller.state is LiveInputState.SAFE
+
+
+def test_pointer_candidate_reaches_executor_only_while_armed(qtbot: QtBot) -> None:
+    controller, executor, _safety, _hotkeys = _controller(qtbot)
+
+    assert not controller.move_pointer(100, 200)
+    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 414).success
+    assert controller.move_pointer(100, 200)
+    assert controller.disarm("test").success
+    assert not controller.move_pointer(300, 400)
+
+    assert executor.calls.count(InputCall("move_pointer", (100, 200))) == 1
+    assert InputCall("move_pointer", (300, 400)) not in executor.calls
+
+
+def test_pointer_failure_gates_live_input_and_requests_tracking_pause(qtbot: QtBot) -> None:
+    executor = FailMoveExecutor()
+    controller, _executor, safety, _hotkeys = _controller(qtbot, executor=executor)
+    pauses: list[bool] = []
+    controller.tracking_pause_requested.connect(lambda: pauses.append(True))
+    assert controller.arm(LIVE_INPUT_CONSENT_PHRASE, 424).success
+
+    moved = controller.move_pointer(100, 200)
+
+    assert not moved
+    assert controller.state is LiveInputState.FAULTED
+    assert controller.snapshot.hotkey_registered
+    assert "Pointer output failed" in controller.snapshot.message
+    assert pauses == [True]
+    assert executor.calls[-1] == InputCall("release_all")
+    assert safety.unregistrations == []
+    assert controller.disarm("recover pointer fault").success
+    assert len(safety.unregistrations) == 1
 
 
 def test_emergency_stop_releases_unregisters_and_requests_tracking_pause(qtbot: QtBot) -> None:

@@ -120,7 +120,7 @@ def test_accepted_calibration_configures_fake_only_candidate_pipeline(qtbot: QtB
     assert diagnostics.snapshot.status is CursorDiagnosticsStatus.READY
     assert diagnostics.snapshot.pixel_x == 960
     assert diagnostics.snapshot.pixel_y == 540
-    assert "no operating-system output" in diagnostics.snapshot.message
+    assert "armed Live Input" in diagnostics.snapshot.message
     diagnostics.close()
 
 

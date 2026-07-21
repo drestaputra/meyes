@@ -172,9 +172,14 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Acquire DPI-aware primary-screen geometry through a temporary restored thread DPI scope.
 - [x] Connect the accepted mapper pipeline safely using validated native geometry.
 - [x] Add a dormant fail-closed freeze/resume gate for temple gestures and tracking loss.
-- [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe fake-only pipeline.
+- [x] Compose the accepted mapper, smoother, screen mapper, and movement gate in a safe,
+  executor-independent candidate pipeline.
 - [x] Wire a Qt-owned fake cursor diagnostics controller to lifecycle, freshness, and Diagnostics.
-- [x] Construct the production fake-only pipeline only after accepted calibration and native screen geometry.
+- [x] Construct the production candidate pipeline only after accepted calibration and native screen geometry.
+- [x] Route accepted, gated cursor candidates through absolute primary-monitor `SendInput` only
+  during an explicitly armed Live Input session, with fail-closed pointer-error handling.
+- [x] Automatically arm Live Input when the camera reaches `Running`, retaining every native
+  safety preflight and exact-phrase manual re-arm after disarm.
 - [ ] Validate broad screen reach after calibration.
 
 ## Backlog — Phase 6

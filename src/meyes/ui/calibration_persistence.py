@@ -83,7 +83,7 @@ class CalibrationPersistenceResult:
 
 
 class CalibrationPersistenceLifecycle:
-    """Order storage and fake-only provisioning without any Live Input dependency."""
+    """Order storage and cursor provisioning without altering Live Input state."""
 
     def __init__(
         self,
@@ -305,5 +305,5 @@ def _provenance_message(action: str, provenance: CalibrationProvenance) -> str:
     created = provenance.created_at_utc.strftime("%Y-%m-%d %H:%M UTC")
     return (
         f"{action} calibration from {created} for {screen.width}x{screen.height} "
-        f"at ({screen.left}, {screen.top}); fake-only diagnostics configured."
+        f"at ({screen.left}, {screen.top}); cursor pipeline configured."
     )

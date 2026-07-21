@@ -1,4 +1,4 @@
-"""Qt-owned fake-only cursor diagnostics tests."""
+"""Qt-owned cursor-candidate diagnostics tests."""
 
 from __future__ import annotations
 
@@ -87,6 +87,8 @@ def test_unconfigured_controller_truthfully_remains_unavailable(qtbot: QtBot) ->
 def test_ready_candidate_uses_delivery_clock_separate_from_capture_time(qtbot: QtBot) -> None:
     clock = Clock(10.0)
     controller = CursorDiagnosticsController(pipeline(), clock=clock)
+    candidates: list[tuple[int, int]] = []
+    controller.pointer_candidate.connect(lambda x, y: candidates.append((x, y)))
     controller.start()
     clock.value = 10.12
     controller.poll()
@@ -96,7 +98,8 @@ def test_ready_candidate_uses_delivery_clock_separate_from_capture_time(qtbot: Q
     assert controller.snapshot.status is CursorDiagnosticsStatus.READY
     assert controller.snapshot.pixel_x == 960
     assert controller.snapshot.pixel_y == 540
-    assert "no operating-system output" in controller.snapshot.message
+    assert "armed Live Input" in controller.snapshot.message
+    assert candidates == [(960, 540)]
 
 
 def test_freshness_expiry_removes_candidate_and_suspends_pipeline(qtbot: QtBot) -> None:
@@ -173,7 +176,7 @@ def test_late_feature_clear_cannot_overwrite_suspended_lifecycle(qtbot: QtBot) -
     assert controller.snapshot.message == "Tracking is suspended."
 
 
-def test_diagnostics_page_renders_fake_cursor_candidate_without_executor(qtbot: QtBot) -> None:
+def test_diagnostics_page_renders_cursor_candidate_without_executor(qtbot: QtBot) -> None:
     clock = Clock(1.0)
     cursor = CursorDiagnosticsController(pipeline(), clock=clock)
     vision = VisionController(LatestFrameBuffer(), unused_backend, GestureSettings())
@@ -196,4 +199,4 @@ def test_diagnostics_page_renders_fake_cursor_candidate_without_executor(qtbot: 
     assert normalized is not None and normalized.text() == "0.5000, 0.5000"
     assert pixel is not None and pixel.text() == "960, 540"
     assert clamp is not None and clamp.text() == "No"
-    assert "no operating-system output" in status.toolTip()
+    assert "armed Live Input" in status.toolTip()

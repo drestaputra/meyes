@@ -69,8 +69,9 @@ class LiveInputPage(QWidget):
         title = QLabel("Live Input")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Opt in to real Windows mouse and keyboard output for this application session. "
-            "Safe Mode remains the default and is restored after every disarm."
+            "Starting the camera automatically arms real Windows pointer, mouse-button, scroll, "
+            "and keyboard output when every safety preflight passes. Pointer movement also "
+            "requires an accepted calibration."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
@@ -101,12 +102,14 @@ class LiveInputPage(QWidget):
             f"1. Start the camera and verify stable gesture diagnostics.\n"
             f"2. Release physical mouse buttons and Ctrl, Alt, Shift, and Windows keys.\n"
             f"3. Keep {EMERGENCY_HOTKEY_LABEL} available at all times.\n"
-            "4. Live Input may be blocked when the target app runs at a higher integrity level."
+            "4. Calibrate first if you want gaze-driven pointer movement.\n"
+            "5. Live Input may be blocked when the target app runs at a higher integrity level."
         )
         details.setWordWrap(True)
         details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         local = QLabel(
-            "The opt-in is volatile: it is not stored in configuration, profile files, or logs."
+            "The armed state is volatile: it is not stored in configuration, profile files, "
+            "or logs."
         )
         local.setObjectName("mutedText")
         local.setWordWrap(True)
@@ -122,11 +125,11 @@ class LiveInputPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        heading = QLabel("Per-session consent")
+        heading = QLabel("Manual re-arm")
         heading.setObjectName("panelTitle")
         instruction = QLabel(
-            f"Type {LIVE_INPUT_CONSENT_PHRASE} exactly. Arming is available only while the "
-            "camera is running."
+            f"After a manual disarm, type {LIVE_INPUT_CONSENT_PHRASE} exactly to re-arm. "
+            "Arming is available only while the camera is running."
         )
         instruction.setWordWrap(True)
         self._consent = QLineEdit()

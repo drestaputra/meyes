@@ -1,4 +1,4 @@
-"""Fail-closed construction of the fake-only production diagnostics pipeline."""
+"""Fail-closed construction of the calibrated production cursor pipeline."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class CursorProvisioningResult:
 
 
 class CursorPipelineProvisioner:
-    """Install no-executor diagnostics only from accepted calibration plus geometry."""
+    """Install a candidate pipeline only from accepted calibration plus geometry."""
 
     def __init__(
         self,
@@ -87,6 +87,6 @@ class CursorPipelineProvisioner:
         self._diagnostics.set_pipeline(pipeline)
         return CursorProvisioningResult(
             CursorProvisioningStatus.READY,
-            "Fake-only cursor diagnostics pipeline is configured; OS output remains disconnected.",
+            "Cursor pipeline is configured; OS output still requires an armed Live Input session.",
             geometry,
         )

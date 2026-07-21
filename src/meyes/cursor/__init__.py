@@ -1,4 +1,4 @@
-"""Dormant gaze-cursor domain components; no operating-system output is connected."""
+"""Calibrated gaze-cursor domain components with no native executor dependency."""
 
 from meyes.cursor.gate import (
     CursorGateSettings,

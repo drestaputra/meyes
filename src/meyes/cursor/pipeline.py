@@ -1,4 +1,4 @@
-"""Fake-only composition of accepted calibration and dormant cursor-domain stages."""
+"""Executor-independent composition of accepted calibration and cursor-domain stages."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ class CursorPipelineResult:
 
 
 class CursorPipeline:
-    """Produce inspectable pixel candidates without owning or calling an input executor."""
+    """Produce gated pixel candidates without owning or calling an input executor."""
 
     def __init__(
         self,
