@@ -249,6 +249,7 @@ def test_top_bar_open_dashboard_command_returns_keyboard_focus(qtbot: QtBot) -> 
     command.click()
 
     assert navigation.currentRow() == 0
+    qtbot.waitUntil(navigation.hasFocus, timeout=1000)
     assert navigation.hasFocus()
 
 
@@ -334,6 +335,7 @@ def test_keyboard_navigation_switches_pages_and_persists_selection(
 
     assert navigation.currentRow() == 8
     assert pages.currentIndex() == 8
+    qtbot.waitUntil(navigation.hasFocus, timeout=1000)
     assert navigation.hasFocus()
     assert manager.load().config.ui.selected_page == "Privacy"
 
@@ -939,7 +941,7 @@ def test_camera_running_keeps_live_input_safe_until_explicit_consent(qtbot: QtBo
         timeout=1000,
     )
     assert window._calibration_page._presentation.isVisible()
-    assert "Full-screen collection started" in window._calibration_page._feedback.text()
+    assert "Full-screen Smooth Pursuit started" in window._calibration_page._feedback.text()
 
     window._calibration_page._presentation.close()
     navigation.setCurrentRow(NAVIGATION_ITEMS.index("Diagnostics"))

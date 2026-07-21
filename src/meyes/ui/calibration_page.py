@@ -1,4 +1,4 @@
-"""Safe in-shell nine-point calibration collection UI."""
+"""Safe in-shell Smooth Pursuit calibration management UI."""
 
 from __future__ import annotations
 
@@ -117,14 +117,15 @@ class CalibrationPage(QWidget):
         title = QLabel("Calibration")
         title.setObjectName("sectionTitle")
         description = QLabel(
-            "Collect volatile gaze samples at nine points and inspect held-out fit metrics. "
+            "Follow one moving target while MEYES captures gaze continuously and verifies "
+            "that eye movement follows the live path across all nine screen regions. "
             "Only a mapper accepted by every configured limit can be stored locally; Live Input "
             "is disarmed before collection or replacement."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)
         banner = QLabel(
-            "CALIBRATION COLLECTION · Live Input is disarmed before start · Escape cancels"
+            "SMOOTH PURSUIT · Hands-free live capture · Live Input is disarmed · Escape cancels"
         )
         banner.setObjectName("safeBanner")
         banner.setWordWrap(True)
@@ -140,13 +141,13 @@ class CalibrationPage(QWidget):
         self._instruction = QLabel("Calibration is idle")
         self._instruction.setObjectName("panelTitle")
         self._instruction.setWordWrap(True)
-        self._progress_label = QLabel("Point 0 of 9")
+        self._progress_label = QLabel("Live sweep idle")
         self._progress_label.setObjectName("calibrationProgressLabel")
         self._progress = QProgressBar()
         self._progress.setObjectName("calibrationSampleProgress")
-        self._progress.setRange(0, 12)
+        self._progress.setRange(0, 1000)
         self._progress.setValue(0)
-        self._progress.setAccessibleName("Samples accepted for current calibration point")
+        self._progress.setAccessibleName("Smooth pursuit calibration progress")
         target_grid = QGridLayout()
         target_grid.setSpacing(8)
         self._target_labels: list[QLabel] = []
@@ -162,16 +163,9 @@ class CalibrationPage(QWidget):
         actions = QHBoxLayout()
         self._start_button = QPushButton("Start full-screen collection")
         self._start_button.setObjectName("primaryButton")
-        self._capture_button = QPushButton("Start current point")
-        self._capture_button.setObjectName("captureCalibrationPointButton")
-        self._capture_button.setProperty("primaryAction", True)
-        self._advance_button = QPushButton("Next point")
-        self._advance_button.setObjectName("advanceCalibrationPointButton")
         self._cancel_button = QPushButton("Cancel")
         self._cancel_button.setObjectName("cancelCalibrationButton")
         actions.addWidget(self._start_button)
-        actions.addWidget(self._capture_button)
-        actions.addWidget(self._advance_button)
         actions.addStretch(1)
         actions.addWidget(self._cancel_button)
 
@@ -235,8 +229,6 @@ class CalibrationPage(QWidget):
         outer.addWidget(scroll)
 
         self._start_button.clicked.connect(self._start)
-        self._capture_button.clicked.connect(self._controller.begin_target)
-        self._advance_button.clicked.connect(self._advance_or_retry)
         self._cancel_button.clicked.connect(self._controller.cancel)
         self._replace_button.clicked.connect(self._replace_saved_calibration)
         self._forget_button.clicked.connect(self._forget_saved_calibration)
@@ -273,7 +265,7 @@ class CalibrationPage(QWidget):
         }:
             return
         self._instruction.setText("Camera ready · starting calibration onboarding")
-        self._feedback.setText("Preparing the guided 9-point full-screen calibration.")
+        self._feedback.setText("Preparing hands-free Smooth Pursuit live capture.")
         self._scroll.ensureWidgetVisible(self._start_button)
         QTimer.singleShot(0, self._start_camera_onboarding)
 
@@ -469,53 +461,48 @@ class CalibrationPage(QWidget):
             return
         self._controller.start()
         self._feedback.setText(
-            "Full-screen collection started. Space captures and Escape cancels safely."
+            "Full-screen Smooth Pursuit started. Follow the target; capture is automatic."
         )
         if self.isVisible():
             self._presentation.present()
-
-    @Slot()
-    def _advance_or_retry(self) -> None:
-        state = self._controller.snapshot.state
-        if state is CalibrationSessionState.TARGET_COMPLETE:
-            self._controller.advance()
-        elif state is CalibrationSessionState.TARGET_FAILED:
-            self._controller.begin_target()
 
     @Slot(object)
     def _render_snapshot(self, payload: object) -> None:
         snapshot = calibration_snapshot(payload)
         target = snapshot.target
-        if snapshot.state is CalibrationSessionState.COMPLETE:
-            self._progress.setMaximum(len(CALIBRATION_TARGETS))
-            self._progress.setValue(snapshot.completed_targets)
-            self._progress.setFormat(
-                f"{snapshot.completed_targets} / {len(CALIBRATION_TARGETS)} points complete"
-            )
-        else:
-            self._progress.setMaximum(snapshot.samples_per_target)
-            self._progress.setValue(snapshot.accepted_for_target)
-            self._progress.setFormat(
-                f"{snapshot.accepted_for_target} / {snapshot.samples_per_target} accepted"
-            )
-        point_number = (
-            snapshot.target_index + 1 if target is not None else snapshot.completed_targets
+        self._progress.setRange(0, 1000)
+        self._progress.setValue(round(snapshot.progress * 1000))
+        self._progress.setFormat(
+            f"{round(snapshot.progress * 100)}% · {snapshot.total_samples} live samples · "
+            f"{snapshot.completed_targets} / 9 regions"
         )
-        self._progress_label.setText(
-            "All 9 points complete"
-            if snapshot.state is CalibrationSessionState.COMPLETE
-            else f"Point {point_number} of 9"
-        )
-        if target is None:
-            self._instruction.setText(snapshot.state.value.replace("_", " ").title())
-        else:
-            self._instruction.setText(f"Look at: {target.label}")
-        for index, label in enumerate(self._target_labels):
-            marker = "CURRENT" if target is not None and index == snapshot.target_index else ""
-            completed = index < snapshot.completed_targets
-            suffix = " · Done" if completed else (f" · {marker}" if marker else "")
-            label.setText(f"{index + 1}. {CALIBRATION_TARGETS[index].label}{suffix}")
         state = snapshot.state
+        progress_labels = {
+            CalibrationSessionState.IDLE: "Live sweep idle",
+            CalibrationSessionState.AWAITING_TARGET: "Hands-free countdown ready",
+            CalibrationSessionState.COLLECTING: "Live capture in progress",
+            CalibrationSessionState.TARGET_FAILED: "Live sweep needs a retry",
+            CalibrationSessionState.COMPLETE: "All 9 screen regions covered",
+            CalibrationSessionState.CANCELLED: "Live sweep cancelled",
+        }
+        self._progress_label.setText(
+            progress_labels.get(state, state.value.replace("_", " ").title())
+        )
+        if state is CalibrationSessionState.COLLECTING and target is not None:
+            self._instruction.setText(
+                f"Follow the moving target · currently crossing {target.label.lower()}"
+            )
+        elif state is CalibrationSessionState.TARGET_FAILED:
+            self._instruction.setText(snapshot.failure_reason or "Live following was not confirmed")
+        elif state is CalibrationSessionState.COMPLETE:
+            self._instruction.setText("Smooth Pursuit capture complete")
+        else:
+            self._instruction.setText(progress_labels.get(state, "Smooth Pursuit calibration"))
+        for index, label in enumerate(self._target_labels):
+            completed = CALIBRATION_TARGETS[index].name in snapshot.covered_targets
+            current = target is not None and index == snapshot.target_index
+            suffix = " · Covered" if completed else (" · Live" if current else "")
+            label.setText(f"{index + 1}. {CALIBRATION_TARGETS[index].label}{suffix}")
         self._start_button.setEnabled(
             self._tracking_available
             and state
@@ -524,17 +511,6 @@ class CalibrationPage(QWidget):
                 CalibrationSessionState.CANCELLED,
                 CalibrationSessionState.COMPLETE,
             }
-        )
-        self._capture_button.setEnabled(
-            self._tracking_available and state is CalibrationSessionState.AWAITING_TARGET
-        )
-        self._advance_button.setEnabled(
-            self._tracking_available
-            and state
-            in {CalibrationSessionState.TARGET_COMPLETE, CalibrationSessionState.TARGET_FAILED}
-        )
-        self._advance_button.setText(
-            "Retry point" if state is CalibrationSessionState.TARGET_FAILED else "Next point"
         )
         self._cancel_button.setEnabled(
             state
@@ -549,11 +525,15 @@ class CalibrationPage(QWidget):
     def _show_capture_result(self, payload: object) -> None:
         result = calibration_capture_result(payload)
         messages = {
-            CalibrationCaptureStatus.ACCEPTED: "Sample accepted. Keep looking at the target.",
-            CalibrationCaptureStatus.TARGET_COMPLETE: "Point complete. Continue when ready.",
-            CalibrationCaptureStatus.ATTEMPT_LIMIT: "Too many rejected frames. Adjust and retry.",
-            CalibrationCaptureStatus.STATISTICAL_OUTLIER: (
-                "Sample varied too far from this target's stable cluster; keep looking steadily."
+            CalibrationCaptureStatus.ACCEPTED: "Live sample captured. Keep following the target.",
+            CalibrationCaptureStatus.ATTEMPT_LIMIT: (
+                "Camera timing limit reached. Adjust and retry."
+            ),
+            CalibrationCaptureStatus.FEATURE_UNAVAILABLE: (
+                "Both eyes must remain visible during the live sweep."
+            ),
+            CalibrationCaptureStatus.EYE_DISAGREEMENT: (
+                "Sample rejected: eye disagreement. Face the camera and keep both eyes open."
             ),
         }
         self._feedback.setText(

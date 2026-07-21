@@ -19,10 +19,11 @@ before collection; resume does not repeat onboarding and camera startup never ar
 ## Development status
 
 Phase 0 through Phase 4 are implemented, and Phase 5 includes fail-closed normalized gaze features
-plus a distraction-free primary-display nine-point collection flow. Calibration fits a mapper and
-reports deterministic holdout metrics in a centered completion summary with plain-language
-acceptance guidance; acceptance defaults to `Review Required`. Starting each point once collects
-its stable samples automatically, while Enter advances to the next target. An
+plus a distraction-free Smooth Pursuit live-calibration flow. After a hands-free countdown, one
+target moves through all nine broad screen regions while camera samples are synchronized to its
+capture-time position. MEYES reports live target-following correlation, rejects incomplete or weak
+following evidence, then fits a robust quadratic mapper and reports deterministic region-stratified
+holdout metrics in a centered completion summary. Acceptance defaults to `Review Required`. An
 executor-independent cursor pipeline composes proof-carrying accepted calibration, configured
 adaptive smoothing, physical-pixel mapping, and the configured tracking/temple gate. A Qt-owned
 diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals.

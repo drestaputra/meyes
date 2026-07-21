@@ -159,11 +159,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 ## Backlog — Phase 5
 
 - [x] Extract normalized binocular gaze features with explicit invalid states and freshness expiry.
-- [x] Build the guided nine-point calibration flow.
-  - [x] Implement the bounded ordered sample-collection state machine.
-  - [x] Connect collection to an in-shell Calibration UI with safe cancellation.
-  - [x] Promote collection to the distraction-free full-screen presentation.
-- [x] Reject per-target calibration outliers with median/MAD filtering and an absolute floor.
+- [x] Replace manual nine-point calibration with hands-free Smooth Pursuit live capture.
+  - [x] Synchronize each camera frame to the moving target's capture-time position.
+  - [x] Cover all nine broad screen regions with a cosine-eased serpentine trajectory.
+  - [x] Add automatic countdown, progress, live following feedback, retry, and safe cancellation.
+  - [x] Fail closed on insufficient spatial coverage or horizontal/vertical correlation evidence.
+- [x] Limit isolated camera noise with deterministic robust residual reweighting.
 - [x] Implement a replaceable quadratic calibration mapper with deterministic holdout metrics.
 - [x] Fit a volatile mapper after complete collection and show guarded holdout metrics in Calibration.
 - [x] Add an opt-in all-or-none acceptance-policy contract with a fail-closed review-required default.

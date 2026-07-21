@@ -33,10 +33,11 @@ ordinary webcam. It is an assistive productivity prototype, not a medical device
 ### What it does
 
 MEYES runs local face and hand landmark inference, derives normalized binocular gaze features,
-detects deliberate left/right winks, and classifies fingertip-to-temple taps and holds. A guided
-nine-point calibration workflow rejects unstable samples, fits a quadratic gaze mapper, and shows
-held-out metrics. Only fits accepted by a complete configured evidence policy can provision cursor
-candidates.
+detects deliberate left/right winks, and classifies fingertip-to-temple taps and holds. A hands-free
+Smooth Pursuit calibration target moves across nine broad screen regions while MEYES pairs webcam
+features with its capture-time position, checks target-following correlation, fits a robust
+quadratic gaze mapper, and shows held-out metrics. Only fits accepted by a complete configured
+evidence policy can provision cursor candidates.
 
 Safe Mode is the default. Diagnostics and a fake action trace let users inspect behavior without OS
 output. On Windows, users use a cancel-default safety dialog to arm validated clicks, scrolling,
@@ -135,9 +136,9 @@ frames are processed locally and are not intentionally stored or uploaded.
 
 ### 0:45-1:15 — Calibration honesty
 
-Show the nine-point full-screen flow and held-out metrics. If no evidence-backed policy is prepared,
-show `Review Required` and say pointer activation remains unavailable. Never present a rejected or
-review-required fit as accepted.
+Show the full-screen Smooth Pursuit target moving through the screen, live following feedback, and
+held-out metrics. If no evidence-backed policy is prepared, show `Review Required` and say pointer
+activation remains unavailable. Never present a rejected or review-required fit as accepted.
 
 ### 1:15-1:50 — Explicit real input
 

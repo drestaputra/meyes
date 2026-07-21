@@ -14,13 +14,13 @@ from numpy.typing import NDArray
 from meyes.calibration.session import (
     CALIBRATION_TARGETS,
     CalibrationSample,
-    CalibrationTarget,
     CalibrationTargetName,
 )
 from meyes.domain.observations import GazeFeatureVector
 
 _BASIS_SIZE = 6
 DEFAULT_MAXIMUM_CONDITION_NUMBER = 1e12
+_ROBUST_FIT_ITERATIONS = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,19 +107,14 @@ def fit_polynomial_mapper(
     if not _finite_number(maximum_condition_number) or maximum_condition_number <= 1:
         raise ValueError("Maximum condition number must be finite and greater than one")
     design = np.asarray([_feature_basis(sample.feature) for sample in values], dtype=np.float64)
-    targets = np.asarray(
-        [(_target(sample.target).x, _target(sample.target).y) for sample in values],
-        dtype=np.float64,
-    )
+    targets = np.asarray([sample.target_position for sample in values], dtype=np.float64)
     rank = int(np.linalg.matrix_rank(design))
     if rank < _BASIS_SIZE:
         raise ValueError("Calibration feature geometry is rank deficient")
     condition = float(np.linalg.cond(design))
     if not math.isfinite(condition) or condition > maximum_condition_number:
         raise ValueError("Calibration feature geometry is ill-conditioned")
-    coefficients, _residuals, fitted_rank, _singular = np.linalg.lstsq(design, targets, rcond=None)
-    if int(fitted_rank) < _BASIS_SIZE or not np.isfinite(coefficients).all():
-        raise ValueError("Calibration mapper fit failed")
+    coefficients = _robust_coefficients(design, targets)
     typed = coefficients.astype(np.float64, copy=False)
     return PolynomialCalibrationMapper(
         horizontal_coefficients=_column_tuple(typed, 0),
@@ -183,8 +178,8 @@ def evaluate_mapper(
             raise TypeError("CalibrationMapper must return NormalizedScreenPoint")
         if not _finite_number(prediction.x) or not _finite_number(prediction.y):
             raise ValueError("Calibration mapper prediction must be finite")
-        target = _target(sample.target)
-        error = math.hypot(prediction.x - target.x, prediction.y - target.y)
+        target_x, target_y = sample.target_position
+        error = math.hypot(prediction.x - target_x, prediction.y - target_y)
         if not math.isfinite(error):
             raise ValueError("Calibration validation error is non-finite")
         errors.append(error)
@@ -247,6 +242,14 @@ def _validate_sample(sample: object) -> None:
         or not _finite_number(sample.capture_timestamp)
     ):
         raise ValueError("Calibration sample metadata is invalid")
+    target_x, target_y = sample.target_position
+    if (
+        not _finite_number(target_x)
+        or not _finite_number(target_y)
+        or not 0 <= target_x <= 1
+        or not 0 <= target_y <= 1
+    ):
+        raise ValueError("Calibration sample screen position is invalid")
     _feature_basis(sample.feature)
 
 
@@ -267,12 +270,42 @@ def _feature_basis(feature: GazeFeatureVector) -> tuple[float, ...]:
     )
 
 
-def _target(name: CalibrationTargetName) -> CalibrationTarget:
-    return next(target for target in CALIBRATION_TARGETS if target.name is name)
-
-
 def _column_tuple(matrix: NDArray[np.float64], column: int) -> tuple[float, ...]:
     return tuple(float(value) for value in matrix[:, column])
+
+
+def _robust_coefficients(
+    design: NDArray[np.float64],
+    targets: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Use deterministic Huber-style reweighting to limit isolated camera noise."""
+
+    coefficients, _residuals, fitted_rank, _singular = np.linalg.lstsq(design, targets, rcond=None)
+    if int(fitted_rank) < _BASIS_SIZE or not np.isfinite(coefficients).all():
+        raise ValueError("Calibration mapper fit failed")
+    for _iteration in range(_ROBUST_FIT_ITERATIONS):
+        residuals = np.linalg.norm(design @ coefficients - targets, axis=1)
+        median = float(np.median(residuals))
+        deviation = float(np.median(np.abs(residuals - median)))
+        scale = 1.4826 * deviation
+        cutoff = max(1.5 * scale, 1e-6)
+        weights = np.minimum(1.0, cutoff / np.maximum(residuals, 1e-12))
+        if np.allclose(weights, 1.0, rtol=0.0, atol=1e-9):
+            break
+        roots = np.sqrt(weights)[:, np.newaxis]
+        weighted_design = design * roots
+        weighted_targets = targets * roots
+        if int(np.linalg.matrix_rank(weighted_design)) < _BASIS_SIZE:
+            raise ValueError("Calibration robust fit became rank deficient")
+        updated, _weighted_residuals, rank, _weighted_singular = np.linalg.lstsq(
+            weighted_design,
+            weighted_targets,
+            rcond=None,
+        )
+        if int(rank) < _BASIS_SIZE or not np.isfinite(updated).all():
+            raise ValueError("Calibration robust mapper fit failed")
+        coefficients = updated
+    return coefficients.astype(np.float64, copy=False)
 
 
 def _finite_number(value: object) -> bool:

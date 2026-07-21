@@ -1,8 +1,8 @@
-"""Qt calibration orchestration and page tests."""
+"""Qt Smooth Pursuit calibration orchestration and page tests."""
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
@@ -14,10 +14,9 @@ from meyes.calibration.acceptance import (
     CalibrationAcceptanceState,
 )
 from meyes.calibration.session import (
-    CALIBRATION_TARGETS,
     CalibrationSession,
     CalibrationSessionState,
-    CalibrationTarget,
+    SmoothPursuitTrajectory,
 )
 from meyes.domain.observations import (
     GazeFeatureObservation,
@@ -36,106 +35,139 @@ from meyes.ui.calibration_persistence import (
 )
 
 
-def feature(sequence: int) -> GazeFeatureObservation:
-    return GazeFeatureObservation(
-        sequence,
-        sequence / 100,
-        sequence / 100 + 0.001,
-        GazeFeatureStatus.READY,
-        GazeFeatureVector(0.45, 0.45),
-        GazeFeatureVector(0.55, 0.55),
-        GazeFeatureVector(0.5, 0.5),
+@dataclass
+class FakeClock:
+    value: float = 10.0
+
+    def __call__(self) -> float:
+        return self.value
+
+
+def short_trajectory() -> SmoothPursuitTrajectory:
+    return SmoothPursuitTrajectory(
+        initial_hold_seconds=0.25,
+        leg_duration_seconds=0.5,
+        final_hold_seconds=0.25,
     )
 
 
-def target_feature(sequence: int, target: CalibrationTarget) -> GazeFeatureObservation:
+def controller_with_clock(
+    *,
+    policy: CalibrationAcceptancePolicy | None = None,
+) -> tuple[CalibrationController, FakeClock]:
+    clock = FakeClock()
+    controller = CalibrationController(
+        CalibrationSession(samples_per_target=3, trajectory=short_trajectory()),
+        acceptance_policy=policy,
+        clock=clock,
+    )
+    return controller, clock
+
+
+def feature(
+    sequence: int,
+    *,
+    captured: float,
+    horizontal: float = 0.5,
+    vertical: float = 0.5,
+) -> GazeFeatureObservation:
     return GazeFeatureObservation(
         sequence,
-        sequence / 100,
-        sequence / 100 + 0.001,
+        captured,
+        captured + 0.001,
         GazeFeatureStatus.READY,
-        GazeFeatureVector(target.x - 0.05, target.y - 0.05),
-        GazeFeatureVector(target.x + 0.05, target.y + 0.05),
-        GazeFeatureVector(target.x, target.y),
+        GazeFeatureVector(horizontal - 0.02, vertical - 0.02),
+        GazeFeatureVector(horizontal + 0.02, vertical + 0.02),
+        GazeFeatureVector(horizontal, vertical),
     )
 
 
 def complete_calibration(
     controller: CalibrationController,
+    clock: FakeClock,
     *,
-    stable_geometry: bool,
+    follows_target: bool,
 ) -> None:
     sequence = 1
     controller.start()
-    for target in CALIBRATION_TARGETS:
-        controller.begin_target()
-        for _sample in range(3):
-            observation = target_feature(sequence, target) if stable_geometry else feature(sequence)
-            controller.observe_feature(observation)
-            sequence += 1
-        controller.advance()
+    controller.begin_target()
+    start = clock.value
+    duration = controller.pursuit_duration_seconds
+    frame_count = int(duration * 30)
+    for index in range(frame_count):
+        elapsed = min((index + 1) / 30, duration)
+        captured = start + elapsed
+        position = controller.pursuit_position(captured)
+        controller.observe_feature(
+            feature(
+                sequence,
+                captured=captured,
+                horizontal=position.x if follows_target else 0.5,
+                vertical=position.y if follows_target else 0.5,
+            )
+        )
+        sequence += 1
+    clock.value = start + duration
+    controller.finish_pursuit()
 
 
-def test_controller_collects_only_while_armed_and_publishes_results(qtbot: QtBot) -> None:
-    controller = CalibrationController(
-        CalibrationSession(samples_per_target=3, max_attempts_per_target=6)
-    )
+def test_controller_collects_only_during_live_sweep_and_publishes_results(
+    qtbot: QtBot,
+) -> None:
+    controller, clock = controller_with_clock()
     results: list[object] = []
     controller.capture_decided.connect(results.append)
 
-    controller.observe_feature(feature(1))
+    controller.observe_feature(feature(1, captured=10.0))
     controller.start()
     controller.begin_target()
     for sequence in range(1, 4):
-        controller.observe_feature(feature(sequence))
+        controller.observe_feature(feature(sequence, captured=clock.value + sequence / 100))
 
     assert len(results) == 3
-    assert controller.snapshot.state is CalibrationSessionState.TARGET_COMPLETE
+    assert controller.snapshot.state is CalibrationSessionState.COLLECTING
     assert controller.snapshot.accepted_for_target == 3
+    assert controller.snapshot.total_samples == 3
 
 
-def test_page_requires_tracking_and_release_then_completes_target(qtbot: QtBot) -> None:
-    controller = CalibrationController(
-        CalibrationSession(samples_per_target=3, max_attempts_per_target=6)
-    )
+def test_page_requires_tracking_and_has_no_manual_capture_or_advance_controls(
+    qtbot: QtBot,
+) -> None:
+    controller, clock = controller_with_clock()
     prepare_calls: list[bool] = []
 
     def prepare() -> bool:
         prepare_calls.append(True)
         return True
 
-    page = CalibrationPage(
-        controller,
-        prepare_calibration=prepare,
-    )
+    page = CalibrationPage(controller, prepare_calibration=prepare)
     qtbot.addWidget(page)
     start = page.findChild(QPushButton, "primaryButton")
-    capture = page.findChild(QPushButton, "captureCalibrationPointButton")
-    advance = page.findChild(QPushButton, "advanceCalibrationPointButton")
     progress = page.findChild(QProgressBar, "calibrationSampleProgress")
-    assert start is not None and capture is not None and advance is not None
-    assert progress is not None
+    assert start is not None and progress is not None
+    assert page.findChild(QPushButton, "captureCalibrationPointButton") is None
+    assert page.findChild(QPushButton, "advanceCalibrationPointButton") is None
     assert not start.isEnabled()
 
     page.set_tracking_available(True)
     start.click()
-    capture.click()
-    for sequence in range(1, 4):
-        controller.observe_feature(feature(sequence))
-
     assert prepare_calls == [True]
-    assert controller.snapshot.state.value == CalibrationSessionState.TARGET_COMPLETE.value
-    assert progress.value() == 3
-    assert advance.isEnabled()
-    advance.click()
-    assert controller.snapshot.target_index == 1
-    assert controller.snapshot.state.value == CalibrationSessionState.AWAITING_TARGET.value
+    assert controller.snapshot.state is CalibrationSessionState.AWAITING_TARGET
+    controller.begin_target()
+    position = controller.pursuit_position(clock.value + 0.1)
+    controller.observe_feature(
+        feature(1, captured=clock.value + 0.1, horizontal=position.x, vertical=position.y)
+    )
+
+    assert controller.snapshot.state.value == CalibrationSessionState.COLLECTING.value
+    assert page._progress_label.text() == "Live capture in progress"
+    assert "live samples" in progress.format()
 
 
 def test_saved_calibration_replace_requires_pending_state_and_modal_confirmation(
     qtbot: QtBot,
 ) -> None:
-    controller = CalibrationController()
+    controller, _clock = controller_with_clock()
     calls: list[bool] = []
 
     def confirm_replace() -> CalibrationPersistenceResult:
@@ -179,7 +211,7 @@ def test_saved_calibration_replace_requires_pending_state_and_modal_confirmation
 
 
 def test_visible_page_launches_full_screen_presentation(qtbot: QtBot) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    controller, _clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.set_tracking_available(True)
@@ -192,47 +224,46 @@ def test_visible_page_launches_full_screen_presentation(qtbot: QtBot) -> None:
 
     present.assert_called_once_with()
     assert controller.snapshot.state is CalibrationSessionState.AWAITING_TARGET
-    assert "Full-screen collection started" in page._feedback.text()
+    assert "Smooth Pursuit started" in page._feedback.text()
 
 
 def test_release_failure_escape_and_tracking_loss_discard_samples(qtbot: QtBot) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: False)
     qtbot.addWidget(page)
     page.set_tracking_available(True)
     start = page.findChild(QPushButton, "primaryButton")
-    capture = page.findChild(QPushButton, "captureCalibrationPointButton")
     feedback = page._feedback
-    assert start is not None and capture is not None
+    assert start is not None
     start.click()
-    assert controller.snapshot.state.value == CalibrationSessionState.IDLE.value
+    assert controller.snapshot.state is CalibrationSessionState.IDLE
     assert "could not be released" in feedback.text()
 
     page._prepare_calibration = lambda: True
     start.click()
-    capture.click()
-    controller.observe_feature(feature(1))
+    controller.begin_target()
+    controller.observe_feature(feature(1, captured=clock.value + 0.1))
     qtbot.keyClick(page, Qt.Key.Key_Escape)  # type: ignore[no-untyped-call]
     assert controller.snapshot.state.value == CalibrationSessionState.CANCELLED.value
     assert controller.snapshot.total_samples == 0
 
     start.click()
-    capture.click()
-    controller.observe_feature(feature(2))
+    controller.begin_target()
+    controller.observe_feature(feature(2, captured=clock.value + 0.2))
     page.set_tracking_available(False)
     assert controller.snapshot.state.value == CalibrationSessionState.CANCELLED.value
     assert controller.snapshot.total_samples == 0
     assert "tracking became unavailable" in feedback.text()
 
 
-def test_arming_live_input_cancels_and_erases_collection(qtbot: QtBot) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+def test_arming_live_input_cancels_and_erases_live_collection(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.set_tracking_available(True)
     page._start_button.click()
-    page._capture_button.click()
-    controller.observe_feature(feature(1))
+    controller.begin_target()
+    controller.observe_feature(feature(1, captured=clock.value + 0.1))
 
     page.set_live_input_armed(True)
 
@@ -241,14 +272,14 @@ def test_arming_live_input_cancels_and_erases_collection(qtbot: QtBot) -> None:
     assert "Live Input was armed" in page._feedback.text()
 
 
-def test_leaving_page_cancels_and_erases_collection(qtbot: QtBot) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+def test_leaving_page_cancels_and_erases_live_collection(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.set_tracking_available(True)
     page._start_button.click()
-    page._capture_button.click()
-    controller.observe_feature(feature(1))
+    controller.begin_target()
+    controller.observe_feature(feature(1, captured=clock.value + 0.1))
 
     page.set_page_active(False)
 
@@ -257,8 +288,8 @@ def test_leaving_page_cancels_and_erases_collection(qtbot: QtBot) -> None:
     assert "Calibration was closed" in page._feedback.text()
 
 
-def test_page_target_map_is_readable_without_horizontal_overflow(qtbot: QtBot) -> None:
-    controller = CalibrationController()
+def test_page_region_map_is_readable_without_horizontal_overflow(qtbot: QtBot) -> None:
+    controller, _clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.resize(900, 640)
@@ -271,7 +302,7 @@ def test_page_target_map_is_readable_without_horizontal_overflow(qtbot: QtBot) -
 
 
 def test_minimum_size_uses_vertical_scroll_instead_of_compressing_controls(qtbot: QtBot) -> None:
-    controller = CalibrationController()
+    controller, _clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.resize(680, 536)
@@ -288,37 +319,31 @@ def test_minimum_size_uses_vertical_scroll_instead_of_compressing_controls(qtbot
     assert page._restore_button.height() > 0
 
 
-def test_page_explains_statistical_outlier_without_advancing_progress(qtbot: QtBot) -> None:
-    controller = CalibrationController(
-        CalibrationSession(samples_per_target=5, max_attempts_per_target=9)
-    )
+def test_page_explains_rejected_live_eye_signal(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
     page.set_tracking_available(True)
     page._start_button.click()
-    page._capture_button.click()
-    for sequence in range(1, 5):
-        controller.observe_feature(feature(sequence))
-    outlier = replace(
-        feature(5),
-        left_eye=GazeFeatureVector(0.85, 0.45),
-        right_eye=GazeFeatureVector(0.95, 0.55),
-        combined=GazeFeatureVector(0.90, 0.50),
+    controller.begin_target()
+    unstable = replace(
+        feature(1, captured=clock.value + 0.1),
+        left_eye=GazeFeatureVector(0.20, 0.20),
+        right_eye=GazeFeatureVector(0.80, 0.80),
     )
-    controller.observe_feature(outlier)
+    controller.observe_feature(unstable)
 
-    assert controller.snapshot.accepted_for_target == 4
-    assert "varied too far" in page._feedback.text()
+    assert controller.snapshot.total_samples == 0
+    assert controller.snapshot.rejected_samples == 1
+    assert "eye disagreement" in page._feedback.text()
 
 
-def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
-    qtbot: QtBot,
-) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+def test_complete_live_sweep_fits_mapper_and_shows_holdout_metrics(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
 
-    complete_calibration(controller, stable_geometry=True)
+    complete_calibration(controller, clock, follows_target=True)
 
     outcome = controller.fit_outcome
     assert controller.snapshot.state is CalibrationSessionState.COMPLETE
@@ -327,9 +352,10 @@ def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
     assert outcome.validation is not None
     assert outcome.validation.root_mean_square_error < 1e-10
     assert page._fit_status.text() == "Ready"
-    assert page._progress_label.text() == "All 9 points complete"
-    assert page._progress.value() == 9
-    assert page._progress.format() == "9 / 9 points complete"
+    assert page._progress_label.text() == "All 9 screen regions covered"
+    assert page._progress.value() == 1000
+    assert "100%" in page._progress.format()
+    assert "9 / 9 regions" in page._progress.format()
     assert "RMSE 0.0000" in page._fit_metrics.text()
     assert "n=18" in page._fit_metrics.text()
     assert page._acceptance_status.text() == "Review Required"
@@ -340,30 +366,26 @@ def test_complete_collection_fits_volatile_mapper_and_shows_holdout_metrics(
     assert "Review is required" in page._feedback.text()
 
 
-def test_unstable_complete_collection_reports_fit_failure_without_mapper(
-    qtbot: QtBot,
-) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+def test_nonfollowing_sweep_fails_before_mapper_fit(qtbot: QtBot) -> None:
+    controller, clock = controller_with_clock()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
 
-    complete_calibration(controller, stable_geometry=False)
+    complete_calibration(controller, clock, follows_target=False)
 
-    assert controller.snapshot.state is CalibrationSessionState.COMPLETE
+    assert controller.snapshot.state is CalibrationSessionState.TARGET_FAILED
     assert controller.fit_result is None
-    assert controller.fit_outcome.state is CalibrationFitState.FAILED
-    assert controller.fit_outcome.validation is None
-    assert controller.fit_outcome.acceptance is None
-    assert page._fit_status.text() == "Failed"
+    assert controller.fit_outcome.state is CalibrationFitState.NONE
+    assert page._fit_status.text() == "None"
     assert page._fit_metrics.text() == "—"
-    assert "Retry collection" in page._feedback.text()
+    assert "did not follow" in page._instruction.text()
 
 
 def test_new_session_and_cancellation_erase_volatile_fit(qtbot: QtBot) -> None:
-    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    controller, clock = controller_with_clock()
     fit_events: list[object] = []
     controller.fit_changed.connect(fit_events.append)
-    complete_calibration(controller, stable_geometry=True)
+    complete_calibration(controller, clock, follows_target=True)
     fitted_result = controller.fit_result
     assert fitted_result is not None
 
@@ -379,14 +401,11 @@ def test_new_session_and_cancellation_erase_volatile_fit(qtbot: QtBot) -> None:
 
 def test_configured_policy_exposes_only_an_accepted_fit(qtbot: QtBot) -> None:
     policy = CalibrationAcceptancePolicy(0.01, 0.01, 0.01, 18)
-    controller = CalibrationController(
-        CalibrationSession(samples_per_target=3),
-        acceptance_policy=policy,
-    )
+    controller, clock = controller_with_clock(policy=policy)
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
 
-    complete_calibration(controller, stable_geometry=True)
+    complete_calibration(controller, clock, follows_target=True)
 
     outcome = controller.fit_outcome
     assert outcome.acceptance is not None
@@ -400,14 +419,11 @@ def test_configured_policy_exposes_only_an_accepted_fit(qtbot: QtBot) -> None:
 
 def test_configured_policy_rejection_never_exposes_an_accepted_fit(qtbot: QtBot) -> None:
     policy = CalibrationAcceptancePolicy(0.01, 0.01, 0.01, 19)
-    controller = CalibrationController(
-        CalibrationSession(samples_per_target=3),
-        acceptance_policy=policy,
-    )
+    controller, clock = controller_with_clock(policy=policy)
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
 
-    complete_calibration(controller, stable_geometry=True)
+    complete_calibration(controller, clock, follows_target=True)
 
     outcome = controller.fit_outcome
     assert outcome.acceptance is not None

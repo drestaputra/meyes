@@ -1,17 +1,17 @@
-"""Bounded nine-point calibration sample collection."""
+"""Live smooth-pursuit gaze calibration collection."""
 
 from __future__ import annotations
 
 import math
+from collections import Counter
 from dataclasses import dataclass
 from enum import StrEnum
 
-from meyes.calibration.outliers import MINIMUM_OUTLIER_SAMPLES, select_gaze_feature_inliers
 from meyes.domain.observations import GazeFeatureObservation, GazeFeatureVector
 
 
 class CalibrationTargetName(StrEnum):
-    """Stable identifiers for the guided nine-point order."""
+    """Stable screen-region identifiers retained for fit coverage evidence."""
 
     TOP_LEFT = "top_left"
     TOP_CENTER = "top_center"
@@ -26,7 +26,7 @@ class CalibrationTargetName(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class CalibrationTarget:
-    """One normalized screen target used only as a calibration label."""
+    """One normalized screen region used for coverage and compatibility."""
 
     name: CalibrationTargetName
     label: str
@@ -46,9 +46,21 @@ CALIBRATION_TARGETS = (
     CalibrationTarget(CalibrationTargetName.BOTTOM_RIGHT, "Bottom right", 0.9, 0.9),
 )
 
+_PURSUIT_ANCHOR_NAMES = (
+    CalibrationTargetName.TOP_LEFT,
+    CalibrationTargetName.TOP_CENTER,
+    CalibrationTargetName.TOP_RIGHT,
+    CalibrationTargetName.MIDDLE_RIGHT,
+    CalibrationTargetName.CENTER,
+    CalibrationTargetName.MIDDLE_LEFT,
+    CalibrationTargetName.BOTTOM_LEFT,
+    CalibrationTargetName.BOTTOM_CENTER,
+    CalibrationTargetName.BOTTOM_RIGHT,
+)
+
 
 class CalibrationSessionState(StrEnum):
-    """Lifecycle of one volatile calibration collection session."""
+    """Lifecycle of one volatile smooth-pursuit calibration session."""
 
     IDLE = "idle"
     AWAITING_TARGET = "awaiting_target"
@@ -60,13 +72,15 @@ class CalibrationSessionState(StrEnum):
 
 
 class CalibrationCaptureStatus(StrEnum):
-    """Result of offering one gaze feature to the collector."""
+    """Result of offering one gaze feature to the live collector."""
 
     ACCEPTED = "accepted"
     TARGET_COMPLETE = "target_complete"
     NOT_COLLECTING = "not_collecting"
     FEATURE_UNAVAILABLE = "feature_unavailable"
     INVALID_METADATA = "invalid_metadata"
+    BEFORE_TRAJECTORY = "before_trajectory"
+    AFTER_TRAJECTORY = "after_trajectory"
     OUT_OF_ORDER = "out_of_order"
     OUT_OF_RANGE = "out_of_range"
     EYE_DISAGREEMENT = "eye_disagreement"
@@ -75,19 +89,127 @@ class CalibrationCaptureStatus(StrEnum):
     ATTEMPT_LIMIT = "attempt_limit"
 
 
+class PursuitAttentionState(StrEnum):
+    """Live evidence that the eye features follow the displayed target."""
+
+    WAITING = "waiting"
+    ACQUIRING = "acquiring"
+    FOLLOWING = "following"
+    NOT_FOLLOWING = "not_following"
+
+
+@dataclass(frozen=True, slots=True)
+class PursuitTargetPosition:
+    """One timestamped normalized position along the target trajectory."""
+
+    x: float
+    y: float
+    elapsed_seconds: float
+    progress: float
+    segment_index: int
+    segment_count: int
+    region: CalibrationTargetName
+
+
+class SmoothPursuitTrajectory:
+    """Bounded serpentine path with cosine-eased movement between nine regions."""
+
+    def __init__(
+        self,
+        *,
+        initial_hold_seconds: float = 0.75,
+        leg_duration_seconds: float = 1.75,
+        final_hold_seconds: float = 0.5,
+    ) -> None:
+        for value, label in (
+            (initial_hold_seconds, "Initial hold"),
+            (leg_duration_seconds, "Leg duration"),
+            (final_hold_seconds, "Final hold"),
+        ):
+            if not _finite_number(value) or value < 0:
+                raise ValueError(f"{label} must be finite and non-negative")
+        if leg_duration_seconds < 0.25:
+            raise ValueError("Leg duration must be at least 0.25 seconds")
+        self._initial_hold_seconds = float(initial_hold_seconds)
+        self._leg_duration_seconds = float(leg_duration_seconds)
+        self._final_hold_seconds = float(final_hold_seconds)
+        targets = {target.name: target for target in CALIBRATION_TARGETS}
+        self._anchors = tuple(targets[name] for name in _PURSUIT_ANCHOR_NAMES)
+
+    @property
+    def duration_seconds(self) -> float:
+        return (
+            self._initial_hold_seconds
+            + (len(self._anchors) - 1) * self._leg_duration_seconds
+            + self._final_hold_seconds
+        )
+
+    @property
+    def segment_count(self) -> int:
+        return len(self._anchors) - 1
+
+    def position_at(self, elapsed_seconds: float) -> PursuitTargetPosition:
+        """Return a clamped, deterministic target position for elapsed monotonic time."""
+
+        if not _finite_number(elapsed_seconds):
+            raise ValueError("Trajectory elapsed time must be finite")
+        elapsed = min(max(float(elapsed_seconds), 0.0), self.duration_seconds)
+        movement_elapsed = elapsed - self._initial_hold_seconds
+        if movement_elapsed <= 0:
+            x = self._anchors[0].x
+            y = self._anchors[0].y
+            segment_index = 0
+        else:
+            movement_duration = self.segment_count * self._leg_duration_seconds
+            bounded_movement = min(movement_elapsed, movement_duration)
+            raw_segment = bounded_movement / self._leg_duration_seconds
+            segment_index = min(int(raw_segment), self.segment_count - 1)
+            local = min(max(raw_segment - segment_index, 0.0), 1.0)
+            eased = (1.0 - math.cos(math.pi * local)) / 2.0
+            start = self._anchors[segment_index]
+            end = self._anchors[segment_index + 1]
+            x = start.x + (end.x - start.x) * eased
+            y = start.y + (end.y - start.y) * eased
+        region = _nearest_region(x, y).name
+        return PursuitTargetPosition(
+            x=x,
+            y=y,
+            elapsed_seconds=elapsed,
+            progress=elapsed / self.duration_seconds,
+            segment_index=segment_index,
+            segment_count=self.segment_count,
+            region=region,
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class CalibrationSample:
-    """One accepted volatile feature paired with the current target."""
+    """One live eye feature paired with the exact displayed target position."""
 
     target: CalibrationTargetName
     source_sequence: int
     capture_timestamp: float
     feature: GazeFeatureVector
+    screen_x: float | None = None
+    screen_y: float | None = None
+
+    def __post_init__(self) -> None:
+        if (self.screen_x is None) != (self.screen_y is None):
+            raise ValueError("Continuous calibration coordinates must be provided together")
+
+    @property
+    def target_position(self) -> tuple[float, float]:
+        """Resolve continuous coordinates or the legacy region anchor."""
+
+        if self.screen_x is not None and self.screen_y is not None:
+            return self.screen_x, self.screen_y
+        anchor = _target(self.target)
+        return anchor.x, anchor.y
 
 
 @dataclass(frozen=True, slots=True)
 class CalibrationSnapshot:
-    """Immutable progress state for a future Qt calibration page."""
+    """Immutable live progress and pursuit-attention evidence."""
 
     state: CalibrationSessionState
     target_index: int
@@ -98,11 +220,20 @@ class CalibrationSnapshot:
     max_attempts_per_target: int
     completed_targets: int
     total_samples: int
+    progress: float = 0.0
+    duration_seconds: float = 0.0
+    rejected_samples: int = 0
+    attention_state: PursuitAttentionState = PursuitAttentionState.WAITING
+    horizontal_correlation: float | None = None
+    vertical_correlation: float | None = None
+    target_position: PursuitTargetPosition | None = None
+    failure_reason: str | None = None
+    covered_targets: tuple[CalibrationTargetName, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class CalibrationCaptureResult:
-    """One sample decision and the resulting session snapshot."""
+    """One live sample decision and the resulting session snapshot."""
 
     status: CalibrationCaptureStatus
     snapshot: CalibrationSnapshot
@@ -110,151 +241,241 @@ class CalibrationCaptureResult:
 
 
 class CalibrationSession:
-    """Collect a bounded number of ordered, quality-gated samples at nine targets."""
+    """Collect and validate an automatically synchronized smooth-pursuit sweep."""
 
     def __init__(
         self,
         *,
-        samples_per_target: int = 12,
-        max_attempts_per_target: int = 36,
+        samples_per_target: int = 6,
+        max_attempts_per_target: int = 600,
         minimum_feature: float = -0.5,
         maximum_feature: float = 1.5,
         maximum_eye_disagreement: float = 0.4,
+        minimum_axis_correlation: float = 0.2,
+        trajectory: SmoothPursuitTrajectory | None = None,
+        finish_grace_seconds: float = 0.75,
     ) -> None:
         if (
             isinstance(samples_per_target, bool)
             or not isinstance(samples_per_target, int)
             or not 3 <= samples_per_target <= 120
         ):
-            raise ValueError("Samples per target must be an integer within 3..120")
+            raise ValueError("Samples per region must be an integer within 3..120")
         if (
             isinstance(max_attempts_per_target, bool)
             or not isinstance(max_attempts_per_target, int)
             or not samples_per_target <= max_attempts_per_target <= 600
         ):
-            raise ValueError("Maximum attempts must be within the sample quota and 600")
+            raise ValueError("Maximum attempts per region must cover the sample quota and be <=600")
         if not _finite_number(minimum_feature) or not _finite_number(maximum_feature):
             raise ValueError("Feature bounds must be finite")
         if minimum_feature >= maximum_feature:
             raise ValueError("Minimum feature must be lower than maximum feature")
         if not _finite_number(maximum_eye_disagreement) or maximum_eye_disagreement < 0:
             raise ValueError("Maximum eye disagreement must be finite and non-negative")
+        if not _finite_number(minimum_axis_correlation) or not 0 <= minimum_axis_correlation <= 1:
+            raise ValueError("Minimum axis correlation must be within 0..1")
+        if not _finite_number(finish_grace_seconds) or not 0 <= finish_grace_seconds <= 5:
+            raise ValueError("Finish grace must be within 0..5 seconds")
+        if trajectory is not None and not isinstance(trajectory, SmoothPursuitTrajectory):
+            raise TypeError("Expected SmoothPursuitTrajectory or None")
         self._samples_per_target = samples_per_target
         self._max_attempts_per_target = max_attempts_per_target
         self._minimum_feature = float(minimum_feature)
         self._maximum_feature = float(maximum_feature)
         self._maximum_eye_disagreement = float(maximum_eye_disagreement)
+        self._minimum_axis_correlation = float(minimum_axis_correlation)
+        self._trajectory = trajectory or SmoothPursuitTrajectory()
+        self._finish_grace_seconds = float(finish_grace_seconds)
         self._state = CalibrationSessionState.IDLE
-        self._target_index = 0
-        self._attempts_for_target = 0
         self._samples: list[CalibrationSample] = []
+        self._region_attempts: Counter[CalibrationTargetName] = Counter()
+        self._rejected_samples = 0
         self._last_source_sequence = 0
         self._last_capture_timestamp: float | None = None
+        self._start_timestamp: float | None = None
+        self._last_position: PursuitTargetPosition | None = None
+        self._failure_reason: str | None = None
+
+    @property
+    def trajectory(self) -> SmoothPursuitTrajectory:
+        return self._trajectory
 
     @property
     def snapshot(self) -> CalibrationSnapshot:
         """Return current progress without exposing mutable storage."""
-        target = (
-            CALIBRATION_TARGETS[self._target_index]
-            if self._state
-            not in {
-                CalibrationSessionState.IDLE,
-                CalibrationSessionState.CANCELLED,
-                CalibrationSessionState.COMPLETE,
-            }
-            else None
-        )
-        accepted = sum(
-            sample.target == CALIBRATION_TARGETS[self._target_index].name
-            for sample in self._samples
-        )
-        completed = self._target_index
-        if self._state is CalibrationSessionState.COMPLETE:
-            completed = len(CALIBRATION_TARGETS)
+
+        counts = Counter(sample.target for sample in self._samples)
+        position = self._last_position
+        target = _target(position.region) if position is not None else None
+        if self._state is CalibrationSessionState.AWAITING_TARGET:
+            target = CALIBRATION_TARGETS[0]
+            position = self._trajectory.position_at(0.0)
+        if self._state in {
+            CalibrationSessionState.IDLE,
+            CalibrationSessionState.CANCELLED,
+            CalibrationSessionState.COMPLETE,
+        }:
+            target = None
+        target_index = 0 if target is None else _target_index(target.name)
+        horizontal, vertical = self._correlations()
         return CalibrationSnapshot(
             state=self._state,
-            target_index=self._target_index,
+            target_index=target_index,
             target=target,
-            accepted_for_target=accepted if target is not None else 0,
-            attempts_for_target=self._attempts_for_target if target is not None else 0,
+            accepted_for_target=0 if target is None else counts[target.name],
+            attempts_for_target=0 if target is None else self._region_attempts[target.name],
             samples_per_target=self._samples_per_target,
             max_attempts_per_target=self._max_attempts_per_target,
-            completed_targets=completed,
+            completed_targets=sum(
+                counts[target_item.name] >= self._samples_per_target
+                for target_item in CALIBRATION_TARGETS
+            ),
             total_samples=len(self._samples),
+            progress=(
+                1.0
+                if self._state is CalibrationSessionState.COMPLETE
+                else (0.0 if position is None else position.progress)
+            ),
+            duration_seconds=self._trajectory.duration_seconds,
+            rejected_samples=self._rejected_samples,
+            attention_state=self._attention_state(horizontal, vertical),
+            horizontal_correlation=horizontal,
+            vertical_correlation=vertical,
+            target_position=position,
+            failure_reason=self._failure_reason,
+            covered_targets=tuple(
+                target_item.name
+                for target_item in CALIBRATION_TARGETS
+                if counts[target_item.name] >= self._samples_per_target
+            ),
         )
 
     @property
     def samples(self) -> tuple[CalibrationSample, ...]:
-        """Return the accepted samples as an immutable snapshot."""
         return tuple(self._samples)
 
     def start(self) -> CalibrationSnapshot:
-        """Start a fresh volatile session at the top-left target."""
+        """Prepare a fresh sweep; the presentation starts it after a countdown."""
+
         self._clear()
         self._state = CalibrationSessionState.AWAITING_TARGET
+        self._last_position = self._trajectory.position_at(0.0)
         return self.snapshot
 
-    def begin_target(self) -> CalibrationSnapshot:
-        """Arm collection for the current target or retry a failed target."""
+    def begin_target(self, start_timestamp: float = 0.0) -> CalibrationSnapshot:
+        """Begin or retry the single continuous pursuit trajectory."""
+
         if self._state not in {
             CalibrationSessionState.AWAITING_TARGET,
             CalibrationSessionState.TARGET_FAILED,
         }:
-            raise RuntimeError("The current calibration target cannot start")
+            raise RuntimeError("The smooth-pursuit sweep cannot start")
+        if not _finite_number(start_timestamp) or start_timestamp < 0:
+            raise ValueError("Pursuit start timestamp must be finite and non-negative")
         if self._state is CalibrationSessionState.TARGET_FAILED:
-            target_name = CALIBRATION_TARGETS[self._target_index].name
-            self._samples = [sample for sample in self._samples if sample.target != target_name]
-        self._attempts_for_target = 0
+            self._clear_collection()
+        self._start_timestamp = float(start_timestamp)
+        self._last_position = self._trajectory.position_at(0.0)
+        self._failure_reason = None
         self._state = CalibrationSessionState.COLLECTING
         return self.snapshot
 
+    def position_at(self, timestamp: float) -> PursuitTargetPosition:
+        """Resolve the displayed target from the same monotonic clock as camera captures."""
+
+        if self._start_timestamp is None:
+            return self._trajectory.position_at(0.0)
+        if not _finite_number(timestamp):
+            raise ValueError("Pursuit timestamp must be finite")
+        return self._trajectory.position_at(float(timestamp) - self._start_timestamp)
+
     def add_feature(self, feature: GazeFeatureObservation) -> CalibrationCaptureResult:
-        """Offer one serialized feature to the active target collector."""
+        """Pair one camera feature with the target shown at its capture timestamp."""
+
         if not isinstance(feature, GazeFeatureObservation):
             raise TypeError("Expected GazeFeatureObservation")
         if self._state is not CalibrationSessionState.COLLECTING:
             return self._result(CalibrationCaptureStatus.NOT_COLLECTING)
-        self._attempts_for_target += 1
         status, vector = self._validate_feature(feature)
-        sample: CalibrationSample | None = None
-        if status is CalibrationCaptureStatus.ACCEPTED and vector is not None:
-            target = CALIBRATION_TARGETS[self._target_index]
-            sample = CalibrationSample(
-                target=target.name,
-                source_sequence=feature.source_sequence,
-                capture_timestamp=feature.capture_timestamp,
-                feature=vector,
-            )
-            self._samples.append(sample)
-            status, sample = self._filter_current_target(sample)
-            if self.snapshot.accepted_for_target >= self._samples_per_target:
-                self._state = CalibrationSessionState.TARGET_COMPLETE
-                return self._result(CalibrationCaptureStatus.TARGET_COMPLETE, sample)
-        if self._attempts_for_target >= self._max_attempts_per_target:
+        if status is not CalibrationCaptureStatus.ACCEPTED or vector is None:
+            self._rejected_samples += 1
+            return self._result(status)
+        assert self._start_timestamp is not None
+        elapsed = feature.capture_timestamp - self._start_timestamp
+        if elapsed < 0:
+            self._rejected_samples += 1
+            return self._result(CalibrationCaptureStatus.BEFORE_TRAJECTORY)
+        if elapsed > self._trajectory.duration_seconds + self._finish_grace_seconds:
+            self._rejected_samples += 1
+            return self._result(CalibrationCaptureStatus.AFTER_TRAJECTORY)
+        position = self._trajectory.position_at(elapsed)
+        self._last_position = position
+        self._region_attempts[position.region] += 1
+        sample = CalibrationSample(
+            target=position.region,
+            source_sequence=feature.source_sequence,
+            capture_timestamp=feature.capture_timestamp,
+            feature=vector,
+            screen_x=position.x,
+            screen_y=position.y,
+        )
+        self._samples.append(sample)
+        if self._region_attempts[position.region] > self._max_attempts_per_target:
             self._state = CalibrationSessionState.TARGET_FAILED
-            return self._result(CalibrationCaptureStatus.ATTEMPT_LIMIT)
-        return self._result(status, sample)
+            region_label = _target(position.region).label.lower()
+            self._failure_reason = (
+                f"Too many camera frames accumulated in {region_label}. "
+                "Check camera responsiveness and retry."
+            )
+            return self._result(CalibrationCaptureStatus.ATTEMPT_LIMIT, sample)
+        return self._result(CalibrationCaptureStatus.ACCEPTED, sample)
 
-    def advance(self) -> CalibrationSnapshot:
-        """Advance after a complete target, or finish after bottom-right."""
-        if self._state is not CalibrationSessionState.TARGET_COMPLETE:
-            raise RuntimeError("Only a complete calibration target can advance")
-        self._attempts_for_target = 0
-        if self._target_index == len(CALIBRATION_TARGETS) - 1:
+    def finish(self, finish_timestamp: float) -> CalibrationSnapshot:
+        """Validate spatial coverage and target-following evidence after the sweep."""
+
+        if self._state is not CalibrationSessionState.COLLECTING:
+            raise RuntimeError("Only an active smooth-pursuit sweep can finish")
+        if not _finite_number(finish_timestamp):
+            raise ValueError("Pursuit finish timestamp must be finite")
+        assert self._start_timestamp is not None
+        elapsed = float(finish_timestamp) - self._start_timestamp
+        if elapsed < self._trajectory.duration_seconds:
+            raise RuntimeError("The smooth-pursuit trajectory is not complete")
+        self._last_position = self._trajectory.position_at(self._trajectory.duration_seconds)
+        counts = Counter(sample.target for sample in self._samples)
+        missing = [
+            target.label
+            for target in CALIBRATION_TARGETS
+            if counts[target.name] < self._samples_per_target
+        ]
+        horizontal, vertical = self._correlations()
+        reasons: list[str] = []
+        if missing:
+            reasons.append(f"insufficient live samples in {', '.join(missing)}")
+        if horizontal is None or abs(horizontal) < self._minimum_axis_correlation:
+            reasons.append("horizontal eye movement did not follow the target reliably")
+        if vertical is None or abs(vertical) < self._minimum_axis_correlation:
+            reasons.append("vertical eye movement did not follow the target reliably")
+        if reasons:
+            self._state = CalibrationSessionState.TARGET_FAILED
+            self._failure_reason = "; ".join(reasons).capitalize() + "."
+        else:
             self._state = CalibrationSessionState.COMPLETE
-            return self.snapshot
-        self._target_index += 1
-        self._state = CalibrationSessionState.AWAITING_TARGET
+            self._failure_reason = None
         return self.snapshot
 
+    def advance(self) -> CalibrationSnapshot:
+        """Reject obsolete manual point progression explicitly."""
+
+        raise RuntimeError("Smooth-pursuit calibration advances automatically")
+
     def cancel(self) -> CalibrationSnapshot:
-        """Discard all volatile samples and mark the session cancelled."""
         self._clear()
         self._state = CalibrationSessionState.CANCELLED
         return self.snapshot
 
     def reset(self) -> CalibrationSnapshot:
-        """Discard all samples and return to idle."""
         self._clear()
         return self.snapshot
 
@@ -310,22 +531,38 @@ class CalibrationSession:
             return CalibrationCaptureStatus.INCONSISTENT_COMBINED, None
         return CalibrationCaptureStatus.ACCEPTED, calculated
 
-    def _filter_current_target(
+    def _correlations(self) -> tuple[float | None, float | None]:
+        if len(self._samples) < 12:
+            return None, None
+        horizontal = _pearson(
+            tuple(sample.target_position[0] for sample in self._samples),
+            tuple(sample.feature.horizontal for sample in self._samples),
+        )
+        vertical = _pearson(
+            tuple(sample.target_position[1] for sample in self._samples),
+            tuple(sample.feature.vertical for sample in self._samples),
+        )
+        return horizontal, vertical
+
+    def _attention_state(
         self,
-        newest: CalibrationSample,
-    ) -> tuple[CalibrationCaptureStatus, CalibrationSample | None]:
-        target = CALIBRATION_TARGETS[self._target_index].name
-        current = tuple(sample for sample in self._samples if sample.target == target)
-        if len(current) < MINIMUM_OUTLIER_SAMPLES:
-            return CalibrationCaptureStatus.ACCEPTED, newest
-        inlier_indices = select_gaze_feature_inliers(tuple(sample.feature for sample in current))
-        inliers = tuple(current[index] for index in inlier_indices)
-        retained_sequences = {sample.source_sequence for sample in inliers}
-        previous = [sample for sample in self._samples if sample.target != target]
-        self._samples = [*previous, *inliers]
-        if newest.source_sequence not in retained_sequences:
-            return CalibrationCaptureStatus.STATISTICAL_OUTLIER, None
-        return CalibrationCaptureStatus.ACCEPTED, newest
+        horizontal: float | None,
+        vertical: float | None,
+    ) -> PursuitAttentionState:
+        if self._state in {
+            CalibrationSessionState.IDLE,
+            CalibrationSessionState.AWAITING_TARGET,
+            CalibrationSessionState.CANCELLED,
+        }:
+            return PursuitAttentionState.WAITING
+        if horizontal is None or vertical is None:
+            return PursuitAttentionState.ACQUIRING
+        if (
+            abs(horizontal) >= self._minimum_axis_correlation
+            and abs(vertical) >= self._minimum_axis_correlation
+        ):
+            return PursuitAttentionState.FOLLOWING
+        return PursuitAttentionState.NOT_FOLLOWING
 
     def _result(
         self,
@@ -334,13 +571,48 @@ class CalibrationSession:
     ) -> CalibrationCaptureResult:
         return CalibrationCaptureResult(status=status, snapshot=self.snapshot, sample=sample)
 
-    def _clear(self) -> None:
-        self._state = CalibrationSessionState.IDLE
-        self._target_index = 0
-        self._attempts_for_target = 0
+    def _clear_collection(self) -> None:
         self._samples.clear()
+        self._region_attempts.clear()
+        self._rejected_samples = 0
         self._last_source_sequence = 0
         self._last_capture_timestamp = None
+        self._start_timestamp = None
+        self._last_position = None
+        self._failure_reason = None
+
+    def _clear(self) -> None:
+        self._state = CalibrationSessionState.IDLE
+        self._clear_collection()
+
+
+def _nearest_region(x: float, y: float) -> CalibrationTarget:
+    return min(CALIBRATION_TARGETS, key=lambda target: math.hypot(x - target.x, y - target.y))
+
+
+def _target(name: CalibrationTargetName) -> CalibrationTarget:
+    return next(target for target in CALIBRATION_TARGETS if target.name is name)
+
+
+def _target_index(name: CalibrationTargetName) -> int:
+    return next(index for index, target in enumerate(CALIBRATION_TARGETS) if target.name is name)
+
+
+def _pearson(first: tuple[float, ...], second: tuple[float, ...]) -> float | None:
+    if len(first) != len(second) or len(first) < 2:
+        return None
+    first_mean = sum(first) / len(first)
+    second_mean = sum(second) / len(second)
+    first_delta = tuple(value - first_mean for value in first)
+    second_delta = tuple(value - second_mean for value in second)
+    numerator = sum(left * right for left, right in zip(first_delta, second_delta, strict=True))
+    first_energy = sum(value * value for value in first_delta)
+    second_energy = sum(value * value for value in second_delta)
+    denominator = math.sqrt(first_energy * second_energy)
+    if denominator <= 1e-12:
+        return None
+    result = numerator / denominator
+    return max(-1.0, min(1.0, result))
 
 
 def _finite_number(value: object) -> bool:

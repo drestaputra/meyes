@@ -127,12 +127,22 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             font-size: 12pt;
             font-weight: 700;
         }}
+        QLabel#calibrationPursuitQuality {{
+            color: {color.ink_muted};
+            font-weight: 600;
+        }}
+        QLabel#calibrationPursuitQuality[attentionState="following"] {{
+            color: {color.success};
+        }}
+        QLabel#calibrationPursuitQuality[attentionState="not_following"] {{
+            color: {color.danger};
+        }}
         QLabel#calibrationFocusTarget {{
-            background: {color.surface};
-            color: {color.accent};
-            border: 4px solid {color.accent};
-            border-radius: 16px;
-            font-size: 18pt;
+            background: {color.accent};
+            color: {color.surface};
+            border: 5px solid {color.surface};
+            border-radius: 22px;
+            font-size: 16pt;
             font-weight: 700;
         }}
         QFrame#topBar, QFrame#safetyBar {{

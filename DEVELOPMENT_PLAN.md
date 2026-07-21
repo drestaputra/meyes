@@ -65,7 +65,7 @@ No gesture detector may call mouse or keyboard APIs directly.
 | Vision observations | Face, eye, iris, hand, and temple features | Live diagnostics with no OS action |
 | Gesture semantics | Debounced wink and tap/hold events | Recorded fixtures pass deterministic tests |
 | Input safety | Validated configurable Windows actions | Test mode and fake executor pass before live input |
-| Gaze calibration | Screen mapping with smoothing | Nine-point flow reaches all broad screen regions |
+| Gaze calibration | Screen mapping with smoothing | Live pursuit path reaches all broad screen regions |
 | Settings and profiles | Persistent, recoverable local configuration | Round-trip, migration, and corrupt-file tests pass |
 | Packaging and privacy | Installable local-only Windows build | Clean-machine smoke test and privacy notice |
 
@@ -167,7 +167,8 @@ Exit criteria:
 Deliverables:
 
 - gaze feature extraction;
-- guided nine-point sample collection and outlier rejection;
+- hands-free Smooth Pursuit live capture with synchronized target positions, region coverage,
+  following-correlation evidence, and robust residual fitting;
 - replaceable calibration mapper;
 - One Euro or equivalent adaptive filter;
 - pointer mapping to the primary screen;

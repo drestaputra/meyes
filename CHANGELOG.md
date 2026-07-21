@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced manual nine-point calibration with a hands-free Smooth Pursuit sweep. The moving target
+  now crosses all broad screen regions while frames are paired to its capture-time position,
+  following correlation and coverage are evaluated fail-closed, and the quadratic fit uses robust
+  residual reweighting without changing the persisted mapper envelope.
+
 ### Fixed
 
 - Replaced the nearly empty completed-calibration screen with a centered result summary, readable

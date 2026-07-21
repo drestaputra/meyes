@@ -1,9 +1,12 @@
-"""Qt-owned orchestration for volatile calibration collection."""
+"""Qt-owned orchestration for volatile Smooth Pursuit calibration."""
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from math import isfinite
 
 from PySide6.QtCore import QObject, Signal, Slot
 
@@ -25,6 +28,7 @@ from meyes.calibration.session import (
     CalibrationSession,
     CalibrationSessionState,
     CalibrationSnapshot,
+    PursuitTargetPosition,
 )
 from meyes.domain.observations import GazeFeatureObservation
 
@@ -60,6 +64,7 @@ class CalibrationController(QObject):
         parent: QObject | None = None,
         *,
         acceptance_policy: CalibrationAcceptancePolicy | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         super().__init__(parent)
         if acceptance_policy is not None and not isinstance(
@@ -68,6 +73,7 @@ class CalibrationController(QObject):
             raise TypeError("Expected CalibrationAcceptancePolicy or None")
         self._session = session or CalibrationSession()
         self._acceptance_policy = acceptance_policy
+        self._clock = clock or time.monotonic
         self._fit_result: CalibrationFitResult | None = None
         self._fit_outcome = CalibrationFitOutcome(
             CalibrationFitState.NONE,
@@ -106,13 +112,37 @@ class CalibrationController(QObject):
         return self._publish(self._session.start())
 
     def begin_target(self) -> CalibrationSnapshot:
-        return self._publish(self._session.begin_target())
+        """Start or retry the automatic pursuit sweep using the camera clock domain."""
 
-    def advance(self) -> CalibrationSnapshot:
-        snapshot = self._publish(self._session.advance())
+        return self._publish(self._session.begin_target(self.now()))
+
+    def now(self) -> float:
+        """Expose the injected monotonic clock for presentation synchronization."""
+
+        value = self._clock()
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value):
+            raise TypeError("Calibration clock must return a finite number")
+        return float(value)
+
+    def pursuit_position(self, timestamp: float | None = None) -> PursuitTargetPosition:
+        """Resolve the target position rendered at a monotonic timestamp."""
+
+        return self._session.position_at(self.now() if timestamp is None else timestamp)
+
+    @property
+    def pursuit_duration_seconds(self) -> float:
+        return self._session.trajectory.duration_seconds
+
+    def finish_pursuit(self) -> CalibrationSnapshot:
+        """Complete live collection, fail closed on weak attention, and fit when valid."""
+
+        snapshot = self._publish(self._session.finish(self.now()))
         if snapshot.state is CalibrationSessionState.COMPLETE:
             self._fit_complete_session()
         return snapshot
+
+    def advance(self) -> CalibrationSnapshot:
+        return self._publish(self._session.advance())
 
     def cancel(self) -> CalibrationSnapshot:
         self._clear_fit()

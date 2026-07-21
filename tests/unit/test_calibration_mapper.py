@@ -74,6 +74,50 @@ def test_quadratic_basis_learns_nonlinear_axis_mapping() -> None:
     assert prediction.y == pytest.approx(0.64, abs=1e-10)
 
 
+def test_continuous_pursuit_coordinates_are_fitted_instead_of_region_anchors() -> None:
+    samples: list[CalibrationSample] = []
+    sequence = 1
+    for target in CALIBRATION_TARGETS:
+        for offset in (-0.03, 0.0, 0.03):
+            screen_x = min(max(target.x + offset, 0.05), 0.95)
+            screen_y = min(max(target.y - offset, 0.05), 0.95)
+            samples.append(
+                CalibrationSample(
+                    target=target.name,
+                    source_sequence=sequence,
+                    capture_timestamp=sequence / 30,
+                    feature=GazeFeatureVector(screen_x, screen_y),
+                    screen_x=screen_x,
+                    screen_y=screen_y,
+                )
+            )
+            sequence += 1
+
+    mapper = fit_polynomial_mapper(samples)
+
+    prediction = mapper.predict(GazeFeatureVector(0.37, 0.63))
+    assert prediction.x == pytest.approx(0.37, abs=1e-10)
+    assert prediction.y == pytest.approx(0.63, abs=1e-10)
+
+
+def test_robust_fit_limits_one_isolated_camera_outlier() -> None:
+    samples = [*complete_samples(per_target=8)]
+    samples.append(
+        CalibrationSample(
+            target=CALIBRATION_TARGETS[0].name,
+            source_sequence=len(samples) + 1,
+            capture_timestamp=10.0,
+            feature=GazeFeatureVector(0.9, 0.9),
+        )
+    )
+
+    mapper = fit_polynomial_mapper(samples)
+    prediction = mapper.predict(GazeFeatureVector(0.5, 0.5))
+
+    assert prediction.x == pytest.approx(0.5, abs=0.01)
+    assert prediction.y == pytest.approx(0.5, abs=0.01)
+
+
 def test_per_target_holdout_is_deterministic_and_final_mapper_uses_all_samples() -> None:
     samples = complete_samples(per_target=4)
 
@@ -158,6 +202,17 @@ def test_runtime_arguments_are_rejected() -> None:
     mapper = fit_polynomial_mapper(samples)
     with pytest.raises(TypeError, match="Expected GazeFeatureVector"):
         mapper.predict(object())  # type: ignore[arg-type]
+
+
+def test_continuous_coordinates_must_be_provided_as_a_pair() -> None:
+    with pytest.raises(ValueError, match="provided together"):
+        CalibrationSample(
+            target=CALIBRATION_TARGETS[0].name,
+            source_sequence=1,
+            capture_timestamp=1.0,
+            feature=GazeFeatureVector(0.1, 0.1),
+            screen_x=0.1,
+        )
 
 
 def test_replaceable_mapper_output_is_validated() -> None:

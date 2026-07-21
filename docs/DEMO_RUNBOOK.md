@@ -30,7 +30,7 @@ and submission against the current [Official Rules](https://openai.devpost.com/r
 |---|---|---|
 | 0:00-0:15 | MEYES opens in `SAFE MODE` | Ordinary-webcam, local, assistive productivity prototype; not a medical device. |
 | 0:15-0:45 | Start camera, show Diagnostics, wink, temple tap/hold | Face/hand inference runs locally; frames are not intentionally stored or uploaded. |
-| 0:45-1:15 | Show nine-point calibration and held-out result | State the result exactly. `Review Required` is not accepted and cannot enable pointer movement. |
+| 0:45-1:15 | Show hands-free Smooth Pursuit live capture and held-out result | Follow the moving target, show live quality feedback, and state the result exactly. `Review Required` is not accepted and cannot enable pointer movement. |
 | 1:15-1:50 | Disposable target plus Live Input checklist | Confirm the arm dialog, show one wink click and bounded temple scroll, then trigger the emergency shortcut and show `SAFE MODE`. |
 | 1:50-2:15 | Test result, commit history, architecture/evidence | Show the current count/revision and the separate observation, intent, candidate, consent, and executor boundaries. |
 | 2:15-2:35 | Application plus concise close | Explain human product/safety decisions and how Codex with GPT-5.6 accelerated implementation, review, tests, and QA. |
