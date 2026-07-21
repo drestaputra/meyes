@@ -124,6 +124,21 @@ def test_disarm_button_releases_and_restores_safe_status(qtbot: QtBot) -> None:
     assert executor.calls[-1] == InputCall("release_all")
 
 
+def test_post_calibration_request_uses_activation_confirmation(qtbot: QtBot) -> None:
+    page, controller, _executor, _safety = _page(qtbot)
+    page.set_tracking_available(True)
+
+    with patch("meyes.ui.live_input_page.confirm_action", return_value=True) as confirm:
+        result = page.request_arm(calibration_completed=True)
+
+    assert result is not None and result.success
+    assert controller.state is LiveInputState.ARMED
+    assert confirm.call_args.kwargs["title"] == "Calibration complete - activate Live Input?"
+    assert confirm.call_args.kwargs["confirm_label"] == "Activate Live Input"
+    assert "pointer mapper is ready" in confirm.call_args.kwargs["message"]
+    assert controller.disarm("test cleanup").success
+
+
 def test_pressed_physical_input_fails_closed_with_visible_feedback(qtbot: QtBot) -> None:
     page, controller, executor, safety = _page(qtbot, safety=FakeSafetyApi(pressed={0x01}))
     arm = page.findChild(QPushButton, "armLiveInputButton")

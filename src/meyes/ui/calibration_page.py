@@ -99,6 +99,11 @@ class CalibrationPage(QWidget):
         self._render_snapshot(controller.snapshot)
         self._render_fit_outcome(controller.fit_outcome)
 
+    @property
+    def modal_parent(self) -> QWidget:
+        """Keep post-calibration dialogs above the visible full-screen presentation."""
+        return self._presentation if self._presentation.isVisible() else self
+
     def _build_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -119,8 +124,8 @@ class CalibrationPage(QWidget):
         description = QLabel(
             "Follow one moving target while MEYES captures gaze continuously and verifies "
             "that eye movement follows the live path across all nine screen regions. "
-            "Only a mapper accepted by every configured limit can be stored locally; Live Input "
-            "is disarmed before collection or replacement."
+            "A completed valid mapper becomes available immediately; MEYES asks before activating "
+            "Live Input and disarms it before collection or replacement."
         )
         description.setObjectName("mutedText")
         description.setWordWrap(True)

@@ -152,12 +152,12 @@ def test_return_after_completion_preserves_volatile_fit(qtbot: QtBot) -> None:
     assert "100%" in widget._progress.format()
     assert "9 / 9 regions covered" in widget._progress.format()
     assert widget._result_panel.isVisible()
-    assert widget._result_status.text() == "Review Required"
-    assert widget._result_status.property("acceptanceState") == "review_required"
+    assert widget._result_status.text() == "Accepted"
+    assert widget._result_status.property("acceptanceState") == "accepted"
     assert "RMSE:" in widget._result_metrics.text()
     assert "Holdout samples: 18" in widget._result_metrics.text()
-    assert "activation is blocked" in widget._result_summary.text()
-    assert "pointer output remains off" in widget._result_explanation.text()
+    assert "pointer mapper is ready" in widget._result_summary.text()
+    assert "Confirm Live Input" in widget._result_explanation.text()
     assert not widget._retry_button.isVisible()
     assert not widget._cancel_button.isVisible()
 

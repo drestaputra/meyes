@@ -30,8 +30,8 @@ and submission against the current [Official Rules](https://openai.devpost.com/r
 |---|---|---|
 | 0:00-0:15 | MEYES opens in `SAFE MODE` | Ordinary-webcam, local, assistive productivity prototype; not a medical device. |
 | 0:15-0:45 | Start camera, show Diagnostics, wink, temple tap/hold | Face/hand inference runs locally; frames are not intentionally stored or uploaded. |
-| 0:45-1:15 | Show hands-free Smooth Pursuit live capture and held-out result | Follow the moving target, show live quality feedback, and state the result exactly. `Review Required` is not accepted and cannot enable pointer movement. |
-| 1:15-1:50 | Disposable target plus Live Input checklist | Confirm the arm dialog, show one wink click and bounded temple scroll, then trigger the emergency shortcut and show `SAFE MODE`. |
+| 0:45-1:15 | Show hands-free Smooth Pursuit live capture and held-out result | Follow the moving target; show coverage, correlation, held-out metrics, the `Accepted` result, and the cancel-default activation dialog. Do not claim universal physical accuracy. |
+| 1:15-1:50 | Disposable target plus Live Input confirmation | Confirm **Activate Live Input**, show one wink click and bounded temple scroll, then trigger the emergency shortcut and show `SAFE MODE`. |
 | 1:50-2:15 | Test result, commit history, architecture/evidence | Show the current count/revision and the separate observation, intent, candidate, consent, and executor boundaries. |
 | 2:15-2:35 | Application plus concise close | Explain human product/safety decisions and how Codex with GPT-5.6 accelerated implementation, review, tests, and QA. |
 
@@ -40,9 +40,10 @@ status, or the emergency return. Camera startup must visibly remain disconnected
 
 ## 3. Calibration and live-output decision
 
-- If the fit says `Review Required` or `Rejected`, show that honest result and omit gaze movement.
-- Show gaze movement only if the exact current display has a saved `Accepted` envelope produced by
-  a complete configured four-limit evidence policy. Do not loosen limits for the recording.
+- Show gaze movement only after the sweep reports `Accepted`, the current-display pointer pipeline
+  is ready, and the user confirms the post-calibration Live Input dialog.
+- A completion-accepted mapper can remain volatile for the current session. Do not describe it as
+  saved unless an explicit four-limit persistence policy actually produced a saved envelope.
 - Wink/temple output still requires the disposable target, explicit per-session arm confirmation, clear
   physical buttons/modifiers, registered emergency shortcut, and visible `LIVE INPUT` state.
 - If any preflight, camera, calibration, or native-output step faults, return to Safe Mode and record

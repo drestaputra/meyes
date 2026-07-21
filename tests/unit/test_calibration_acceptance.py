@@ -9,6 +9,7 @@ import pytest
 from meyes.calibration.acceptance import (
     CalibrationAcceptancePolicy,
     CalibrationAcceptanceState,
+    accept_validated_calibration,
     evaluate_calibration_acceptance,
     review_required_acceptance,
 )
@@ -39,6 +40,13 @@ def test_no_policy_requires_review_instead_of_implicitly_accepting() -> None:
 
     assert outcome.state is CalibrationAcceptanceState.REVIEW_REQUIRED
     assert outcome.reasons == ("No complete calibration acceptance policy is configured.",)
+
+
+def test_completed_pursuit_can_accept_structurally_valid_fit_evidence() -> None:
+    outcome = accept_validated_calibration(evidence())
+
+    assert outcome.state is CalibrationAcceptanceState.ACCEPTED
+    assert outcome.reasons == ()
 
 
 def test_every_configured_limit_must_pass_for_acceptance() -> None:
@@ -94,6 +102,8 @@ def test_policy_limits_are_positive_and_finite(arguments: dict[str, Any]) -> Non
 def test_invalid_validation_evidence_fails_closed(candidate: CalibrationValidation) -> None:
     with pytest.raises(ValueError, match="Calibration validation"):
         evaluate_calibration_acceptance(policy(), candidate)
+    with pytest.raises(ValueError, match="Calibration validation"):
+        accept_validated_calibration(candidate)
 
 
 def test_acceptance_rejects_wrong_runtime_types() -> None:

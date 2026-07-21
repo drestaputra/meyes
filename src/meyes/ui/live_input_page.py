@@ -18,7 +18,12 @@ from PySide6.QtWidgets import (
 
 from meyes.input.windows_safety import EMERGENCY_HOTKEY_LABEL
 from meyes.ui.confirmation_dialog import confirm_action
-from meyes.ui.live_input import LiveInputController, LiveInputSnapshot, LiveInputState
+from meyes.ui.live_input import (
+    LiveInputController,
+    LiveInputResult,
+    LiveInputSnapshot,
+    LiveInputState,
+)
 
 WindowIdProvider = Callable[[], int]
 
@@ -160,26 +165,58 @@ class LiveInputPage(QWidget):
 
     @Slot()
     def _arm(self) -> None:
+        self.request_arm()
+
+    def request_arm(
+        self,
+        *,
+        calibration_completed: bool = False,
+        dialog_parent: QWidget | None = None,
+    ) -> LiveInputResult | None:
+        """Request modal consent, including the post-calibration activation handoff."""
+        if not isinstance(calibration_completed, bool):
+            raise TypeError("calibration_completed must be a bool")
+        if dialog_parent is not None and not isinstance(dialog_parent, QWidget):
+            raise TypeError("dialog_parent must be a QWidget or None")
+        snapshot = self._controller.snapshot
+        if (
+            snapshot.state is not LiveInputState.SAFE
+            or not snapshot.platform_supported
+            or not self._tracking_available
+        ):
+            self._feedback.setText(
+                "Live Input cannot be activated until the camera is running and Safe Mode is ready."
+            )
+            return None
+        title = (
+            "Calibration complete - activate Live Input?"
+            if calibration_completed
+            else "Arm Live Input?"
+        )
+        message = (
+            "Calibration passed and the pointer mapper is ready. " if calibration_completed else ""
+        ) + (
+            "Enable real Windows pointer, mouse-button, scroll, and keyboard output for this "
+            f"application session? Keep {EMERGENCY_HOTKEY_LABEL} available and release all "
+            "physical mouse buttons and modifier keys before continuing."
+        )
         if not confirm_action(
-            self,
-            title="Arm Live Input?",
-            message=(
-                "Enable real Windows pointer, mouse-button, scroll, and keyboard output for this "
-                f"application session? Keep {EMERGENCY_HOTKEY_LABEL} available and release all "
-                "physical mouse buttons and modifier keys before continuing."
-            ),
-            confirm_label="Arm Live Input",
+            dialog_parent if dialog_parent is not None else self,
+            title=title,
+            message=message,
+            confirm_label="Activate Live Input" if calibration_completed else "Arm Live Input",
             destructive=True,
         ):
             self._feedback.setText("Live Input remains in Safe Mode; arming was cancelled.")
-            return
+            return None
         try:
             window_id = self._window_id_provider()
         except Exception as error:
             self._feedback.setText(f"Window handle unavailable ({type(error).__name__}).")
-            return
+            return None
         result = self._controller.arm(consent_granted=True, window_id=window_id)
         self._feedback.setText(result.message)
+        return result
 
     @Slot()
     def _return_to_safe_mode(self) -> None:

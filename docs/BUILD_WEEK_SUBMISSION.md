@@ -69,10 +69,11 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   regions, live following-correlation feedback, bounded quality/replay rejection, retry/Escape,
   robust residual fitting, and fail-safe presentation-close cancellation;
 - fits a volatile replaceable quadratic mapper after complete user collection, with fail-closed
-  numerical guards and visible deterministic per-target holdout metrics, without automatically
-  accepting or activating its output;
-- evaluates a mapper only when a complete four-limit acceptance policy is explicitly configured,
-  otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
+  numerical guards and visible deterministic region-stratified holdout metrics;
+- accepts a completed mapper for the current session only after nine-region coverage,
+  target-following correlation, and stable-fit checks pass, then asks through a cancel-default
+  dialog whether to activate Live Input; an explicitly configured four-limit policy can impose
+  stricter rejection and is still required for persistence/recovery;
 - provides a configurable One Euro 2D filter with deterministic jitter, rapid-step,
   timestamp-order, independent-axis, reset, and stale-gap tests in the candidate pipeline;
 - provides a validated Sensitivity view that releases Live Input before persisting One Euro and
@@ -114,7 +115,7 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
 - starts every application session with operating-system input disconnected and never persists
   Live Input consent.
 
-The current build does **not** provide evidence-backed default calibration limits, broad
+The current build does **not** claim evidence-backed physical accuracy limits or broad
 physical-device reach validation, bulk calibration-backup cleanup, a packaged installer, a medical
 assessment, or a remote OpenAI-powered runtime. Those capabilities must not appear in the video or
 description as completed functionality.

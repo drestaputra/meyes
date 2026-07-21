@@ -603,6 +603,57 @@ def test_newly_accepted_fit_is_saved_without_arming_live_input(
     assert "Saved calibration" in persistence_label.text()
 
 
+def test_passed_calibration_prompts_before_activating_live_input(qtbot: QtBot) -> None:
+    executor = FakeInputExecutor()
+    safety = MainWindowSafetyApi()
+
+    def hotkey_factory(parent: QObject) -> WindowsEmergencyHotkey:
+        application = QCoreApplication.instance()
+        assert application is not None
+        return WindowsEmergencyHotkey(api=safety, application=application, parent=parent)
+
+    window = MainWindow(
+        AppConfig(),
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        live_input_executor_factory=lambda: executor,
+        live_input_hotkey_factory=hotkey_factory,
+        live_input_platform_supported=True,
+        cursor_geometry_provider=FixedGeometryProvider(),
+    )
+    qtbot.addWidget(window)
+    window.show()
+    window._sync_vision_lifecycle(
+        CameraHealth(status=CameraStatus.RUNNING, message="Camera is running")
+    )
+    accepted = accepted_calibration()
+    outcome = CalibrationFitOutcome(
+        CalibrationFitState.READY,
+        "accepted",
+        accepted.fit_result.validation,
+        accepted.acceptance,
+    )
+    window._calibration_controller._fit_result = accepted.fit_result
+    window._calibration_controller._fit_outcome = outcome
+
+    with patch("meyes.ui.live_input_page.confirm_action", side_effect=[False, True]) as confirm:
+        window._calibration_controller.fit_changed.emit(outcome)
+        cancelled_state = window._live_input_controller.state
+        assert cancelled_state is LiveInputState.SAFE
+        assert safety.registered == 0
+
+        window._calibration_controller.fit_changed.emit(outcome)
+
+    assert confirm.call_count == 2
+    assert confirm.call_args.kwargs["confirm_label"] == "Activate Live Input"
+    armed_state = window._live_input_controller.state
+    assert armed_state is LiveInputState.ARMED
+    assert safety.registered == 1
+    assert executor.calls == [InputCall("release_all"), InputCall("release_all")]
+    window.close()
+
+
 def test_existing_calibration_is_replaced_only_after_modal_confirmation(
     qtbot: QtBot,
     tmp_path: Path,

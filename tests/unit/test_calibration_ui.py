@@ -358,12 +358,12 @@ def test_complete_live_sweep_fits_mapper_and_shows_holdout_metrics(qtbot: QtBot)
     assert "9 / 9 regions" in page._progress.format()
     assert "RMSE 0.0000" in page._fit_metrics.text()
     assert "n=18" in page._fit_metrics.text()
-    assert page._acceptance_status.text() == "Review Required"
+    assert page._acceptance_status.text() == "Accepted"
     assert outcome.acceptance is not None
-    assert outcome.acceptance.state is CalibrationAcceptanceState.REVIEW_REQUIRED
-    assert controller.accepted_fit_result is None
-    assert controller.accepted_calibration is None
-    assert "Review is required" in page._feedback.text()
+    assert outcome.acceptance.state is CalibrationAcceptanceState.ACCEPTED
+    assert controller.accepted_fit_result is controller.fit_result
+    assert controller.accepted_calibration is not None
+    assert "Confirm Live Input" in page._feedback.text()
 
 
 def test_nonfollowing_sweep_fails_before_mapper_fit(qtbot: QtBot) -> None:
@@ -414,7 +414,7 @@ def test_configured_policy_exposes_only_an_accepted_fit(qtbot: QtBot) -> None:
     assert controller.accepted_calibration is not None
     assert controller.accepted_calibration.fit_result is controller.fit_result
     assert page._acceptance_status.text() == "Accepted"
-    assert "meets every configured acceptance limit" in page._feedback.text()
+    assert "produced a valid mapper" in page._feedback.text()
 
 
 def test_configured_policy_rejection_never_exposes_an_accepted_fit(qtbot: QtBot) -> None:

@@ -424,7 +424,7 @@ class CalibrationPresentation(QWidget):
             state = acceptance.state.value.replace("_", " ").title()
             property_value = acceptance.state.value
             summaries = {
-                "accepted": "This calibration passed every configured evidence limit.",
+                "accepted": ("All required regions were covered and the pointer mapper is ready."),
                 "rejected": "This calibration did not pass the configured evidence limits.",
                 "review_required": (
                     "A mapper was fitted, but activation is blocked until evidence-backed "

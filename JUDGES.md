@@ -108,12 +108,12 @@ target without a specific error; run MEYES and the disposable target at the same
 
 Optional calibration and gaze-pointer check:
 
-1. Treat this as an advanced path. The default calibration acceptance limits are intentionally
-   unset, so a fit reports `Review Required` and cannot move the pointer by default.
-2. If the submitted revision includes a preconfigured, evidence-backed four-limit policy, complete
-   all nine full-screen points and confirm the fit reports `Accepted`. Do not weaken limits merely
-   to force a demo.
-3. Confirm the saved-calibration status names the current physical display. If a saved envelope
+1. Treat this as an advanced path. Complete the Smooth Pursuit sweep and confirm all nine regions,
+   target-following checks, mapper fitting, and the `Accepted` result complete successfully.
+2. Confirm or cancel the post-calibration Live Input dialog. Cancellation must keep Safe Mode;
+   confirmation must still pass the hotkey, physical-input, and release preflights.
+3. If persistence is configured, confirm the saved-calibration status names the current display.
+   If a saved envelope
    already exists, replacement requires a cancel-default modal confirmation and releases Live Input.
    The full-screen completion summary shows RMSE, mean error, maximum error, holdout count, and the
    plain-language reason pointer output is accepted, rejected, or still blocked for review.
@@ -176,14 +176,14 @@ Working in the submitted source build:
 - independent local face and lower-cadence hand inference;
 - fail-closed binocular iris-to-eye feature extraction with freshness expiry and explicit native
   Diagnostics status; these uncalibrated values are not screen coordinates;
-- a distraction-free primary-display nine-point collector with targets at normalized 10/50/90%
-  positions, Space/Enter/R/Escape controls, explicit capture, progress, retry, cancellation, quota,
-  attempt, ordering, replay, range, binocular-consistency, and robust per-target median/MAD guards;
-- a user-triggered volatile quadratic calibration fit after complete collection, with
-  complete-target coverage, matrix-rank, conditioning, finite-output, deterministic per-target
+- a distraction-free primary-display Smooth Pursuit collector with capture-time target pairing,
+  automatic continuous sampling, nine-region coverage, target-following correlation, progress,
+  retry, cancellation, ordering, replay, range, and binocular-consistency guards;
+- an automatic volatile quadratic calibration fit after complete collection, with
+  complete-region coverage, matrix-rank, conditioning, finite-output, deterministic region-stratified
   holdout-validation guards, visible metrics, and recoverable failure feedback;
-- an optional all-or-none acceptance policy that reports every missed configured limit, defaults
-  to `Review Required` because no benchmark limits are claimed, and activates only accepted fits;
+- completion-based current-session acceptance after every pursuit and fit guard passes, plus an
+  optional stricter all-or-none policy for evidence-backed persistence and recovery;
 - a configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive cutoff,
   independent axes, and stale-gap reset in the accepted cursor-candidate pipeline;
 - a Sensitivity view for validated One Euro and temple-gate values that releases Live Input before
@@ -230,7 +230,7 @@ Working in the submitted source build:
 
 Intentionally not implemented or not enabled:
 
-- evidence-backed default calibration limits and broad physical-device reach validation;
+- evidence-backed physical accuracy limits and broad physical-device reach validation;
 - bulk calibration-backup cleanup, a standalone Windows executable, or an installer;
 - native 125%/150% display-scale and enabled High Contrast human evidence.
 

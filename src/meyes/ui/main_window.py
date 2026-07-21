@@ -195,7 +195,6 @@ class MainWindow(QMainWindow):
             config.calibration.acceptance_policy,
         )
         self._calibration_persistence_result = self._calibration_persistence.recover_once()
-        self._calibration_controller.fit_changed.connect(self._sync_cursor_pipeline)
         self._vision_controller.gaze_feature_changed.connect(
             self._calibration_controller.observe_feature
         )
@@ -241,6 +240,7 @@ class MainWindow(QMainWindow):
         )
         self.setStyleSheet("" if use_system_theme else build_stylesheet())
         self.setCentralWidget(self._build_shell())
+        self._calibration_controller.fit_changed.connect(self._sync_cursor_pipeline)
         self._calibration_page.set_persistence_result(self._calibration_persistence_result)
         if self._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED:
             self._logger.info("calibration_startup_recovered")
@@ -268,6 +268,19 @@ class MainWindow(QMainWindow):
             self._calibration_page.set_persistence_result(result)
         if result.status is CalibrationPersistenceStatus.FAULTED:
             self._logger.error("calibration_persistence_lifecycle_failed")
+        provisioning = result.provisioning
+        if (
+            self._calibration_controller.accepted_calibration is not None
+            and provisioning is not None
+            and provisioning.status is CursorProvisioningStatus.READY
+            and self._last_camera_status is CameraStatus.RUNNING
+        ):
+            activation = self._live_input_page.request_arm(
+                calibration_completed=True,
+                dialog_parent=self._calibration_page.modal_parent,
+            )
+            if activation is not None and activation.success:
+                self._logger.info("live_input_armed_after_calibration_confirmation")
 
     def _build_shell(self) -> QWidget:
         root = QWidget(self)

@@ -79,7 +79,7 @@ class FirstRunWizard(QDialog):
                 (
                     "Camera permission may be requested by Windows on first start.",
                     "Diagnostics shows local face, hand, gesture, and cursor-candidate state.",
-                    "Calibration acceptance defaults to Review Required without evidence limits.",
+                    "A completed valid Smooth Pursuit calibration makes the pointer mapper ready.",
                 ),
             )
         )

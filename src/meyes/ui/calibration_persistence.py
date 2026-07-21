@@ -194,7 +194,7 @@ class CalibrationPersistenceLifecycle:
             provisioning = self._provisioner.configure(calibration)
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.VOLATILE,
-                "Accepted calibration remains volatile because persistence is unavailable.",
+                "Accepted calibration is active for this session; automatic saving is unavailable.",
                 provisioning,
             )
         provisioning = self._provisioner.configure(calibration)

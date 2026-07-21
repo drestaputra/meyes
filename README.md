@@ -23,7 +23,9 @@ plus a distraction-free Smooth Pursuit live-calibration flow. After a hands-free
 target moves through all nine broad screen regions while camera samples are synchronized to its
 capture-time position. MEYES reports live target-following correlation, rejects incomplete or weak
 following evidence, then fits a robust quadratic mapper and reports deterministic region-stratified
-holdout metrics in a centered completion summary. Acceptance defaults to `Review Required`. An
+holdout metrics in a centered completion summary. A completed sweep that passes coverage,
+following-correlation, and mapper-stability checks is accepted immediately for the current session.
+MEYES then presents a cancel-default dialog asking whether to activate Live Input. An
 executor-independent cursor pipeline composes proof-carrying accepted calibration, configured
 adaptive smoothing, physical-pixel mapping, and the configured tracking/temple gate. A Qt-owned
 diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals.
@@ -35,7 +37,9 @@ during an explicitly armed Live Input session; each move revalidates the current
 against the exact provisioned geometry, and mismatch or native failure removes the pipeline, faults
 Live Input, releases owned input, and requests tracking pause. Accepted fits are atomically saved in
 a schema-2 checksummed evidence envelope with UTC creation time and physical primary-display
-geometry. A newly accepted fit cannot overwrite an existing envelope until Live Input is released
+geometry when an explicit persistence policy is configured and passed. Without that policy, the
+accepted mapper remains active only for the current session. A newly accepted fit cannot overwrite
+an existing envelope until Live Input is released
 and a cancel-default replacement dialog is confirmed; before confirmation it remains volatile while
 the prior file stays intact. Safe startup recovery requires the exact same policy and geometry;
 mismatch keeps the stored file but removes the pipeline. Modal-confirmed controls can forget the
@@ -101,8 +105,8 @@ Or use:
 
 1. Start the camera and verify stable gesture diagnostics in **Diagnostics**.
 2. Complete an accepted calibration if you want gaze pointer movement.
-3. Open **Live Input**, release physical mouse buttons and modifier keys, select **Arm Live Input**,
-   review the safety dialog, and explicitly confirm **Arm Live Input**.
+3. After calibration, review the activation dialog and confirm **Activate Live Input**; alternatively,
+   open **Live Input**, select **Arm Live Input**, and confirm its safety dialog.
 4. Confirm the persistent bar says `LIVE INPUT` before testing in a disposable target window.
 5. Press `Ctrl+Alt+Shift+F11`, select **Return to Safe Mode**, pause/stop the camera, or close MEYES
    to gate dispatch and release all input owned by MEYES.
@@ -223,7 +227,7 @@ Meyes uses Windows-appropriate per-user locations:
 - configuration: `%APPDATA%\Meyes\config.json`;
 - logs: `%LOCALAPPDATA%\Meyes\Logs\meyes.log`;
 - accepted-calibration evidence envelope: `%LOCALAPPDATA%\Meyes\accepted-calibration.json` when a
-  fitted mapper passes every explicitly configured acceptance limit;
+  fitted mapper passes every explicitly configured persistence limit;
 - other local data: `%LOCALAPPDATA%\Meyes\`.
 
 MEYES does not intentionally persist or transmit camera frames. MediaPipe performs input-media processing on-device, while Google's current MediaPipe terms state that Solution APIs may periodically contact Google and send non-input usage, performance, application, and system metrics. See [PRIVACY.md](./PRIVACY.md) for the precise boundary.

@@ -1,4 +1,4 @@
-"""Explicit, opt-in acceptance policy for calibration validation evidence."""
+"""Completion acceptance plus optional stricter calibration evidence limits."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from meyes.calibration.mapper import CalibrationFitResult, CalibrationValidation
 
 
 class CalibrationAcceptanceState(StrEnum):
-    """Whether configured evidence limits approve a volatile mapper."""
+    """Whether the current acceptance path approves a volatile mapper."""
 
     REVIEW_REQUIRED = "review_required"
     ACCEPTED = "accepted"
@@ -44,7 +44,7 @@ class CalibrationAcceptancePolicy:
 
 @dataclass(frozen=True, slots=True)
 class CalibrationAcceptance:
-    """Transparent decision and any failed configured limits."""
+    """Transparent decision and any failed completion or configured limits."""
 
     state: CalibrationAcceptanceState
     reasons: tuple[str, ...] = ()
@@ -52,7 +52,7 @@ class CalibrationAcceptance:
 
 @dataclass(frozen=True, slots=True)
 class AcceptedCalibration:
-    """Proof-carrying volatile fit for consumers that require policy acceptance."""
+    """Proof-carrying volatile fit for consumers that require explicit acceptance."""
 
     fit_result: CalibrationFitResult
     acceptance: CalibrationAcceptance
@@ -74,6 +74,12 @@ def review_required_acceptance() -> CalibrationAcceptance:
         CalibrationAcceptanceState.REVIEW_REQUIRED,
         ("No complete calibration acceptance policy is configured.",),
     )
+
+
+def accept_validated_calibration(validation: CalibrationValidation) -> CalibrationAcceptance:
+    """Accept a completed pursuit fit when its validation evidence is structurally valid."""
+    _validate_evidence(validation)
+    return CalibrationAcceptance(CalibrationAcceptanceState.ACCEPTED)
 
 
 def evaluate_calibration_acceptance(

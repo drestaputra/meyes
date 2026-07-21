@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Completed Smooth Pursuit calibration now accepts a valid mapper immediately for the current
+  session and opens a cancel-default Live Input activation dialog once the cursor pipeline is ready;
+  declining keeps Safe Mode, while explicit configured limits still support stricter rejection and
+  policy-bound persistence.
 - Replaced manual nine-point calibration with a hands-free Smooth Pursuit sweep. The moving target
   now crosses all broad screen regions while frames are paired to its capture-time position,
   following correlation and coverage are evaluated fail-closed, and the quadratic fit uses robust

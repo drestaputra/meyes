@@ -167,7 +167,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Limit isolated camera noise with deterministic robust residual reweighting.
 - [x] Implement a replaceable quadratic calibration mapper with deterministic holdout metrics.
 - [x] Fit a volatile mapper after complete collection and show guarded holdout metrics in Calibration.
-- [x] Add an opt-in all-or-none acceptance-policy contract with a fail-closed review-required default.
+- [x] Add an optional all-or-none acceptance-policy contract for stricter rejection and persistence.
+- [x] Accept completed Smooth Pursuit fits directly after coverage, correlation, and mapper guards.
+- [x] Prompt with a cancel-default dialog to activate Live Input after calibration passes.
 - [ ] Collect representative physical-device evidence and define justified acceptance thresholds.
 - [x] Define versioned, checksummed, exact-policy persistence and fail-closed recovery for an accepted mapper.
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.

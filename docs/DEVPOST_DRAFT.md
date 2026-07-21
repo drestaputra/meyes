@@ -137,12 +137,14 @@ frames are processed locally and are not intentionally stored or uploaded.
 ### 0:45-1:15 — Calibration honesty
 
 Show the full-screen Smooth Pursuit target moving through the screen, live following feedback, and
-held-out metrics. If no evidence-backed policy is prepared, show `Review Required` and say pointer
-activation remains unavailable. Never present a rejected or review-required fit as accepted.
+held-out metrics. When coverage, following correlation, and mapper fitting pass, show the `Accepted`
+result and the cancel-default post-calibration Live Input dialog. State that this completion gate is
+not a claim of universal physical accuracy and that persistence still needs an explicit policy.
 
 ### 1:15-1:50 — Explicit real input
 
-Open a disposable target, show the Live Input checklist, confirm the arm dialog, and demo one
+Open a disposable target, confirm the post-calibration activation dialog (or the Live Input page
+dialog), and demo one
 wink click and one bounded temple scroll. If and only if an accepted, display-matched calibration is
 already available, also show gaze movement. Press `Ctrl+Alt+Shift+F11` and show return to Safe Mode.
 
