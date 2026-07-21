@@ -89,6 +89,15 @@ committed lockfile in frozen mode, and report one actionable prerequisite error 
 available. Qt tests use the native Windows platform unless the caller explicitly sets
 `QT_QPA_PLATFORM`.
 
+Run the non-mutating local submission audit with:
+
+```powershell
+.\scripts\submission_preflight.ps1 -RunFullCheck
+```
+
+It checks local Git/file/evidence invariants and then prints the human/external blockers it cannot
+verify. It never submits to Devpost or changes repository visibility.
+
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 
 ```powershell
