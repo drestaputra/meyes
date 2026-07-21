@@ -140,6 +140,8 @@ The latest clean-revision build and independent checksum verification are record
 [`docs/evidence/release/2026-07-21.md`](./docs/evidence/release/2026-07-21.md).
 Requirements for a future signed Windows executable/package are documented separately in
 [SIGNING.md](./SIGNING.md); no certificate or signing pipeline is currently configured.
+The measured local packager/toolchain blocker and standalone-first comparison plan are recorded in
+[`docs/evidence/packaging/2026-07-21.md`](./docs/evidence/packaging/2026-07-21.md).
 
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 

@@ -223,6 +223,12 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 ## Backlog — Phase 7
 
 - [ ] Select Nuitka or `pyside6-deploy` using measured build results.
+  - [x] Probe the current environment: official `pyside6-deploy` is present, while Nuitka,
+    `dumpbin`, MSVC, and MinGW/GCC toolchain routes are absent.
+  - [x] Define an isolated pinned standalone-first build/measurement matrix without treating tool
+    availability as a selection result.
+  - [ ] Provision the isolated compiler/Nuitka environment, build both comparable candidates or
+    record a hard incompatibility, and select from measured results.
 - [x] Bundle verified MediaPipe models and provenance in the Python wheel.
 - [x] Add installed-wheel version and integrity diagnostics that cannot activate GUI or native input.
 - [ ] Bundle icons and remaining default resources in the selected Windows delivery.

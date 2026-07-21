@@ -45,7 +45,7 @@ It does not open a camera or arm operating-system input.
 | UI and accessibility | All nine views implemented; top/bottom native 900×640 and top 1200×760 review; no horizontal overflow; keyboard shell shortcuts/focus tests; textual non-color safety state. | Human full-screen calibration/native-dialog keyboard pass, 125%/150% scale, and enabled High Contrast visual/keyboard evidence. | PARTIAL |
 | Privacy and recovery copy | `PRIVACY.md`, read-only Privacy view, `TROUBLESHOOTING.md`, local paths, deletion/recovery boundaries, no intentional frame persistence. | Review on the exact shipped package and dependency versions. | PASS for source candidate |
 | Performance | Latest-frame buffers, independent workers, 10 FPS hand cadence, synthetic exact-revision profile, no unsupported optimization. | Live detected-face/hand, preview latency, CPU/memory, sustained thermal/load measurements on representative devices. | PARTIAL |
-| Windows delivery | Verified Python wheel with bundled models, diagnostics, manifest, checksum, signing requirements. | Select packager from measured builds; create standalone delivery/resources/recovery; sign when authorized; clean-machine install/launch/uninstall. | BLOCKED |
+| Windows delivery | Verified Python wheel with bundled models, diagnostics, manifest, checksum, signing requirements, plus a recorded packager/toolchain readiness spike. | Provision an isolated compiler/Nuitka environment; select from measured builds; create standalone delivery/resources/recovery; sign when authorized; clean-machine install/launch/uninstall. | BLOCKED |
 
 ## Safety invariants required on every future build
 
