@@ -55,6 +55,7 @@ class CursorPipelineProvisioner:
         self._geometry_provider = geometry_provider
         self._filter_settings = filter_settings or OneEuroFilterSettings()
         self._gate_settings = gate_settings or CursorGateSettings()
+        self._active_calibration: AcceptedCalibration | None = None
         self._active_geometry: PhysicalScreenGeometry | None = None
 
     @property
@@ -63,12 +64,35 @@ class CursorPipelineProvisioner:
 
         return self._active_geometry
 
+    @property
+    def filter_settings(self) -> OneEuroFilterSettings:
+        """Return the immutable settings used for future pipeline construction."""
+
+        return self._filter_settings
+
+    @property
+    def gate_settings(self) -> CursorGateSettings:
+        """Return the immutable movement-gate settings used for future construction."""
+
+        return self._gate_settings
+
     def configure(
         self,
         calibration: AcceptedCalibration | None,
     ) -> CursorProvisioningResult:
+        """Configure from a new proof without an earlier active-geometry constraint."""
+
+        return self._configure(calibration, expected_geometry=None)
+
+    def _configure(
+        self,
+        calibration: AcceptedCalibration | None,
+        *,
+        expected_geometry: PhysicalScreenGeometry | None,
+    ) -> CursorProvisioningResult:
         if calibration is not None and not isinstance(calibration, AcceptedCalibration):
             raise TypeError("Expected AcceptedCalibration or None")
+        self._active_calibration = None
         self._active_geometry = None
         if calibration is None:
             message = "Cursor diagnostics requires an accepted calibration."
@@ -82,6 +106,10 @@ class CursorPipelineProvisioner:
             geometry = self._geometry_provider.read()
             if not isinstance(geometry, PhysicalScreenGeometry):
                 raise TypeError("Geometry provider returned an invalid result")
+            if expected_geometry is not None and geometry != expected_geometry:
+                message = "Physical-screen geometry changed; recalibration is required."
+                self._diagnostics.set_unavailable(message)
+                return CursorProvisioningResult(CursorProvisioningStatus.FAULTED, message)
             pipeline = CursorPipeline(
                 calibration,
                 PrimaryScreenMapper(geometry),
@@ -93,12 +121,34 @@ class CursorPipelineProvisioner:
             self._diagnostics.set_unavailable(message)
             return CursorProvisioningResult(CursorProvisioningStatus.FAULTED, message)
         self._diagnostics.set_pipeline(pipeline)
+        self._active_calibration = calibration
         self._active_geometry = geometry
         return CursorProvisioningResult(
             CursorProvisioningStatus.READY,
             "Cursor pipeline is configured; OS output still requires an armed Live Input session.",
             geometry,
         )
+
+    def update_settings(
+        self,
+        filter_settings: OneEuroFilterSettings,
+        gate_settings: CursorGateSettings,
+    ) -> CursorProvisioningResult:
+        """Apply validated settings and rebuild only a still-active accepted pipeline."""
+
+        if not isinstance(filter_settings, OneEuroFilterSettings):
+            raise TypeError("Expected OneEuroFilterSettings")
+        if not isinstance(gate_settings, CursorGateSettings):
+            raise TypeError("Expected CursorGateSettings")
+        calibration = self._active_calibration
+        self._filter_settings = filter_settings
+        self._gate_settings = gate_settings
+        if calibration is None:
+            return CursorProvisioningResult(
+                CursorProvisioningStatus.UNAVAILABLE,
+                "Sensitivity settings updated; an accepted calibration is still required.",
+            )
+        return self._configure(calibration, expected_geometry=self._active_geometry)
 
     def read(self) -> PhysicalScreenGeometry:
         """Revalidate and return geometry for one native pointer movement."""
@@ -124,5 +174,6 @@ class CursorPipelineProvisioner:
         return expected
 
     def _invalidate_execution_geometry(self, message: str) -> None:
+        self._active_calibration = None
         self._active_geometry = None
         self._diagnostics.set_unavailable(message)

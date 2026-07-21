@@ -151,6 +151,8 @@ Working in the submitted source build:
   to `Review Required` because no benchmark limits are claimed, and activates only accepted fits;
 - a configurable One Euro 2D filter with monotonic-time enforcement, velocity-adaptive cutoff,
   independent axes, and stale-gap reset in the accepted cursor-candidate pipeline;
+- a Sensitivity view for validated One Euro and temple-gate values that releases Live Input before
+  persistence and rebuilds only a still-active accepted calibration pipeline;
 - a normalized-to-physical-pixel primary-screen mapper with inclusive bounds, explicit clamping
   evidence, signed 32-bit validation, and no executor dependency;
 - a cursor movement gate that starts suspended, handles overlapping temple holds and tap

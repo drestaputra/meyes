@@ -49,6 +49,12 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QWidget#privacyContent {{
             background: {color.canvas};
         }}
+        QWidget#sensitivityPage,
+        QScrollArea#sensitivityScroll,
+        QWidget#sensitivityViewport,
+        QWidget#sensitivityContent {{
+            background: {color.canvas};
+        }}
         QWidget#calibrationPresentation {{
             background: {color.canvas};
         }}
@@ -158,6 +164,28 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             border-radius: 4px;
             padding: 10px 12px;
         }}
+        QLabel#sensitivityFeedback {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 10px 12px;
+        }}
+        QLabel#sensitivityFeedback[feedbackStatus="success"] {{
+            color: {color.success};
+            border-color: {color.success};
+        }}
+        QLabel#sensitivityFeedback[feedbackStatus="warning"],
+        QLabel#sensitivityDirtyStatus[draftState="dirty"] {{
+            color: {color.warning};
+            border-color: {color.warning};
+        }}
+        QLabel#sensitivityFeedback[feedbackStatus="error"] {{
+            color: {color.danger};
+            border-color: {color.danger};
+        }}
+        QLabel#sensitivityDirtyStatus[draftState="clean"] {{
+            color: {color.success};
+        }}
         QLabel#warningBanner {{
             background: {color.surface};
             color: {color.warning};
@@ -185,14 +213,14 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
             color: {color.success};
             border-color: {color.success};
         }}
-        QComboBox, QLineEdit {{
+        QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox {{
             background: {color.surface};
             border: 1px solid {color.border};
             border-radius: 4px;
             min-height: 36px;
             padding: 0 10px;
         }}
-        QComboBox:focus, QLineEdit:focus, QCheckBox:focus {{
+        QComboBox:focus, QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QCheckBox:focus {{
             border: 2px solid {color.focus};
         }}
         QLineEdit[invalid="true"] {{

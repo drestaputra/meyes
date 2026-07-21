@@ -67,6 +67,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   otherwise reports `Review Required`; the submission claims no universal accuracy threshold;
 - provides a configurable One Euro 2D filter with deterministic jitter, rapid-step,
   timestamp-order, independent-axis, reset, and stale-gap tests in the candidate pipeline;
+- provides a validated Sensitivity view that releases Live Input before persisting One Euro and
+  temple-gate settings, then rebuilds only a still-valid accepted cursor pipeline;
 - provides a physical-pixel primary-screen mapper with explicit clamping and boundary tests;
 - reads primary-monitor physical bounds through a temporary restored Windows Per-Monitor V2 DPI
   scope;

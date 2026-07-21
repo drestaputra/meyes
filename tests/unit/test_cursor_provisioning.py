@@ -260,3 +260,59 @@ def test_configured_filter_changes_fake_candidate_response(qtbot: QtBot) -> None
     assert diagnostics.snapshot.pixel_x is not None
     assert diagnostics.snapshot.pixel_x < 300
     diagnostics.close()
+
+
+def test_settings_update_without_calibration_never_reads_geometry(qtbot: QtBot) -> None:
+    diagnostics = CursorDiagnosticsController()
+    provider = _GeometryProvider()
+    provisioner = CursorPipelineProvisioner(diagnostics, provider)
+    filter_settings = OneEuroFilterSettings(minimum_cutoff=2.0)
+    gate_settings = CursorGateSettings(resume_delay_seconds=0.4)
+
+    result = provisioner.update_settings(filter_settings, gate_settings)
+
+    assert result.status is CursorProvisioningStatus.UNAVAILABLE
+    assert provisioner.filter_settings == filter_settings
+    assert provisioner.gate_settings == gate_settings
+    assert provider.reads == 0
+
+
+def test_settings_update_rebuilds_only_active_accepted_pipeline(qtbot: QtBot) -> None:
+    diagnostics = CursorDiagnosticsController()
+    provider = _GeometryProvider()
+    provisioner = CursorPipelineProvisioner(diagnostics, provider)
+    provisioner.configure(_accepted_calibration())
+    filter_settings = OneEuroFilterSettings(speed_coefficient=0.2)
+    gate_settings = CursorGateSettings(resume_delay_seconds=0.4)
+
+    result = provisioner.update_settings(filter_settings, gate_settings)
+
+    assert result.status is CursorProvisioningStatus.READY
+    assert provisioner.filter_settings == filter_settings
+    assert provisioner.gate_settings == gate_settings
+    assert provider.reads == 2
+
+
+def test_display_mismatch_prevents_settings_from_resurrecting_pipeline(qtbot: QtBot) -> None:
+    diagnostics = CursorDiagnosticsController()
+    provider = _GeometryProvider()
+    provisioner = CursorPipelineProvisioner(diagnostics, provider)
+    provisioner.configure(_accepted_calibration())
+    provider.geometry = PhysicalScreenGeometry(0, 0, 2560, 1440)
+
+    result = provisioner.update_settings(
+        OneEuroFilterSettings(minimum_cutoff=2.0),
+        CursorGateSettings(resume_delay_seconds=0.4),
+    )
+
+    assert result.status is CursorProvisioningStatus.FAULTED
+    assert "recalibration is required" in result.message
+    assert provider.reads == 2
+    assert provisioner.active_geometry is None
+
+    second_result = provisioner.update_settings(
+        OneEuroFilterSettings(minimum_cutoff=3.0),
+        CursorGateSettings(resume_delay_seconds=0.5),
+    )
+    assert second_result.status is CursorProvisioningStatus.UNAVAILABLE
+    assert provider.reads == 2

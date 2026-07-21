@@ -10,7 +10,7 @@ from typing import NoReturn
 from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QObject
-from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton
+from PySide6.QtWidgets import QDoubleSpinBox, QLabel, QLineEdit, QPushButton
 from pytestqt.qtbot import QtBot
 
 from meyes.bindings.defaults import disabled_profile
@@ -163,6 +163,42 @@ def test_main_window_has_accessible_application_shell(qtbot: QtBot) -> None:
     assert window.windowTitle() == "Meyes"
     assert window.minimumWidth() == 900
     assert window.minimumHeight() == 640
+
+
+def test_sensitivity_save_persists_config_and_requests_live_release(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    config = AppConfig()
+    manager.save(config)
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    minimum_cutoff = window.findChild(QDoubleSpinBox, "minimumCutoffInput")
+    save_button = window.findChild(QPushButton, "sensitivitySaveButton")
+    assert minimum_cutoff is not None
+    assert save_button is not None
+
+    with patch.object(
+        window._live_input_controller,
+        "disarm",
+        wraps=window._live_input_controller.disarm,
+    ) as disarm:
+        minimum_cutoff.setValue(2.5)
+        save_button.click()
+
+    assert disarm.call_args.args == ("cursor sensitivity change",)
+    assert manager.load().config.cursor.minimum_cutoff == 2.5
+    assert window._cursor_pipeline_provisioner.filter_settings.minimum_cutoff == 2.5
+    assert window._live_input_controller.state is LiveInputState.SAFE
 
 
 def test_default_live_executor_uses_provisioned_display_guard(qtbot: QtBot) -> None:

@@ -28,7 +28,7 @@ from meyes.camera.controller import CameraController
 from meyes.camera.interface import CameraBackend
 from meyes.camera.models import CameraHealth, CameraStatus
 from meyes.config.manager import ConfigManager
-from meyes.config.models import AppConfig, CameraSettings
+from meyes.config.models import AppConfig, CameraSettings, CursorSettings
 from meyes.cursor.screen_mapping import PhysicalScreenGeometryProvider
 from meyes.cursor.windows_geometry import WindowsPrimaryScreenGeometryProvider
 from meyes.input.windows_safety import EMERGENCY_HOTKEY_LABEL
@@ -49,7 +49,7 @@ from meyes.ui.calibration_persistence import (
 )
 from meyes.ui.camera_dashboard import CameraDashboard
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsController
-from meyes.ui.cursor_provisioning import CursorPipelineProvisioner
+from meyes.ui.cursor_provisioning import CursorPipelineProvisioner, CursorProvisioningStatus
 from meyes.ui.diagnostics_page import DiagnosticsPage
 from meyes.ui.live_input import (
     EmergencyHotkeyFactory,
@@ -63,6 +63,7 @@ from meyes.ui.placeholder_page import PlaceholderPage
 from meyes.ui.privacy_page import PrivacyPage
 from meyes.ui.profile_controller import ProfileController, binding_profile
 from meyes.ui.profiles_page import ProfilesPage
+from meyes.ui.sensitivity_page import SensitivityPage, SensitivitySaveResult
 from meyes.ui.theme import build_stylesheet
 from meyes.util.logging import get_logger
 from meyes.util.paths import AppPaths
@@ -325,11 +326,16 @@ class MainWindow(QMainWindow):
         )
         privacy_paths = self._config_manager.paths if self._config_manager else AppPaths.for_user()
         self._privacy_page = PrivacyPage(privacy_paths)
+        self._sensitivity_page = SensitivityPage(
+            self._config.cursor,
+            self._save_cursor_settings,
+        )
         page_widgets: dict[str, QWidget] = {
             "Dashboard": self._camera_dashboard,
             "Calibration": self._calibration_page,
             "Bindings": BindingsPage(self._binding_editor_controller),
             "Live Input": self._live_input_page,
+            "Sensitivity": self._sensitivity_page,
             "Diagnostics": DiagnosticsPage(
                 self._vision_controller,
                 action_simulation=self._action_simulation,
@@ -379,6 +385,39 @@ class MainWindow(QMainWindow):
         self._config = self._config.model_copy(update={"camera": settings})
         if self._config_manager is not None:
             self._config_manager.save(self._config)
+
+    def _save_cursor_settings(self, settings: CursorSettings) -> SensitivitySaveResult:
+        if not isinstance(settings, CursorSettings):
+            raise TypeError("Expected CursorSettings")
+        disarmed = self._live_input_controller.disarm("cursor sensitivity change")
+        if not disarmed.success:
+            return SensitivitySaveResult(
+                False,
+                "Live Input could not be released; sensitivity settings were not changed.",
+                self._config.cursor,
+            )
+        candidate = self._config.model_copy(update={"cursor": settings})
+        if self._config_manager is not None:
+            try:
+                self._config_manager.save(candidate)
+            except OSError:
+                return SensitivitySaveResult(
+                    False,
+                    "Sensitivity settings could not be saved; the prior values remain active.",
+                    self._config.cursor,
+                )
+        provisioning = self._cursor_pipeline_provisioner.update_settings(
+            settings.filter_settings,
+            settings.gate_settings,
+        )
+        self._config = candidate
+        persisted = "saved" if self._config_manager is not None else "applied for this session"
+        return SensitivitySaveResult(
+            True,
+            f"Sensitivity {persisted}. {provisioning.message}",
+            settings,
+            warning=provisioning.status is CursorProvisioningStatus.FAULTED,
+        )
 
     def _persist_active_profile(self, profile_name: str) -> None:
         if self._config_manager is None:
