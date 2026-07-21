@@ -159,7 +159,8 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Coordinate clear-before-save/reprovision and one-shot recovery without a Live Input dependency.
 - [x] Wire accepted-mapper save/recovery without weakening Live Input startup safety.
 - [x] Bind stored calibration to UTC creation time and exact physical primary-display geometry.
-- [ ] Add an explicit replace-confirmation control for a saved calibration.
+- [x] Add an exact-phrase replace-confirmation control that retains the saved envelope and releases
+  Live Input before replacement.
 - [x] Add exact-phrase, recoverable Forget saved calibration control with pipeline-first clearing.
 - [x] Add an exact-phrase newest deleted-backup restore workflow with full lifecycle gates.
 - [x] Run native Calibration layout QA at 900x640 and 1200x760 with top/bottom viewport inspection.

@@ -7,6 +7,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NoReturn
+from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QObject
 from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton
@@ -41,11 +42,12 @@ from meyes.services.action_dispatcher import DispatcherState
 from meyes.ui.calibration_controller import CalibrationFitOutcome, CalibrationFitState
 from meyes.ui.calibration_page import (
     FORGET_CALIBRATION_PHRASE,
+    REPLACE_CALIBRATION_PHRASE,
     RESTORE_CALIBRATION_PHRASE,
 )
 from meyes.ui.calibration_persistence import CalibrationPersistenceStatus
 from meyes.ui.cursor_diagnostics import CursorDiagnosticsStatus
-from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputState
+from meyes.ui.live_input import LIVE_INPUT_CONSENT_PHRASE, LiveInputResult, LiveInputState
 from meyes.ui.main_window import MainWindow
 from meyes.util.paths import AppPaths
 from meyes.vision.worker import VisionStatus
@@ -308,6 +310,94 @@ def test_newly_accepted_fit_is_saved_without_arming_live_input(
     assert window._live_input_controller.state is LiveInputState.SAFE
     assert persistence_label is not None
     assert "Saved calibration" in persistence_label.text()
+
+
+def test_existing_calibration_is_replaced_only_after_exact_confirmation(
+    qtbot: QtBot,
+    tmp_path: Path,
+) -> None:
+    paths = AppPaths.under(tmp_path)
+    manager = ConfigManager(paths)
+    calibration_settings = CalibrationSettings(
+        maximum_root_mean_square_error=0.05,
+        maximum_mean_error=0.04,
+        maximum_error=0.1,
+        minimum_holdout_samples=18,
+    )
+    config = AppConfig(calibration=calibration_settings)
+    policy = calibration_settings.acceptance_policy
+    assert policy is not None
+    original = accepted_calibration()
+    AcceptedCalibrationRepository(paths).save(
+        original,
+        policy,
+        CalibrationProvenance(
+            datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+            PhysicalScreenGeometry(0, 0, 1920, 1080),
+        ),
+    )
+    window = MainWindow(
+        config,
+        camera_backend=EmptyBackend(),
+        face_backend_factory=EmptyFaceBackend,
+        hand_backend_factory=EmptyHandBackend,
+        config_manager=manager,
+        cursor_geometry_provider=FixedGeometryProvider(),
+        live_input_platform_supported=False,
+    )
+    qtbot.addWidget(window)
+    replacement = AcceptedCalibration(
+        CalibrationFitResult(
+            PolynomialCalibrationMapper(
+                (0.02, 0.98, 0.0, 0.0, 0.0, 0.0),
+                (0.01, 0.0, 0.99, 0.0, 0.0, 0.0),
+            ),
+            original.fit_result.validation,
+        ),
+        original.acceptance,
+    )
+    outcome = CalibrationFitOutcome(
+        CalibrationFitState.READY,
+        "accepted replacement",
+        replacement.fit_result.validation,
+        replacement.acceptance,
+    )
+    window._calibration_controller._fit_result = replacement.fit_result
+    window._calibration_controller._fit_outcome = outcome
+
+    window._calibration_controller.fit_changed.emit(outcome)
+
+    repository = AcceptedCalibrationRepository(paths)
+    confirmation = window.findChild(QLineEdit, "replaceCalibrationConfirmation")
+    button = window.findChild(QPushButton, "replaceCalibrationButton")
+    pending_result = window._calibration_persistence_result
+    assert pending_result.status is CalibrationPersistenceStatus.PENDING_REPLACE
+    assert repository.load(policy).calibration == original
+    assert confirmation is not None and button is not None
+    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert button.isEnabled()
+
+    with patch.object(
+        window._live_input_controller,
+        "disarm",
+        return_value=LiveInputResult(False, LiveInputState.FAULTED, "release failed"),
+    ):
+        button.click()
+
+    failed_result = window._calibration_persistence_result
+    assert failed_result.status is CalibrationPersistenceStatus.PENDING_REPLACE
+    assert repository.load(policy).calibration == original
+    assert confirmation.text() == ""
+    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert button.isEnabled()
+
+    button.click()
+
+    assert window._calibration_persistence_result.status is CalibrationPersistenceStatus.SAVED
+    assert repository.load(policy).calibration == replacement
+    assert confirmation.text() == ""
+    assert not button.isEnabled()
+    assert window._live_input_controller.state is LiveInputState.SAFE
 
 
 def test_startup_recovery_rejects_changed_primary_display_geometry(

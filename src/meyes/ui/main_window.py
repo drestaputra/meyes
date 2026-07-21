@@ -221,7 +221,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 640)
         self.setStyleSheet(build_stylesheet())
         self.setCentralWidget(self._build_shell())
-        self._calibration_page.set_persistence_status(self._calibration_persistence_result.message)
+        self._calibration_page.set_persistence_result(self._calibration_persistence_result)
         if self._calibration_persistence_result.status is CalibrationPersistenceStatus.RECOVERED:
             self._logger.info("calibration_startup_recovered")
         elif (
@@ -245,7 +245,7 @@ class MainWindow(QMainWindow):
         )
         self._calibration_persistence_result = result
         if hasattr(self, "_calibration_page"):
-            self._calibration_page.set_persistence_status(result.message)
+            self._calibration_page.set_persistence_result(result)
         if result.status is CalibrationPersistenceStatus.FAULTED:
             self._logger.error("calibration_persistence_lifecycle_failed")
 
@@ -311,6 +311,7 @@ class MainWindow(QMainWindow):
         self._calibration_page = CalibrationPage(
             self._calibration_controller,
             prepare_calibration=self._prepare_calibration,
+            confirm_calibration_replace=self._confirm_calibration_replace,
             forget_calibration=self._forget_saved_calibration,
             backup_catalog=self._calibration_backup_catalog,
             restore_calibration=self._restore_saved_calibration,
@@ -438,6 +439,28 @@ class MainWindow(QMainWindow):
             self._logger.error("calibration_forget_failed")
         elif result.status is CalibrationPersistenceStatus.FORGOTTEN:
             self._logger.info("calibration_forgotten")
+        return result
+
+    def _confirm_calibration_replace(self) -> CalibrationPersistenceResult:
+        disarmed = self._live_input_controller.disarm("calibration replacement")
+        if not disarmed.success:
+            result = CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.PENDING_REPLACE,
+                "Live Input could not be released; the prior saved calibration remains intact "
+                "and replacement can be retried.",
+            )
+            self._calibration_persistence_result = result
+            self._logger.error("calibration_replace_live_release_failed")
+            return result
+        result = self._calibration_persistence.replace(
+            self._calibration_controller.accepted_calibration,
+            confirm_existing=True,
+        )
+        self._calibration_persistence_result = result
+        if result.status is CalibrationPersistenceStatus.SAVED:
+            self._logger.info("calibration_replace_confirmed")
+        elif result.status is CalibrationPersistenceStatus.FAULTED:
+            self._logger.error("calibration_replace_failed")
         return result
 
     def _calibration_backup_catalog(self) -> DeletedCalibrationCatalog:

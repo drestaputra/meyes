@@ -70,6 +70,8 @@ The current runnable build is a Windows-first, local vision diagnostics applicat
   on acceptance loss or native failure;
 - stores only an accepted mapper's coefficients, exact acceptance policy, and holdout evidence in a
   versioned, checksummed local envelope with UTC creation time and physical display geometry;
+- retains an existing envelope when a new fit is accepted and requires exact-phrase confirmation
+  plus successful Live Input release before atomically replacing it;
 - recovers accepted calibration once at SAFE startup under the exact stored policy and can configure
   only cursor candidates when current display geometry also matches; consent and Live Input arming
   are never restored;

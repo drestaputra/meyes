@@ -159,6 +159,63 @@ def test_replace_clears_before_save_and_reprovisions_afterward() -> None:
     ]
 
 
+def test_existing_saved_calibration_requires_explicit_replace_confirmation() -> None:
+    calls: list[object] = []
+    accepted = _accepted()
+    policy = _policy()
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        _RecordingStore(
+            calls,
+            loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+        ),
+        policy,
+        clock=lambda: _CREATED_AT,
+    )
+    lifecycle.recover_once()
+    calls.clear()
+
+    pending = lifecycle.replace(accepted)
+
+    assert pending.status is CalibrationPersistenceStatus.PENDING_REPLACE
+    assert lifecycle.has_saved_calibration
+    assert calls == [("configure", None), ("configure", accepted)]
+
+    confirmed = lifecycle.replace(accepted, confirm_existing=True)
+
+    assert confirmed.status is CalibrationPersistenceStatus.SAVED
+    assert calls[-3:] == [
+        ("configure", None),
+        ("configure", accepted),
+        ("save", accepted, policy, _provenance()),
+    ]
+
+
+def test_failed_confirmed_replace_retains_prior_envelope_and_retry_state() -> None:
+    calls: list[object] = []
+    accepted = _accepted()
+    store = _RecordingStore(
+        calls,
+        loaded=CalibrationLoadResult(accepted, provenance=_provenance()),
+        save_error=OSError("disk unavailable"),
+    )
+    lifecycle = CalibrationPersistenceLifecycle(
+        _RecordingProvisioner(calls),
+        store,
+        _policy(),
+        clock=lambda: _CREATED_AT,
+    )
+    lifecycle.recover_once()
+    calls.clear()
+
+    result = lifecycle.replace(accepted, confirm_existing=True)
+
+    assert result.status is CalibrationPersistenceStatus.PENDING_REPLACE
+    assert lifecycle.has_saved_calibration
+    assert "prior envelope remains intact" in result.message
+    assert calls[-1] == ("save", accepted, _policy(), _provenance())
+
+
 def test_save_fault_restores_only_volatile_fake_diagnostics() -> None:
     calls: list[object] = []
     accepted = _accepted()

@@ -6,7 +6,7 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QScrollArea
+from PySide6.QtWidgets import QLabel, QLineEdit, QProgressBar, QPushButton, QScrollArea
 from pytestqt.qtbot import QtBot
 
 from meyes.calibration.acceptance import (
@@ -29,7 +29,11 @@ from meyes.ui.calibration_controller import (
     CalibrationFitState,
     calibration_fit_outcome,
 )
-from meyes.ui.calibration_page import CalibrationPage
+from meyes.ui.calibration_page import REPLACE_CALIBRATION_PHRASE, CalibrationPage
+from meyes.ui.calibration_persistence import (
+    CalibrationPersistenceResult,
+    CalibrationPersistenceStatus,
+)
 
 
 def feature(sequence: int) -> GazeFeatureObservation:
@@ -128,6 +132,48 @@ def test_page_requires_tracking_and_release_then_completes_target(qtbot: QtBot) 
     assert controller.snapshot.state.value == CalibrationSessionState.AWAITING_TARGET.value
 
 
+def test_saved_calibration_replace_requires_exact_pending_confirmation(qtbot: QtBot) -> None:
+    controller = CalibrationController()
+    calls: list[bool] = []
+
+    def confirm_replace() -> CalibrationPersistenceResult:
+        calls.append(True)
+        return CalibrationPersistenceResult(
+            CalibrationPersistenceStatus.SAVED,
+            "Saved replacement.",
+        )
+
+    page = CalibrationPage(
+        controller,
+        prepare_calibration=lambda: True,
+        confirm_calibration_replace=confirm_replace,
+    )
+    qtbot.addWidget(page)
+    confirmation = page.findChild(QLineEdit, "replaceCalibrationConfirmation")
+    button = page.findChild(QPushButton, "replaceCalibrationButton")
+    assert confirmation is not None and button is not None
+
+    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert not button.isEnabled()
+
+    page.set_persistence_result(
+        CalibrationPersistenceResult(
+            CalibrationPersistenceStatus.PENDING_REPLACE,
+            "Confirmation required.",
+        )
+    )
+    confirmation.setText("replace saved calibration")
+    assert not button.isEnabled()
+    confirmation.setText(REPLACE_CALIBRATION_PHRASE)
+    assert button.isEnabled()
+    button.click()
+
+    assert calls == [True]
+    assert page._persistence_status.text() == "Saved replacement."
+    assert confirmation.text() == ""
+    assert not button.isEnabled()
+
+
 def test_visible_page_launches_full_screen_presentation(qtbot: QtBot) -> None:
     controller = CalibrationController(CalibrationSession(samples_per_target=3))
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
@@ -224,13 +270,14 @@ def test_minimum_size_uses_vertical_scroll_instead_of_compressing_controls(qtbot
     controller = CalibrationController()
     page = CalibrationPage(controller, prepare_calibration=lambda: True)
     qtbot.addWidget(page)
-    page.resize(690, 536)
+    page.resize(680, 536)
     page.show()
     qtbot.waitExposed(page)
     scroll = page.findChild(QScrollArea, "calibrationScrollArea")
     assert scroll is not None
 
     assert scroll.horizontalScrollBarPolicy() is Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert scroll.horizontalScrollBar().maximum() == 0
     assert scroll.verticalScrollBar().maximum() > 0
     assert page._fit_status.height() > 0
     assert page._forget_button.height() > 0

@@ -66,6 +66,7 @@ class CalibrationPersistenceStatus(StrEnum):
     EMPTY = "empty"
     RECOVERED = "recovered"
     SAVED = "saved"
+    PENDING_REPLACE = "pending_replace"
     VOLATILE = "volatile"
     INCOMPATIBLE = "incompatible"
     FORGOTTEN = "forgotten"
@@ -104,6 +105,13 @@ class CalibrationPersistenceLifecycle:
         self._policy = policy
         self._clock = clock or (lambda: datetime.now(UTC))
         self._recovery_result: CalibrationPersistenceResult | None = None
+        self._has_saved_calibration = False
+
+    @property
+    def has_saved_calibration(self) -> bool:
+        """Whether lifecycle evidence says an active stored envelope exists."""
+
+        return self._has_saved_calibration
 
     def recover_once(self) -> CalibrationPersistenceResult:
         """Attempt startup recovery once, caching the conservative outcome."""
@@ -118,6 +126,7 @@ class CalibrationPersistenceLifecycle:
             )
         else:
             loaded = self._store.load(self._policy)
+            self._has_saved_calibration = loaded.calibration is not None
             if loaded.calibration is None:
                 provisioning = self._provisioner.configure(None)
                 result = CalibrationPersistenceResult(
@@ -163,10 +172,14 @@ class CalibrationPersistenceLifecycle:
     def replace(
         self,
         calibration: AcceptedCalibration | None,
+        *,
+        confirm_existing: bool = False,
     ) -> CalibrationPersistenceResult:
         """Clear old provisioning, validate current display, then persist accepted proof."""
         if calibration is not None and not isinstance(calibration, AcceptedCalibration):
             raise TypeError("Expected AcceptedCalibration or None")
+        if not isinstance(confirm_existing, bool):
+            raise TypeError("confirm_existing must be a bool")
         cleared = self._provisioner.configure(None)
         if calibration is None:
             return CalibrationPersistenceResult(
@@ -191,15 +204,30 @@ class CalibrationPersistenceLifecycle:
                 provisioning.message,
                 provisioning,
             )
+        if self._has_saved_calibration and not confirm_existing:
+            return CalibrationPersistenceResult(
+                CalibrationPersistenceStatus.PENDING_REPLACE,
+                "Accepted calibration is active only for this session; explicit confirmation "
+                "is required before replacing the saved calibration.",
+                provisioning,
+            )
         try:
             provenance = CalibrationProvenance(self._clock(), provisioning.geometry)
             self._store.save(calibration, self._policy, provenance)
         except (OSError, TypeError, ValueError):
+            if self._has_saved_calibration:
+                return CalibrationPersistenceResult(
+                    CalibrationPersistenceStatus.PENDING_REPLACE,
+                    "Saved calibration replacement failed; the prior envelope remains intact "
+                    "and explicit confirmation can be retried.",
+                    provisioning,
+                )
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.FAULTED,
                 "Accepted calibration could not be saved; the current diagnostics are volatile.",
                 provisioning,
             )
+        self._has_saved_calibration = True
         return CalibrationPersistenceResult(
             CalibrationPersistenceStatus.SAVED,
             _provenance_message("Saved", provenance),
@@ -208,12 +236,12 @@ class CalibrationPersistenceLifecycle:
         )
 
     def forget(self) -> CalibrationPersistenceResult:
-        """Clear fake provisioning before recoverably moving the stored envelope."""
+        """Clear cursor provisioning before recoverably moving the stored envelope."""
         cleared = self._provisioner.configure(None)
         if self._store is None:
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.DISABLED,
-                "Calibration persistence is unavailable; fake diagnostics were cleared.",
+                "Calibration persistence is unavailable; cursor diagnostics were cleared.",
                 cleared,
             )
         try:
@@ -221,15 +249,17 @@ class CalibrationPersistenceLifecycle:
         except OSError:
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.FAULTED,
-                "Saved calibration could not be forgotten; fake diagnostics remain cleared.",
+                "Saved calibration could not be forgotten; cursor diagnostics remain cleared.",
                 cleared,
             )
         if backup is None:
+            self._has_saved_calibration = False
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.EMPTY,
-                "No saved calibration existed; fake diagnostics were cleared.",
+                "No saved calibration existed; cursor diagnostics were cleared.",
                 cleared,
             )
+        self._has_saved_calibration = False
         return CalibrationPersistenceResult(
             CalibrationPersistenceStatus.FORGOTTEN,
             "Saved calibration was moved to a recoverable deleted backup.",
@@ -251,7 +281,7 @@ class CalibrationPersistenceLifecycle:
         if self._store is None:
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.DISABLED,
-                "Calibration persistence is unavailable; fake diagnostics were cleared.",
+                "Calibration persistence is unavailable; cursor diagnostics were cleared.",
                 cleared,
             )
         try:
@@ -280,18 +310,21 @@ class CalibrationPersistenceLifecycle:
             except (OSError, TypeError, ValueError):
                 rolled_back = False
             if not rolled_back:
+                self._has_saved_calibration = True
                 return CalibrationPersistenceResult(
                     CalibrationPersistenceStatus.FAULTED,
                     "Restore validation failed and the active copy needs manual review.",
                     cleared,
                     provenance=loaded.provenance,
                 )
+            self._has_saved_calibration = False
             return CalibrationPersistenceResult(
                 CalibrationPersistenceStatus.INCOMPATIBLE,
                 "Deleted calibration display geometry differs; restore was rolled back.",
                 cleared,
                 provenance=loaded.provenance,
             )
+        self._has_saved_calibration = True
         return CalibrationPersistenceResult(
             CalibrationPersistenceStatus.RESTORED,
             _provenance_message("Restored", loaded.provenance),
