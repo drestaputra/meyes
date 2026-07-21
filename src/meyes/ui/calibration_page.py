@@ -162,7 +162,7 @@ class CalibrationPage(QWidget):
         actions = QHBoxLayout()
         self._start_button = QPushButton("Start full-screen collection")
         self._start_button.setObjectName("primaryButton")
-        self._capture_button = QPushButton("Capture current point")
+        self._capture_button = QPushButton("Start current point")
         self._capture_button.setObjectName("captureCalibrationPointButton")
         self._capture_button.setProperty("primaryAction", True)
         self._advance_button = QPushButton("Next point")

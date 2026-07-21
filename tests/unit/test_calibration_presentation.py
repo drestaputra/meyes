@@ -75,6 +75,7 @@ def test_target_uses_normalized_screen_position_and_keyboard_progression(
     assert abs(target_center.x() - round(widget.width() * 0.1)) <= 1
     assert abs(target_center.y() - round(widget.height() * 0.1)) <= 1
     assert widget._capture_button.isEnabled()
+    assert widget._capture_button.text() == "Start point · Space"
     assert "press Space" in widget._feedback.text()
 
     qtbot.keyClick(widget, Qt.Key.Key_Space)  # type: ignore[no-untyped-call]
@@ -129,12 +130,39 @@ def test_return_after_completion_preserves_volatile_fit(qtbot: QtBot) -> None:
     assert widget._return_button.isVisible()
     assert not widget._target.isVisible()
     assert widget._progress.format() == "9 / 9 points complete"
+    assert widget._result_panel.isVisible()
+    assert widget._result_status.text() == "Review Required"
+    assert widget._result_status.property("acceptanceState") == "review_required"
+    assert "RMSE:" in widget._result_metrics.text()
+    assert "Holdout samples: 18" in widget._result_metrics.text()
+    assert "activation is blocked" in widget._result_summary.text()
+    assert "pointer output remains off" in widget._result_explanation.text()
+    assert not widget._capture_button.isVisible()
+    assert not widget._next_button.isVisible()
+    assert not widget._cancel_button.isVisible()
 
     widget._return_button.click()
 
     assert not widget.isVisible()
     assert controller.snapshot.state is CalibrationSessionState.COMPLETE
     assert controller.fit_result is not None
+
+
+def test_escape_after_completion_returns_without_discarding_fit(qtbot: QtBot) -> None:
+    controller = CalibrationController(CalibrationSession(samples_per_target=3))
+    widget = CalibrationPresentation(controller)
+    qtbot.addWidget(widget)
+    widget.resize(1000, 800)
+    widget.show()
+    complete_calibration(controller)
+    fitted = controller.fit_result
+    assert fitted is not None
+
+    qtbot.keyClick(widget, Qt.Key.Key_Escape)  # type: ignore[no-untyped-call]
+
+    assert not widget.isVisible()
+    assert controller.snapshot.state is CalibrationSessionState.COMPLETE
+    assert controller.fit_result is fitted
 
 
 def test_window_close_during_collection_cancels_and_erases(qtbot: QtBot) -> None:

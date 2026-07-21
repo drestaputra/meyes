@@ -21,6 +21,7 @@ from meyes.calibration.session import (
 )
 from meyes.ui.calibration_controller import (
     CalibrationController,
+    CalibrationFitState,
     calibration_capture_result,
     calibration_fit_outcome,
     calibration_snapshot,
@@ -42,7 +43,6 @@ class CalibrationPresentation(QWidget):
         super().__init__(parent, Qt.WindowType.Window)
         self._controller = controller
         self._last_state: CalibrationSessionState | None = None
-        self._preserve_complete = False
         self._closing = False
         self.setObjectName("calibrationPresentation")
         self.setWindowTitle("MEYES Calibration")
@@ -77,16 +77,19 @@ class CalibrationPresentation(QWidget):
         self._progress = QProgressBar()
         self._progress.setObjectName("calibrationPresentationProgress")
         self._progress.setMinimumWidth(180)
-        self._feedback = QLabel("Space captures · Enter advances · Escape cancels")
+        self._feedback = QLabel(
+            "Space starts one point · samples collect automatically · Enter advances"
+        )
         self._feedback.setObjectName("mutedText")
         self._feedback.setWordWrap(True)
-        self._capture_button = QPushButton("Capture · Space")
+        self._capture_button = QPushButton("Start point · Space")
         self._capture_button.setObjectName("calibrationPresentationCapture")
         self._capture_button.setProperty("primaryAction", True)
         self._next_button = QPushButton("Next · Enter")
         self._next_button.setObjectName("calibrationPresentationNext")
         self._return_button = QPushButton("Return to Calibration")
         self._return_button.setObjectName("calibrationPresentationReturn")
+        self._return_button.setProperty("primaryAction", True)
         self._cancel_button = QPushButton("Cancel · Esc")
         self._cancel_button.setObjectName("calibrationPresentationCancel")
         footer_layout.addWidget(self._progress)
@@ -96,8 +99,52 @@ class CalibrationPresentation(QWidget):
         footer_layout.addWidget(self._return_button)
         footer_layout.addWidget(self._cancel_button)
 
+        body = QWidget()
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(32, 32, 32, 32)
+        result_row = QHBoxLayout()
+        result_row.addStretch(1)
+        self._result_panel = QFrame()
+        self._result_panel.setObjectName("calibrationResultPanel")
+        self._result_panel.setMinimumSize(560, 310)
+        self._result_panel.setMaximumWidth(760)
+        result_layout = QVBoxLayout(self._result_panel)
+        result_layout.setContentsMargins(28, 24, 28, 24)
+        result_layout.setSpacing(12)
+        result_title = QLabel("Calibration result")
+        result_title.setObjectName("panelTitle")
+        self._result_status = QLabel("Calculating result")
+        self._result_status.setObjectName("calibrationResultStatus")
+        self._result_status.setWordWrap(True)
+        self._result_status.setAccessibleName("Calibration result status")
+        self._result_summary = QLabel("All nine points were collected.")
+        self._result_summary.setWordWrap(True)
+        self._result_summary.setMinimumHeight(40)
+        self._result_metrics = QLabel("Quality evidence is being calculated.")
+        self._result_metrics.setObjectName("calibrationResultMetrics")
+        self._result_metrics.setWordWrap(True)
+        self._result_metrics.setMinimumHeight(88)
+        self._result_metrics.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._result_explanation = QLabel(
+            "MEYES will explain whether this result can be used for pointer output."
+        )
+        self._result_explanation.setObjectName("mutedText")
+        self._result_explanation.setWordWrap(True)
+        self._result_explanation.setMinimumHeight(64)
+        result_layout.addWidget(result_title)
+        result_layout.addWidget(self._result_status)
+        result_layout.addWidget(self._result_summary)
+        result_layout.addWidget(self._result_metrics)
+        result_layout.addWidget(self._result_explanation)
+        result_row.addWidget(self._result_panel, stretch=2)
+        result_row.addStretch(1)
+        body_layout.addStretch(1)
+        body_layout.addLayout(result_row)
+        body_layout.addStretch(1)
+        self._result_panel.hide()
+
         layout.addWidget(header)
-        layout.addStretch(1)
+        layout.addWidget(body, stretch=1)
         layout.addWidget(footer)
 
         self._target = QLabel("•", self)
@@ -120,7 +167,6 @@ class CalibrationPresentation(QWidget):
         screen = QGuiApplication.primaryScreen()
         if screen is not None:
             self.setGeometry(screen.geometry())
-        self._preserve_complete = False
         self.showFullScreen()
         self.activateWindow()
         self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
@@ -142,7 +188,6 @@ class CalibrationPresentation(QWidget):
     @Slot()
     def _return_to_page(self) -> None:
         if self._controller.snapshot.state is CalibrationSessionState.COMPLETE:
-            self._preserve_complete = True
             self.close()
 
     @Slot(object)
@@ -160,6 +205,13 @@ class CalibrationPresentation(QWidget):
             self._progress.setRange(0, len(CALIBRATION_TARGETS))
             self._progress.setValue(len(CALIBRATION_TARGETS))
             self._progress.setFormat("9 / 9 points complete")
+            self._result_status.setText("Calculating result")
+            self._result_status.setProperty("acceptanceState", "pending")
+            self._result_summary.setText("All nine points were collected successfully.")
+            self._result_metrics.setText("Quality evidence is being calculated.")
+            self._result_explanation.setText(
+                "MEYES will explain whether this result can be used for pointer output."
+            )
         else:
             self._progress.setRange(0, snapshot.samples_per_target)
             self._progress.setValue(snapshot.accepted_for_target)
@@ -184,6 +236,11 @@ class CalibrationPresentation(QWidget):
                 self._instruction.setText(
                     f"Point {snapshot.target_index + 1} needs a retry · press R"
                 )
+        complete = state is CalibrationSessionState.COMPLETE
+        self._result_panel.setVisible(complete)
+        self._capture_button.setVisible(not complete)
+        self._next_button.setVisible(not complete)
+        self._cancel_button.setVisible(not complete)
         self._capture_button.setEnabled(state is CalibrationSessionState.AWAITING_TARGET)
         self._next_button.setEnabled(
             state
@@ -192,14 +249,14 @@ class CalibrationPresentation(QWidget):
         self._next_button.setText(
             "Retry · R" if state is CalibrationSessionState.TARGET_FAILED else "Next · Enter"
         )
-        self._return_button.setVisible(state is CalibrationSessionState.COMPLETE)
+        self._return_button.setVisible(complete)
         self._cancel_button.setEnabled(
             state not in {CalibrationSessionState.IDLE, CalibrationSessionState.CANCELLED}
         )
         if state is not self._last_state:
             transition_messages = {
                 CalibrationSessionState.AWAITING_TARGET: (
-                    "Look steadily at the target · press Space when ready"
+                    "Look steadily at the target · press Space once to collect stable samples"
                 ),
                 CalibrationSessionState.COLLECTING: "Collecting samples · hold your gaze steady",
                 CalibrationSessionState.TARGET_COMPLETE: "Point complete · press Enter",
@@ -238,11 +295,48 @@ class CalibrationPresentation(QWidget):
     @Slot(object)
     def _render_fit(self, payload: object) -> None:
         outcome = calibration_fit_outcome(payload)
-        if outcome.acceptance is None:
-            self._instruction.setText(f"Calibration fit {outcome.state.value}")
+        validation = outcome.validation
+        self._result_metrics.setText(
+            "No usable quality metrics were produced."
+            if validation is None
+            else (
+                "Quality evidence\n"
+                f"RMSE: {validation.root_mean_square_error:.4f} · "
+                f"Mean error: {validation.mean_error:.4f}\n"
+                f"Maximum error: {validation.maximum_error:.4f} · "
+                f"Holdout samples: {validation.sample_count}"
+            )
+        )
+        acceptance = outcome.acceptance
+        if outcome.state is CalibrationFitState.FAILED:
+            state = "Fit failed"
+            property_value = "failed"
+            summary = "The collected samples could not produce a stable calibration mapper."
+        elif acceptance is None:
+            state = "Not evaluated"
+            property_value = "pending"
+            summary = "Calibration quality has not been evaluated."
         else:
-            state = outcome.acceptance.state.value.replace("_", " ").title()
-            self._instruction.setText(f"Calibration complete · {state}")
+            state = acceptance.state.value.replace("_", " ").title()
+            property_value = acceptance.state.value
+            summaries = {
+                "accepted": "This calibration passed every configured evidence limit.",
+                "rejected": "This calibration did not pass the configured evidence limits.",
+                "review_required": (
+                    "A mapper was fitted, but activation is blocked until evidence-backed "
+                    "acceptance limits are configured."
+                ),
+            }
+            summary = summaries[property_value]
+        self._instruction.setText(f"Calibration complete · {state}")
+        self._result_status.setText(state)
+        self._result_status.setProperty("acceptanceState", property_value)
+        self._result_status.style().unpolish(self._result_status)
+        self._result_status.style().polish(self._result_status)
+        self._result_summary.setText(summary)
+        self._result_explanation.setText(
+            f"{outcome.message} Return to Calibration to review details or start again."
+        )
         self._feedback.setText(outcome.message)
 
     def _position_target(self) -> None:
@@ -261,7 +355,10 @@ class CalibrationPresentation(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         state = self._controller.snapshot.state
         if event.key() == Qt.Key.Key_Escape:
-            self.close()
+            if state is CalibrationSessionState.COMPLETE:
+                self._return_to_page()
+            else:
+                self.close()
             event.accept()
             return
         if event.key() == Qt.Key.Key_Space and state is CalibrationSessionState.AWAITING_TARGET:
@@ -287,11 +384,10 @@ class CalibrationPresentation(QWidget):
             return
         self._closing = True
         state = self._controller.snapshot.state
-        preserve = self._preserve_complete and state is CalibrationSessionState.COMPLETE
-        self._preserve_complete = False
-        if not preserve and state not in {
+        if state not in {
             CalibrationSessionState.IDLE,
             CalibrationSessionState.CANCELLED,
+            CalibrationSessionState.COMPLETE,
         }:
             self._controller.cancel()
         self._closing = False

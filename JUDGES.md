@@ -115,6 +115,8 @@ Optional calibration and gaze-pointer check:
    to force a demo.
 3. Confirm the saved-calibration status names the current physical display. If a saved envelope
    already exists, replacement requires a cancel-default modal confirmation and releases Live Input.
+   The full-screen completion summary shows RMSE, mean error, maximum error, holdout count, and the
+   plain-language reason pointer output is accepted, rejected, or still blocked for review.
 4. Re-arm Live Input through its per-session confirmation dialog; accepted fresh gaze candidates may now move the
    primary-screen pointer. Every movement revalidates current physical geometry.
 5. Change no display setting while armed. A geometry mismatch or native failure removes the cursor

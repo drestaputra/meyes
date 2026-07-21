@@ -32,10 +32,10 @@ from meyes.domain.actions import (
         (MouseDoubleClickAction(button=MouseButton.RIGHT), "Mouse double-click · right"),
         (MouseDownAction(button=MouseButton.MIDDLE), "Hold mouse button · middle"),
         (MouseUpAction(button=MouseButton.LEFT), "Release mouse button · left"),
-        (MouseScrollAction(amount=-3), "Mouse scroll · -3 steps"),
+        (MouseScrollAction(amount=-3), "Mouse scroll down · 3 steps"),
         (
             ContinuousScrollAction(amount=2, interval_ms=100),
-            "Continuous scroll · +2 every 100 ms",
+            "Continuous scroll up · 2 every 100 ms",
         ),
         (KeyboardKeyAction(key=KeyName.ENTER), "Keyboard key · ENTER"),
         (

@@ -17,6 +17,7 @@ DEFAULT_PROFILE_NAME = "Default"
 
 def default_profile() -> BindingProfile:
     """Return a fresh built-in profile matching the product specification."""
+    # Windows wheel deltas are positive for up and negative for down.
     return BindingProfile(
         profile_name=DEFAULT_PROFILE_NAME,
         bindings={

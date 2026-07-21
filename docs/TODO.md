@@ -206,6 +206,11 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [x] Complete the Dashboard, Calibration, Bindings, Profiles, Diagnostics, and Privacy views.
 - [x] Route an uncalibrated successful camera start directly into guided full-screen Calibration
   onboarding without repeating on resume or changing Live Input state.
+- [x] Replace the empty completed-calibration canvas with a centered result card, readable metrics,
+  plain-language acceptance guidance, completion-safe Escape/close, and only the relevant return
+  action.
+- [x] Verify and document Default temple scrolling as right tap/hold up and left tap/hold down, with
+  direction words in binding previews.
 - [x] Replace Calibration management phrase inputs with cancel-default confirmation dialogs while
   preserving release-first, revalidation, and exact-backup boundaries.
 - [x] Give app-themed confirmation dialogs and tooltips explicit foreground/background contrast so

@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Replaced the nearly empty completed-calibration screen with a centered result summary, readable
+  quality evidence, plain-language acceptance guidance, and one safe return action; default temple
+  bindings now label right/up and left/down directions explicitly.
 - Removed the remaining typed/checkbox confirmation controls from Live Input, Profiles, and
   first-run completion in favor of cancel-default modal dialogs while retaining all controller and
   lifecycle safety gates.

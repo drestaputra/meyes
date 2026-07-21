@@ -49,9 +49,11 @@ def action_label(action: Action) -> str:
     if isinstance(action, MouseUpAction):
         return f"Release mouse button · {action.button.value}"
     if isinstance(action, MouseScrollAction):
-        return f"Mouse scroll · {action.amount:+d} steps"
+        direction = "up" if action.amount > 0 else "down"
+        return f"Mouse scroll {direction} · {abs(action.amount)} steps"
     if isinstance(action, ContinuousScrollAction):
-        return f"Continuous scroll · {action.amount:+d} every {action.interval_ms} ms"
+        direction = "up" if action.amount > 0 else "down"
+        return f"Continuous scroll {direction} · {abs(action.amount)} every {action.interval_ms} ms"
     if isinstance(action, KeyboardKeyAction):
         return f"Keyboard key · {action.key.value}"
     if isinstance(action, KeyboardShortcutAction):

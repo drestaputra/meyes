@@ -4,6 +4,9 @@ MEYES is a Windows-first local vision application exploring hands-free computer 
 
 The product controls are gaze-driven pointer movement, wink clicks, and temple-gesture scrolling with configurable bindings. Validated defaults and a Qt-owned fake dispatcher exercise gesture mappings in tests and Diagnostics. The Profiles view can create and safely activate durable profiles; rename, restore, or recoverably delete protected inactive profiles; and import/export complete validated JSON snapshots without activating them. Bindings provides inline editing for every validated MVP action, an isolated six-row preview, and save-as-copy without runtime activation. Sensitivity edits validated smoothing and temple-gate settings, releases Live Input before saving, and rebuilds only a still-valid accepted cursor pipeline. A dedicated Camera view reports capture health and edits complete requested capture settings only while stopped; Dashboard retains device selection, preview, and lifecycle controls. The Live Input view owns the deliberate real-output transition: cancel-default per-session modal consent, global emergency-hotkey registration, physical-input preflight, release-first arming, visible status, and release on emergency, disarm, camera pause/fault, profile change, file dialog, or shutdown. Pointer candidates are emitted only from an accepted, display-matched calibration and are ignored unless Live Input is explicitly armed. A read-only Privacy view exposes current Safe/Live state, storage/network boundaries, and selectable local file locations.
 
+The built-in Default profile maps the right-temple tap/hold to scroll up and the left-temple
+tap/hold to scroll down. Bindings labels show the direction in plain language.
+
 > Status: early development. Meyes is not a medical device and should not be relied upon for safety-critical operation.
 
 On a new local configuration, a three-step first-run orientation explains privacy, camera setup,
@@ -17,7 +20,9 @@ before collection; resume does not repeat onboarding and camera startup never ar
 
 Phase 0 through Phase 4 are implemented, and Phase 5 includes fail-closed normalized gaze features
 plus a distraction-free primary-display nine-point collection flow. Calibration fits a mapper and
-reports deterministic holdout metrics; acceptance defaults to `Review Required`. An
+reports deterministic holdout metrics in a centered completion summary with plain-language
+acceptance guidance; acceptance defaults to `Review Required`. Starting each point once collects
+its stable samples automatically, while Enter advances to the next target. An
 executor-independent cursor pipeline composes proof-carrying accepted calibration, configured
 adaptive smoothing, physical-pixel mapping, and the configured tracking/temple gate. A Qt-owned
 diagnostics controller is wired to gaze, gesture, camera lifecycle, and freshness-clear signals.

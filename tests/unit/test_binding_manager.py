@@ -48,6 +48,19 @@ def test_default_profile_matches_specification_exactly() -> None:
     }
 
 
+def test_default_temple_scroll_direction_is_right_up_and_left_down() -> None:
+    bindings = default_profile().bindings
+    left_tap = cast(MouseScrollAction, bindings[BindableGesture.LEFT_TEMPLE_TAP])
+    right_tap = cast(MouseScrollAction, bindings[BindableGesture.RIGHT_TEMPLE_TAP])
+    left_hold = cast(ContinuousScrollAction, bindings[BindableGesture.LEFT_TEMPLE_HOLD])
+    right_hold = cast(ContinuousScrollAction, bindings[BindableGesture.RIGHT_TEMPLE_HOLD])
+
+    assert left_tap.amount < 0
+    assert left_hold.amount < 0
+    assert right_tap.amount > 0
+    assert right_hold.amount > 0
+
+
 def test_disabled_profile_explicitly_disables_every_gesture() -> None:
     profile = disabled_profile("Recovery")
 

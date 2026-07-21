@@ -96,6 +96,32 @@ def build_stylesheet(tokens: ThemeTokens | None = None) -> str:
         QFrame#calibrationPresentationFooter {{
             border-top: 1px solid {color.border};
         }}
+        QFrame#calibrationResultPanel {{
+            background: {color.surface};
+            border: 1px solid {color.border};
+            border-radius: 8px;
+        }}
+        QLabel#calibrationResultStatus {{
+            color: {color.ink};
+            font-size: 18pt;
+            font-weight: 700;
+        }}
+        QLabel#calibrationResultStatus[acceptanceState="accepted"] {{
+            color: {color.success};
+        }}
+        QLabel#calibrationResultStatus[acceptanceState="review_required"] {{
+            color: {color.warning};
+        }}
+        QLabel#calibrationResultStatus[acceptanceState="rejected"],
+        QLabel#calibrationResultStatus[acceptanceState="failed"] {{
+            color: {color.danger};
+        }}
+        QLabel#calibrationResultMetrics {{
+            background: {color.surface_subtle};
+            border: 1px solid {color.border};
+            border-radius: 4px;
+            padding: 12px;
+        }}
         QLabel#calibrationPresentationInstruction {{
             color: {color.ink};
             font-size: 12pt;
