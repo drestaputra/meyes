@@ -12,6 +12,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   preserve the raw Windows probe result, and explicitly record that code signing is not configured.
 - Recorded a clean, live-remote-matched release build with an independently verified revision,
   wheel checksum, checksum file, manifest schema, and signing metadata.
+- Added a Safe-Mode-first troubleshooting guide covering installation, camera/model health,
+  calibration provenance, Live Input recovery, local files, and privacy-aware issue reports.
+- Added a frozen, non-capturing installation-diagnostic launcher with the shared uv fallback.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

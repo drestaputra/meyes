@@ -12,6 +12,7 @@ $requiredFiles = @(
     "README.md",
     "JUDGES.md",
     "PRIVACY.md",
+    "TROUBLESHOOTING.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "pyproject.toml",
@@ -20,6 +21,7 @@ $requiredFiles = @(
     "docs/DEVPOST_DRAFT.md",
     "resources/models/README.md",
     "scripts/judge_verify.ps1",
+    "scripts/diagnose_install.ps1",
     "scripts/build_release.ps1",
     "scripts/verify_wheel.ps1"
 )

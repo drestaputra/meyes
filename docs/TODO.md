@@ -230,7 +230,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
   - [ ] Add standalone executable/installer startup recovery after a packager is selected.
 - [ ] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
-- [ ] Complete privacy and troubleshooting documentation.
+- [x] Complete privacy and troubleshooting documentation.
 - [ ] Profile performance and optimize only measured bottlenecks.
 - [ ] Complete the MVP acceptance checklist.
 

@@ -113,7 +113,7 @@ gate without opening a camera or arming OS input:
 For a JSON install/model-integrity check that does not import Qt or activate hardware/native input:
 
 ```powershell
-uv run --frozen meyes --diagnose-install
+.\scripts\diagnose_install.ps1
 ```
 
 Build a non-overwriting, exact-revision Python wheel handoff with SHA-256 and an honest unsigned
@@ -166,6 +166,9 @@ Meyes uses Windows-appropriate per-user locations:
 - other local data: `%LOCALAPPDATA%\Meyes\`.
 
 MEYES does not intentionally persist or transmit camera frames. MediaPipe performs input-media processing on-device, while Google's current MediaPipe terms state that Solution APIs may periodically contact Google and send non-input usage, performance, application, and system metrics. See [PRIVACY.md](./PRIVACY.md) for the precise boundary.
+
+For safe recovery from setup, camera, model, calibration, display, or Live Input failures, see
+[TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
 
 ## Design reference
 

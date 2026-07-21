@@ -5,6 +5,9 @@ application and is not a medical device. It starts in Safe Mode with operating-s
 disconnected; on Windows, a user may explicitly arm configured mouse and keyboard actions for the
 current session.
 
+Safe operational recovery guidance is maintained in
+[TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
+
 ## Data handling
 
 | Data | Current handling |
@@ -21,7 +24,7 @@ current session.
 | Gesture diagnostics | Displayed in memory. Conservative semantic event metadata may appear in the local application log; frames and landmark arrays are not intentionally logged. |
 | Configuration | Stored in `%APPDATA%\Meyes\config.json`. A corrupt configuration may be renamed to a timestamped backup in the same directory before defaults are restored. |
 | Logs | Stored as rotating JSON lines in `%LOCALAPPDATA%\Meyes\Logs\meyes.log`, limited to 2 MiB per file with three backups. Logs contain timestamps, severity/category, lifecycle and error details, camera settings, and semantic event metadata. |
-| Model assets | Loaded from the repository's `resources/models/` directory and verified by size and SHA-256 in tests. |
+| Model assets | Loaded from packaged `meyes/resources/models/` assets in an installed wheel, with a source-tree fallback during development. Exact size and SHA-256 are verified by tests and the non-capturing install diagnostic. |
 | Live Input consent | Held only in widget memory long enough to validate the exact phrase, then cleared. It is not persisted or intentionally logged. |
 | Profile import/export | Reads or writes only the local `.json` path explicitly selected in the native file dialog. Imports are copied into the local profile catalog; exports are not uploaded or transmitted by MEYES. |
 
