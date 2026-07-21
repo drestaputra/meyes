@@ -6,7 +6,7 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton
+from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QScrollArea
 from pytestqt.qtbot import QtBot
 
 from meyes.calibration.acceptance import (
@@ -218,6 +218,23 @@ def test_page_target_map_is_readable_without_horizontal_overflow(qtbot: QtBot) -
     assert len(targets) == 9
     assert page.minimumSizeHint().width() <= page.width()
     assert all(target.text() for target in targets)
+
+
+def test_minimum_size_uses_vertical_scroll_instead_of_compressing_controls(qtbot: QtBot) -> None:
+    controller = CalibrationController()
+    page = CalibrationPage(controller, prepare_calibration=lambda: True)
+    qtbot.addWidget(page)
+    page.resize(690, 536)
+    page.show()
+    qtbot.waitExposed(page)
+    scroll = page.findChild(QScrollArea, "calibrationScrollArea")
+    assert scroll is not None
+
+    assert scroll.horizontalScrollBarPolicy() is Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert scroll.verticalScrollBar().maximum() > 0
+    assert page._fit_status.height() > 0
+    assert page._forget_button.height() > 0
+    assert page._restore_button.height() > 0
 
 
 def test_page_explains_statistical_outlier_without_advancing_progress(qtbot: QtBot) -> None:

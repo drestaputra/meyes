@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -85,7 +86,17 @@ class CalibrationPage(QWidget):
         self._render_fit_outcome(controller.fit_outcome)
 
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        scroll = QScrollArea(self)
+        scroll.setObjectName("calibrationScrollArea")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget()
+        content.setObjectName("calibrationScrollContent")
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(32, 28, 32, 28)
         layout.setSpacing(16)
         title = QLabel("Calibration")
@@ -203,6 +214,8 @@ class CalibrationPage(QWidget):
         layout.addWidget(self._feedback)
         layout.addWidget(panel)
         layout.addStretch(1)
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
 
         self._start_button.clicked.connect(self._start)
         self._capture_button.clicked.connect(self._controller.begin_target)
@@ -301,7 +314,7 @@ class CalibrationPage(QWidget):
             message = catalog.warning or "No deleted calibration backup is available."
         else:
             deleted = self._newest_backup.deleted_at_utc.strftime("%Y-%m-%d %H:%M UTC")
-            message = f"Newest deleted backup: {deleted} · {self._newest_backup.size_bytes} bytes."
+            message = f"Newest deleted backup: {deleted} | {self._newest_backup.size_bytes} bytes."
             if catalog.warning:
                 message = f"{message} Some older metadata was omitted."
         self._backup_status.setText(message)

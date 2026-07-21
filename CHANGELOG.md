@@ -93,3 +93,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Guarded repository restore for exact deleted-calibration catalog records with full envelope revalidation, exclusive active creation, no active overwrite, and retained backups on success or failure.
 - Calibration restore lifecycle with pipeline-first clearing, current-display reprovision validation, byte-matched active-copy rollback, and retained deleted backups.
 - Exact-phrase newest calibration-backup restore UI with bounded timestamp/size metadata, full lifecycle validation, sanitized status/logging, and unchanged Live Input state.
+- Native Calibration-page vertical scrolling with preserved control size hints, no horizontal scrolling, ASCII-safe backup metadata, and visual QA at 900x640 and 1200x760.
