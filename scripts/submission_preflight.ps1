@@ -13,6 +13,7 @@ $requiredFiles = @(
     "JUDGES.md",
     "PRIVACY.md",
     "TROUBLESHOOTING.md",
+    "SIGNING.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "pyproject.toml",

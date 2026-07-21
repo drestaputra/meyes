@@ -228,7 +228,7 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Add startup and packaging error recovery.
   - [x] Add a fail-fast, non-overwriting exact-revision wheel/manifest build with full preflight.
   - [ ] Add standalone executable/installer startup recovery after a packager is selected.
-- [ ] Document application signing requirements.
+- [x] Document application signing requirements.
 - [ ] Run a clean-machine smoke test.
 - [x] Complete privacy and troubleshooting documentation.
 - [ ] Profile performance and optimize only measured bottlenecks.

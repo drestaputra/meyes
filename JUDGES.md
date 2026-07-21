@@ -234,6 +234,7 @@ later capabilities present in the exact linked commit, not against roadmap copy.
 - Model provenance and checksums: `resources/models/README.md`
 - Privacy boundary: `PRIVACY.md`
 - Safe recovery guide: `TROUBLESHOOTING.md`
+- Future Windows signing requirements: `SIGNING.md`
 - Third-party rights: `THIRD_PARTY_NOTICES.md`
 
 If no camera appears, grant Windows camera permission, close other applications that may
