@@ -149,6 +149,10 @@ The script resolves `uv` or `python -m uv`, runs against the frozen lockfile, an
 offscreen backend on Windows. If neither uv route is installed, it stops with one prerequisite
 message instead of continuing through multiple failed commands.
 
+`.\scripts\profile_safe.ps1` separately measures the real local model adapters on a bounded
+all-zero in-memory frame and prints limitation-labeled JSON. It activates no camera, GUI, hotkey, or
+OS input and is not evidence of live accuracy or throughput.
+
 Maintainers can build an exact-revision wheel plus `BUILD-MANIFEST.json` and `SHA256SUMS.txt` with
 `.\scripts\build_release.ps1`. The script requires clean live-remote parity and repeats this judge
 gate. It records that code signing is not configured, marks Authenticode as not applicable to the

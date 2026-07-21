@@ -19,6 +19,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   the still-open human choices without claiming the current wheel is signed.
 - Replaced the stale top-bar tracking placeholder with contextual camera controls and fixed the
   minimum-size Dashboard overlap found by a native nine-page design review.
+- Added a bounded synthetic JSON performance probe for real Face/Hand Landmarker initialization and
+  inference without activating camera, Qt, hotkeys, or operating-system input.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

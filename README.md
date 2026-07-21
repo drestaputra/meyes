@@ -116,6 +116,16 @@ For a JSON install/model-integrity check that does not import Qt or activate har
 .\scripts\diagnose_install.ps1
 ```
 
+Profile the real local model adapters on a bounded synthetic blank frame without opening a camera,
+Qt, an emergency hotkey, or OS input:
+
+```powershell
+.\scripts\profile_safe.ps1
+```
+
+The JSON timings are specific to the current host/load/runtime and are not evidence of live camera
+accuracy, detected-face/hand latency, or end-to-end throughput.
+
 Build a non-overwriting, exact-revision Python wheel handoff with SHA-256 and an honest unsigned
 artifact manifest only after clean remote parity and the full judge gate pass:
 

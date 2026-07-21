@@ -23,6 +23,7 @@ $requiredFiles = @(
     "resources/models/README.md",
     "scripts/judge_verify.ps1",
     "scripts/diagnose_install.ps1",
+    "scripts/profile_safe.ps1",
     "scripts/build_release.ps1",
     "scripts/verify_wheel.ps1"
 )

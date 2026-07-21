@@ -18,6 +18,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         from meyes.install_diagnostics import print_install_diagnostics
 
         return print_install_diagnostics()
+    if arguments == ["--profile-safe"]:
+        from meyes.performance_profile import print_safe_performance_profile
+
+        return print_safe_performance_profile()
 
     from meyes.application import run
 
