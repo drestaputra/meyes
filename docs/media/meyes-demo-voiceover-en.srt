@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:13,000
+Hi, I’m Dresta, and I built MEYES: a local-first Windows application that explores hands-free computer control using only an ordinary webcam, eye gaze, and simple face gestures.
+
+2
+00:00:13,000 --> 00:00:34,000
+I was inspired by eye trackers used by professional gamers and streamers, but dedicated hardware can be expensive. I wanted to explore a more accessible alternative that could also support people who find a traditional mouse or keyboard difficult to use. MEYES is an assistive productivity prototype, not a medical device.
+
+3
+00:00:34,000 --> 00:00:57,000
+MediaPipe face and hand landmarks run locally. MEYES converts those observations into deliberate events: winks can trigger clicks, temple gestures can scroll, and cheek touches can be configured as additional actions. Camera frames are not intentionally stored or uploaded.
+
+4
+00:00:57,000 --> 00:01:25,000
+For gaze control, I replaced a confusing manual calibration with Smooth Pursuit. I follow one moving target while MEYES captures eye features continuously across nine screen regions. It checks spatial coverage and target-following correlation, fits a robust calibration mapper, and shows the result before any real pointer output is allowed.
+
+5
+00:01:25,000 --> 00:01:50,000
+Live Input is always an explicit choice. After confirmation, the accepted mapper can move the Windows pointer, while the configured gestures handle clicks and scrolling. The emergency shortcut immediately releases every owned input and returns MEYES to Safe Mode.
+
+6
+00:01:50,000 --> 00:02:08,000
+The architecture keeps camera observations, gesture intent, cursor candidates, user consent, and Windows SendInput execution in separate layers. That separation helped me test failures safely and prevent camera startup from silently enabling operating-system input.
+
+7
+00:02:08,000 --> 00:02:34,000
+I used Codex as my engineering collaborator throughout the project. With GPT-5.6, I planned the architecture, implemented and reviewed state machines, traced lifecycle bugs, generated regression tests, audited the native Windows safety boundary, and iterated on the interface and documentation. I made the final product, accessibility, safety, and evidence decisions.
+
+8
+00:02:34,000 --> 00:02:44,000
+Next, I want to validate MEYES with more users, webcams, lighting conditions, and accessibility needs. My goal is to make hands-free interaction more affordable using hardware people already own.

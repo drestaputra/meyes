@@ -35,6 +35,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added a trademark-neutral 3:2 Devpost gallery hero plus a timed 2:44 English demo voiceover,
+  shot list, capture requirements, and ready-to-import subtitle track covering the product,
+  Codex collaboration, and GPT-5.6 usage.
 - Added independently stabilized left/right cheek-touch detection, release-triggered single-shot
   semantic events, live Diagnostics evidence, and configurable binding/dispatcher support. Both
   cheek bindings remain disabled in the built-in Default profile.
