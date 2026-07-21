@@ -25,9 +25,12 @@ $requiredFiles = @(
     "docs/DEVPOST_DRAFT.md",
     "docs/evidence/performance/2026-07-21.md",
     "resources/models/README.md",
+    "resources/icons/meyes.ico",
     "scripts/judge_verify.ps1",
     "scripts/diagnose_install.ps1",
     "scripts/profile_safe.ps1",
+    "scripts/generate_icon_assets.py",
+    "scripts/verify_icon_assets.ps1",
     "scripts/verify_docs.ps1",
     "scripts/build_release.ps1",
     "scripts/verify_wheel.ps1"

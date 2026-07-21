@@ -36,6 +36,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   target assertions relative to the runner's actual exposed content geometry.
 - Recorded the first passing exact-revision Windows CI source/test/wheel run with explicit managed-
   runner and non-live limitations.
+- Added a deterministic 10-size Windows ICO derived from the original SVG, with byte-for-byte
+  regeneration, container/frame tests, and installed-wheel integrity verification.
 - Initial Python 3.11 project configuration using `uv`.
 - PySide6 application shell following the MEYES design baseline.
 - Typed Pydantic configuration with atomic persistence and corrupt-file recovery.

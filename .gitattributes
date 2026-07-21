@@ -1,1 +1,2 @@
 resources/icons/*.svg text eol=lf
+resources/icons/*.ico binary

@@ -17,7 +17,7 @@ Status vocabulary:
 
 | Gate | Current evidence | Status |
 |---|---|---|
-| Frozen source quality | Ruff format/lint, strict mypy, and 787 tests passed across 158 source files on the packaged-icon iteration. | PASS |
+| Frozen source quality | Ruff format/lint, strict mypy, and 788 tests passed across 158 typed source/test files on the deterministic-ICO iteration. | PASS |
 | Exact remote parity | `scripts/submission_preflight.ps1 -VerifyRemote` passed on `main` after every completed iteration. | PASS |
 | Remote Windows quality | Pinned workflow run `29848753863` passed documentation, Ruff, strict mypy, all 787 tests, and isolated installed-wheel integrity on revision `c91c3a1`. | PASS within managed-runner scope |
 | Installed artifact integrity | Isolated wheel installation resolved and verified both packaged models plus licenses/notices. | PASS |

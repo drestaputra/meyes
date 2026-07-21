@@ -150,6 +150,8 @@ Requirements for a future signed Windows executable/package are documented separ
 [SIGNING.md](./SIGNING.md); no certificate or signing pipeline is currently configured.
 The measured local packager/toolchain blocker and standalone-first comparison plan are recorded in
 [`docs/evidence/packaging/2026-07-21.md`](./docs/evidence/packaging/2026-07-21.md).
+The original SVG and deterministic multi-size Windows ICO are bundled and byte-verified, but the
+ICO is not yet wired into a standalone executable or installer because no packager is selected.
 
 Capture a new, non-overwriting Windows display-scaling evidence record with:
 

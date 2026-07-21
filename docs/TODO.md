@@ -234,7 +234,9 @@ Source of truth: [`../DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md)
 - [ ] Bundle icons and remaining default resources in the selected Windows delivery.
   - [x] Add an original token-based SVG application icon, Qt window/tray wiring, exact integrity
     tests, and installed-wheel packaging.
-  - [ ] Derive/verify ICO or MSIX icon sizes after selecting the standalone Windows packager.
+  - [x] Derive and byte-verify a deterministic 10-size Windows ICO without selecting a packager.
+  - [ ] Wire the ICO or derive MSIX-specific images after selecting the standalone delivery, then
+    verify installed shell/taskbar/tray appearance.
 - [ ] Add startup and packaging error recovery.
   - [x] Add a fail-fast, non-overwriting exact-revision wheel/manifest build with full preflight.
   - [ ] Add standalone executable/installer startup recovery after a packager is selected.
